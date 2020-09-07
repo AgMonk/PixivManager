@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=yes"/>
+    <meta charset="UTF-8">
+    <title>tag翻译</title>
+    <script type="text/javascript" src="/js/vue.js"></script>
+    <script type="text/javascript" src="/js/axios.min.js"></script>
+    <script type="text/javascript" src="/js/queryString.js"></script>
+    <script type="text/javascript">
+
+    </script>
+    <style type="text/css">
+        .err {
+            color: red;
+        }
+
+        input {
+            width: 70%;
+        }
+
+        .customers {
+            font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+            width: 100%;
+            border-collapse: collapse;
+
+        }
+
+        .customers td, #customers th {
+            font-size: 1em;
+            border: 1px solid #98bf21;
+            padding: 3px 7px 2px 7px;
+        }
+
+        .customers th {
+            font-size: 1.1em;
+            text-align: left;
+            padding-top: 5px;
+            padding-bottom: 4px;
+            background-color: #A7C942;
+            color: #ffffff;
+        }
+
+        .customers tr.alt td {
+            color: #000000;
+            background-color: #EAF2D3;
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+
+
+    <table class="customers">
+        <tr>
+            <th>序号</th>
+            <th style="width: 30%">TAG
+                <input type="text" v-model="param.keyword" placeholder="关键字" @keypress.enter="getTags()">
+                <button @click="getTags()">查询</button>
+
+            </th>
+            <th>翻译 &nbsp;&nbsp;&nbsp;
+                <input type="text" v-model="param.page" placeholder="页数" style="width: 50px;"
+                       @keypress.enter="getTags()">
+                <input type="text" v-model="param.limit" placeholder="每页数量" style="width: 50px;">
+
+                <button @click="param.page-=1;param.page=Math.max(param.page,1);getTags()">上一页</button>
+                <button @click="param.page-=-1;getTags()">下一页</button>
+
+            </th>
+            <th>自定义翻译
+                &nbsp;<a href="https://www.pixiv.net/bookmark_tag_all.php">全部Tag</a>
+                &nbsp;<a href="https://www.pixiv.net/bookmark.php?untagged=1">未分类作品</a>
+            </th>
+        </tr>
+        <tr v-for="(item,i) in tags " :class="i%2===1?'alt':null">
+            <td>{{i}}</td>
+            <td>
+                <button @click="addTrans(item.name,item.name)">使用</button>
+                <a target="_blank"
+                   :href="'https://www.pixiv.net/tags/'+item.name+'/artworks?s_mode=s_tag'">{{item.name}}({{item.count}})</a>
+                <a target="_blank"
+                   :href="'https://translate.google.cn/#view=home&op=translate&sl=ja&tl=zh-CN&text='+item.name">翻译</a>
+
+            </td>
+            <td>
+                <button @click="addTrans(item.name,item.translation)">使用</button>
+                {{item.translation}}
+                <a target="_blank"
+                   :href="'https://translate.google.cn/#view=home&op=translate&sl=ja&tl=zh-CN&text='+item.translation">翻译</a>
+
+            </td>
+            <td>
+                <button @click="addTrans(item.name,item.trans)">使用</button>
+                <input type="text" v-model="item.trans" @keypress.enter="">
+            </td>
+        </tr>
+
+    </table>
+</div>
+</body>
+<script>
+    const app = new Vue({
+        el: "#app",
+        data: {
+            tags: [],
+            param: {
+                page: 1,
+                limit: 20,
+                keyword: "",
+            },
+        },
+        methods: {
+            getTags() {
+                get("data/notTranslatedTags", this.param, function (res) {
+                    _this.tags = res.data
+                    console.log(res.data)
+                })
+            },
+        },
+        created() {
+            this.getTags();
+        },
+    });
+    const _this = app;
+</script>
+</html>
+

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD
+Mapper 3.0//EN"
+        "http://ibatis.apache.org/dtd/ibatis-3-mapper.dtd">
+
+<!-- 根节点必须为mapper -->
+<!-- namespace接口文件 -->
+<mapper namespace="com.gin.pixivmanager.dao.DataManagerMapper">
+
+
+    <select id="getIllustrations" resultType="com.gin.pixivmanager.entity.Illustration">
+        select *
+        from t_illuStration;
+    </select>
+    <select id="getTags" resultType="com.gin.pixivmanager.entity.Tag">
+        select *
+        from t_tags;
+    </select>
+    <select id="getTrans" resultType="com.gin.pixivmanager.entity.Tag">
+        select *
+        from t_tags_translation;
+    </select>
+    <insert id="setTagTranslation">
+
+        insert into t_tags_translation (name, translation)
+        values (#{name}, #{translation});
+    </insert>
+</mapper>
