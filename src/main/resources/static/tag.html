@@ -67,7 +67,10 @@
 
                 <button @click="param.page-=1;param.page=Math.max(param.page,1);getTags()">上一页</button>
                 <button @click="param.page-=-1;getTags()">下一页</button>
-
+                <select v-model="param.all">
+                    <option value="0">常规</option>
+                    <option value="1">全部</option>
+                </select>
             </th>
             <th>自定义翻译
                 &nbsp;<a href="https://www.pixiv.net/bookmark_tag_all.php">全部Tag</a>
@@ -109,11 +112,12 @@
                 page: 1,
                 limit: 20,
                 keyword: "",
+                all: 0,
             },
         },
         methods: {
             getTags() {
-                get("data/notTranslatedTags", this.param, function (res) {
+                get("data/getTags", this.param, function (res) {
                     _this.tags = res.data
                     console.log(res.data)
                 })

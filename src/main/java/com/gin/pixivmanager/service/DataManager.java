@@ -12,13 +12,15 @@ import java.util.List;
  */
 public interface DataManager {
     /**
-     * 排序输出未有自定义翻译的tag
+     * 按照过滤条件输出tag
      *
-     * @param page
-     * @param limit 数量
-     * @return tag列表
+     * @param page    页数
+     * @param limit   每页条数
+     * @param keyword 关键字
+     * @param all     是否显示所有tag
+     * @return
      */
-    List<Tag> getNotTranslatedTags(Integer page, Integer limit);
+    List<Tag> getTags(Integer page, Integer limit, String keyword, Integer all);
 
     /**
      * 给一个tag设置自定义翻译

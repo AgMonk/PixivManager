@@ -7,6 +7,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+/**
+ * 数据控制器
+ */
 @RestController
 @RequestMapping("data")
 public class DataController {
@@ -21,9 +24,10 @@ public class DataController {
         dataManager.init();
     }
 
-    @RequestMapping("notTranslatedTags")
-    public List<Tag> getNotTranslatedTags(Integer page, Integer limit) {
-        return dataManager.getNotTranslatedTags(page, limit);
+    @RequestMapping("getTags")
+    public List<Tag> getTags(Integer page, Integer limit, String keyword, Integer all) {
+
+        return dataManager.getTags(page, limit, keyword, all);
     }
 
     @RequestMapping("setTagTranslation")

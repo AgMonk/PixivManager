@@ -27,9 +27,23 @@ public class DataManagerImpl implements DataManager {
 
 
     @Override
-    public List<Tag> getNotTranslatedTags(Integer page, Integer limit) {
+    public List<Tag> getTags(Integer page, Integer limit, String keyword, Integer all) {
+        page = page != null ? page : 1;
         limit = limit != null ? limit : 20;
         List<Tag> tagList = new ArrayList<>(tagMap.values());
+
+        if (keyword != null) {
+            tagList.removeIf(tag -> {
+                String s = keyword.toLowerCase();
+                return !tag.getName().contains(s) && !tag.getTranslation().contains(s);
+            });
+        }
+        if (all != 1) {
+            tagList.removeIf(tag -> {
+                return translationMap.containsKey(tag.getName()) || translationMap.containsKey(tag.getName().toLowerCase());
+            });
+        }
+
         tagList.sort(Comparator.comparingInt(Tag::getCount));
         Collections.reverse(tagList);
         return tagList.subList((page - 1) * limit, page * limit);
@@ -75,14 +89,10 @@ public class DataManagerImpl implements DataManager {
             List<Tag> tagList = ill.getTagList();
             for (Tag tag : tagList) {
                 String tagName = tag.getName();
-                if (tagMap.containsKey(tagName)
-                        && !translationMap.containsKey(tagName)
-                        && !translationMap.containsKey(tagName.toLowerCase())
-                ) {
-                    Tag t = tagMap.get(tagName);
-                    t.addCount();
-                    tagMap.put(tagName, t);
-                }
+                Tag t = tagMap.get(tagName);
+                t = t != null ? t : tag;
+                t.addCount();
+                tagMap.put(tagName, t);
             }
         }
 
