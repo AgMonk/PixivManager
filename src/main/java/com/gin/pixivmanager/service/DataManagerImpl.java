@@ -18,10 +18,10 @@ public class DataManagerImpl implements DataManager {
 
     final DataManagerMapper mapper;
 
-    public DataManagerImpl(DataManagerMapper mapper) {
-        this.mapper = mapper;
+    public DataManagerImpl(DataManagerMapper dataManagerMapper) {
+        this.mapper = dataManagerMapper;
 
-        init();
+//        init();
 
     }
 
@@ -52,10 +52,12 @@ public class DataManagerImpl implements DataManager {
 
     @Override
     public Integer setTagTranslation(Tag t) {
+        log.info("添加Tag翻译 {} -> {}", t.getName(), t.getTranslation());
         addTranslation(t);
         Tag tag = tagMap.get(t.getName());
         tag.setCount(0);
         tagMap.put(t.getName(), t);
+        /*todo 请求修改tag*/
         return mapper.setTagTranslation(t);
     }
 
@@ -81,6 +83,8 @@ public class DataManagerImpl implements DataManager {
         countTags();
 
         log.info("数据载入完毕");
+
+
     }
 
     private void countTags() {
@@ -102,7 +106,7 @@ public class DataManagerImpl implements DataManager {
     public String putDownloading(String k, String v) {
         String complete = "100";
         if (v.endsWith(complete)) {
-            downloading.remove(k);
+            return downloading.remove(k);
         }
         return downloading.put(k, v);
     }
@@ -137,4 +141,8 @@ public class DataManagerImpl implements DataManager {
         return translationMap.get(k);
     }
 
+    @Override
+    public Map<String, String> getDownloading() {
+        return downloading;
+    }
 }

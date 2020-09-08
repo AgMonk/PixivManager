@@ -90,7 +90,7 @@ public class Illustration {
         userName = body.getString("userName");
         title = body.getString("title");
         description = body.getString("");
-        description = description.substring(0, Math.min(4000, description.length()));
+        description = description != null ? description.substring(0, Math.min(4000, description.length())) : null;
 
         bookmarkCount = body.getInteger("bookmarkCount");
         pageCount = body.getInteger("pageCount");
@@ -105,7 +105,7 @@ public class Illustration {
         String original = urls.getString("original");
         int indexOf = original.lastIndexOf("/");
         fileName = original.substring(indexOf + 1);
-        urlPrefix = original.substring(0, indexOf);
+        urlPrefix = original.substring(0, indexOf + 1);
         //如果是动图
         if (illustType == 2) {
             urlPrefix = urlPrefix.replace("img-original", "img-zip-ugoira");
@@ -116,7 +116,7 @@ public class Illustration {
             //解析tag
             StringBuilder tagBuilder = new StringBuilder();
             StringBuilder translationBuilder = new StringBuilder();
-            JSONArray tagsArray = body.getJSONArray("tags");
+            JSONArray tagsArray = body.getJSONObject("tags").getJSONArray("tags");
             for (int i = 0; i < tagsArray.size(); i++) {
                 JSONObject tag = tagsArray.getJSONObject(i);
                 String tagString = tag.getString("tag");
@@ -132,7 +132,7 @@ public class Illustration {
 
         //截断用户名中的垃圾信息
         for (String trash : USERNAME_TRASH) {
-            userName = userName.contains(trash)?userName.substring(0,userName.indexOf(trash)):userName;
+            userName = userName.contains(trash) ? userName.substring(0, userName.indexOf(trash)) : userName;
         }
     }
 
@@ -150,19 +150,19 @@ public class Illustration {
     }
 
     public List<Tag> getTagList() {
-        List<Tag> tagList=new ArrayList<>();
+        List<Tag> tagList = new ArrayList<>();
         String[] tagArray = tag.split(",");
         String[] transArray = tagTranslated.split(",");
         for (int i = 0; i < tagArray.length; i++) {
-            tagList.add(new Tag(tagArray[i],transArray[i] ));
+            tagList.add(new Tag(tagArray[i], transArray[i]));
         }
         return tagList;
     }
 
     //替换文件名非法字符
-    private static String clean(String s){
+    private static String clean(String s) {
         for (Map.Entry<String, String> entry : illegalChar.entrySet()) {
-            s = s.replace(entry.getKey(),entry.getValue());
+            s = s.replace(entry.getKey(), entry.getValue());
         }
         return s;
     }

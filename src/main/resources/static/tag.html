@@ -56,18 +56,18 @@
         <tr>
             <th>序号</th>
             <th style="width: 30%">TAG
-                <input type="text" v-model="param.keyword" placeholder="关键字" @keypress.enter="getTags()">
+                <input type="text" v-model="paramTag.keyword" placeholder="关键字" @keypress.enter="getTags()">
                 <button @click="getTags()">查询</button>
 
             </th>
             <th>翻译 &nbsp;&nbsp;&nbsp;
-                <input type="text" v-model="param.page" placeholder="页数" style="width: 50px;"
+                <input type="text" v-model="paramTag.page" placeholder="页数" style="width: 50px;"
                        @keypress.enter="getTags()">
-                <input type="text" v-model="param.limit" placeholder="每页数量" style="width: 50px;">
+                <input type="text" v-model="paramTag.limit" placeholder="每页数量" style="width: 50px;">
 
-                <button @click="param.page-=1;param.page=Math.max(param.page,1);getTags()">上一页</button>
-                <button @click="param.page-=-1;getTags()">下一页</button>
-                <select v-model="param.all">
+                <button @click="paramTag.page-=1;paramTag.page=Math.max(paramTag.page,1);getTags()">上一页</button>
+                <button @click="paramTag.page-=-1;getTags()">下一页</button>
+                <select v-model="paramTag.all">
                     <option value="0">常规</option>
                     <option value="1">全部</option>
                 </select>
@@ -80,7 +80,7 @@
         <tr v-for="(item,i) in tags " :class="i%2===1?'alt':null">
             <td>{{i}}</td>
             <td>
-                <button @click="addTrans(item.name,item.name)">使用</button>
+                <button @click="setTrans(item.name,item.name)">使用</button>
                 <a target="_blank"
                    :href="'https://www.pixiv.net/tags/'+item.name+'/artworks?s_mode=s_tag'">{{item.name}}({{item.count}})</a>
                 <a target="_blank"
@@ -88,15 +88,15 @@
 
             </td>
             <td>
-                <button @click="addTrans(item.name,item.translation)">使用</button>
+                <button @click="setTrans(item.name,item.translation)">使用</button>
                 {{item.translation}}
                 <a target="_blank"
                    :href="'https://translate.google.cn/#view=home&op=translate&sl=ja&tl=zh-CN&text='+item.translation">翻译</a>
 
             </td>
             <td>
-                <button @click="addTrans(item.name,item.trans)">使用</button>
-                <input type="text" v-model="item.trans" @keypress.enter="">
+                <button @click="setTrans(item.name,item.trans)">使用</button>
+                <input type="text" v-model="item.trans" @keypress.enter="setTrans(item.name,item.trans)">
             </td>
         </tr>
 
@@ -108,18 +108,24 @@
         el: "#app",
         data: {
             tags: [],
-            param: {
+            paramTag: {
                 page: 1,
                 limit: 20,
                 keyword: "",
                 all: 0,
             },
+
         },
         methods: {
             getTags() {
-                get("data/getTags", this.param, function (res) {
+                get("data/getTags", this.paramTag, function (res) {
                     _this.tags = res.data
                     console.log(res.data)
+                })
+            },
+            setTrans(n, t) {
+                get("data/setTagTranslation", {name: n, translation: t}, function (res) {
+                    _this.getTags();
                 })
             },
         },

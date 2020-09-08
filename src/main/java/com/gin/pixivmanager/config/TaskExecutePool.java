@@ -42,11 +42,6 @@ public class TaskExecutePool {
         return getExecutor("Ctrl-", 10, QUEUE, KEEPALIVE);
     }
 
-    @Bean
-    public Executor countExecutor() {
-        return getExecutor("count-", 10, QUEUE, KEEPALIVE);
-    }
-
 
     /**
      * 创建线程池

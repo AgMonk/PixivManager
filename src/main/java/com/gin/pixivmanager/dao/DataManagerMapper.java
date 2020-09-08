@@ -6,6 +6,9 @@ import org.apache.ibatis.annotations.Mapper;
 
 import java.util.List;
 
+/**
+ * @author bx002
+ */
 @Mapper
 public interface DataManagerMapper {
     /**

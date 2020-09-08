@@ -64,16 +64,17 @@ public class ReqUtil {
      * @return File
      */
     public static File download(String url, String filePath) {
+        int endIndex = url.indexOf("/", url.indexOf("//") + 2);
         String tempName = url.substring(url.lastIndexOf('/') + 1);
         HttpGet get = new HttpGet(url);
         //伪造Referer
-        get.addHeader("Referer", "https://i.pximg.net");
+        get.addHeader("Referer", url.substring(0, endIndex));
         HEADERS_DEFUALT.forEach(get::addHeader);
 
         CloseableHttpResponse response = null;
         long start = System.currentTimeMillis();
         for (int i = 1; i <= 5; i++) {
-            log.info("第一次下载 {}", tempName);
+            log.info("第{}次下载 {}", i, tempName);
             try {
                 response = HttpClients.createDefault().execute(get);
                 HttpEntity entity = response.getEntity();
@@ -90,10 +91,11 @@ public class ReqUtil {
                     String progress = totalRead + "/" + contentLength;
                     long progressInt = totalRead * 100L / contentLength;
                     String p = progress + " " + progressInt;
+
+                    //下载进度
                     DataManager dataManager = SpringContextUtil.getBean(DataManager.class);
                     if (dataManager != null) {
                         dataManager.putDownloading(tempName, p);
-
                     }
                 }
 
@@ -111,6 +113,7 @@ public class ReqUtil {
                 e.printStackTrace();
             }
         }
+        log.warn("下载失败 {}", url);
         return null;
     }
 

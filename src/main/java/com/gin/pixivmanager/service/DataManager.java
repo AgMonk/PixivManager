@@ -4,6 +4,7 @@ import com.gin.pixivmanager.entity.Illustration;
 import com.gin.pixivmanager.entity.Tag;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 数据管理对象
@@ -56,4 +57,6 @@ public interface DataManager {
     String addTranslation(Tag t);
 
     String getTranslation(String k);
+
+    Map<String, String> getDownloading();
 }
