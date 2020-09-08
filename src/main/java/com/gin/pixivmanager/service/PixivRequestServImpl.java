@@ -6,6 +6,7 @@ import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.gin.pixivmanager.config.PixivUrl;
 import com.gin.pixivmanager.entity.Illustration;
 import com.gin.pixivmanager.util.ReqUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -14,11 +15,10 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 
+@Slf4j
 @Service
 public class PixivRequestServImpl implements PixivRequestServ {
-    final Executor downloadExecutor;
-    final Executor requestExecutor;
-    final Executor scanExecutor;
+    final Executor downloadExecutor, requestExecutor, scanExecutor;
     final DataManager dataManager;
     final PixivUrl pixivUrl;
 
@@ -61,7 +61,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
      * @param latch 倒数计数器
      */
     @Override
-    public void getIllustrationDetail(String id, List<Illustration> list, CountDownLatch latch) {
+    public void getIllustrationDetail(String id, List<Illustration> list, CountDownLatch latch, Integer size, Long start) {
         requestExecutor.execute(() -> {
             String url = pixivUrl.getIllustration().replace("{pid}", id);
             String s = ReqUtil.get(url, null, null, null);
@@ -74,16 +74,27 @@ public class PixivRequestServImpl implements PixivRequestServ {
             }
             if (latch != null) {
                 latch.countDown();
+
+                if (size != null && start != null) {
+                    int count = Math.toIntExact(size - latch.getCount());
+                    String key = "详情任务-" + start % 10000;
+                    String value = count + "/" + size + " " + Math.floor(count * 1000.0 / size) / 10;
+                    log.info(key + " " + value + " 耗时{}秒", (System.currentTimeMillis() - start) / 1000);
+                    dataManager.addDetails(key, value);
+                }
             }
         });
     }
 
     @Override
     public List<Illustration> getIllustrationDetail(List<String> idList) {
-        CountDownLatch latch = new CountDownLatch(idList.size());
+        int size = idList.size();
+        long start = System.currentTimeMillis();
+        log.info("查询作品详情 {}", size);
+        CountDownLatch latch = new CountDownLatch(size);
         List<Illustration> list = new ArrayList<>();
         for (String id : idList) {
-            getIllustrationDetail(id, list, latch);
+            getIllustrationDetail(id, list, latch, size, start);
         }
         try {
             latch.await();

@@ -11,7 +11,14 @@ import java.util.*;
 @Service
 @Slf4j
 public class DataManagerImpl implements DataManager {
+    /**
+     * 下载进度
+     */
     final private Map<String, String> downloading = new HashMap<>();
+    /**
+     * 查询详情进度
+     */
+    final private Map<String, String> details = new HashMap<>();
     final private Map<String, Illustration> illustrationMap = new HashMap<>();
     final private Map<String, Tag> tagMap = new HashMap<>();
     final private Map<String, String> translationMap = new HashMap<>();
@@ -103,12 +110,26 @@ public class DataManagerImpl implements DataManager {
     }
 
     @Override
-    public String putDownloading(String k, String v) {
+    public String addDownloading(String k, String v) {
         String complete = "100";
         if (v.endsWith(complete)) {
             return downloading.remove(k);
         }
         return downloading.put(k, v);
+    }
+
+    @Override
+    public String addDetails(String k, String v) {
+        String complete = "100";
+        if (v.endsWith(complete)) {
+            return details.remove(k);
+        }
+        return details.put(k, v);
+    }
+
+    @Override
+    public Map<String, String> getDetails() {
+        return details;
     }
 
     @Override

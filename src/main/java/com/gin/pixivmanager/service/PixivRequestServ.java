@@ -34,8 +34,10 @@ public interface PixivRequestServ {
      * @param id    pid
      * @param list  接受结果的list
      * @param latch 倒数计数器
+     * @param size  计数器的最大值
+     * @param start 任务开始时间
      */
-    void getIllustrationDetail(String id, List<Illustration> list, CountDownLatch latch);
+    void getIllustrationDetail(String id, List<Illustration> list, CountDownLatch latch, Integer size, Long start);
 
     /**
      * 请求一个列表中的pid详情

@@ -43,7 +43,11 @@ public interface DataManager {
      * @param v
      * @return
      */
-    String putDownloading(String k, String v);
+    String addDownloading(String k, String v);
+
+    String addDetails(String k, String v);
+
+    Map<String, String> getDetails();
 
     void addIllustration(Illustration i);
 

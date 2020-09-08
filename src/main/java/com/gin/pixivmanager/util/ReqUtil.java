@@ -95,7 +95,7 @@ public class ReqUtil {
                     //下载进度
                     DataManager dataManager = SpringContextUtil.getBean(DataManager.class);
                     if (dataManager != null) {
-                        dataManager.putDownloading(tempName, p);
+                        dataManager.addDownloading(tempName, p);
                     }
                 }
 
@@ -260,6 +260,7 @@ public class ReqUtil {
         CloseableHttpClient client = HttpClients.createDefault();
 
         //执行请求
+        lableA:
         while (times < maxTimes) {
             try {
                 times++;
@@ -274,27 +275,23 @@ public class ReqUtil {
                     case HttpStatus.SC_BAD_GATEWAY:
                         log.debug("第{}次请求 失败 服务器错误({})", times, statusCode);
                         times--;
-                        Thread.sleep(5 * 1000);
+                        Thread.sleep(10 * 1000);
                         break;
                     case HttpStatus.SC_MOVED_TEMPORARILY:
                         log.info("第{}次请求 连接被重定向({})", times, statusCode);
-                        times = maxTimes;
-                        break;
+                        break lableA;
                     case HttpStatus.SC_OK:
                         long end = System.currentTimeMillis();
                         log.debug("第{}次请求 成功 地址：{} 耗时：{}", times, m.getURI(), formatDuration(end - start));
                         result = EntityUtils.toString(response.getEntity(), enc);
                         log.debug(result);
-                        times = maxTimes;
-                        break;
+                        break lableA;
                     case HttpStatus.SC_NOT_FOUND:
                         log.debug("第{}次请求 失败 地址不存在({}) 地址：{} ", times, statusCode, m.getURI());
-                        times = maxTimes;
-                        break;
+                        break lableA;
                     default:
                         log.info("第{}次请求 未定义错误({})", times, statusCode);
-                        times = maxTimes;
-                        break;
+                        break lableA;
                 }
             } catch (SocketTimeoutException e) {
                 if (maxTimes == times) {
