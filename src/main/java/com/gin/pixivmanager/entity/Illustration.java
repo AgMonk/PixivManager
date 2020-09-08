@@ -159,13 +159,32 @@ public class Illustration {
         return tagList;
     }
 
-    //替换文件名非法字符
+    /**
+     * 生成简单文件名
+     *
+     * @param dic 翻译字典
+     * @return 文件名
+     */
+    public String createSimpleName(Map<String, String> dic) {
+        if (dic == null || dic.get(id) == null) {
+            return fileName;
+        }
+        return null;
+    }
+
+    /**
+     * 替换文件名非法字符
+     *
+     * @param s 输入字符串
+     * @return 输出字符串
+     */
     private static String clean(String s) {
         for (Map.Entry<String, String> entry : illegalChar.entrySet()) {
             s = s.replace(entry.getKey(), entry.getValue());
         }
         return s;
     }
+
 
     @Override
     public String toString() {

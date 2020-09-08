@@ -2,6 +2,7 @@ package com.gin.pixivmanager.util;
 
 import com.gin.pixivmanager.service.DataManager;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.http.ConnectionClosedException;
 import org.apache.http.Consts;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
@@ -88,14 +89,14 @@ public class ReqUtil {
                 while ((r = inputStream.read(buffer)) > 0) {
                     output.write(buffer, 0, r);
                     totalRead += r;
-                    String progress = totalRead + "/" + contentLength;
+                    String progress = totalRead / 1000 + "/" + contentLength / 1000;
                     long progressInt = totalRead * 100L / contentLength;
                     String p = progress + " " + progressInt;
 
                     //下载进度
                     DataManager dataManager = SpringContextUtil.getBean(DataManager.class);
                     if (dataManager != null) {
-                        dataManager.addDownloading(tempName, p);
+                        dataManager.addDownloading("(" + i + ")" + tempName, p);
                     }
                 }
 
@@ -108,6 +109,8 @@ public class ReqUtil {
                 long end = System.currentTimeMillis();
                 log.info("{} 下载完毕 总耗时 {} 秒 平均速度 {}KB/s", tempName, (end - start) / 1000, contentLength / (end - start));
                 return new File(filePath);
+            } catch (ConnectionClosedException e) {
+                log.warn("下载失败({}): 连接关闭", i);
             } catch (IOException e) {
                 log.warn("下载失败({}):{}", i, response.getStatusLine());
                 e.printStackTrace();
@@ -284,7 +287,7 @@ public class ReqUtil {
                         long end = System.currentTimeMillis();
                         log.debug("第{}次请求 成功 地址：{} 耗时：{}", times, m.getURI(), formatDuration(end - start));
                         result = EntityUtils.toString(response.getEntity(), enc);
-                        log.debug(result);
+                        log.debug(result.substring(0, 20));
                         break lableA;
                     case HttpStatus.SC_NOT_FOUND:
                         log.debug("第{}次请求 失败 地址不存在({}) 地址：{} ", times, statusCode, m.getURI());

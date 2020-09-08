@@ -14,23 +14,29 @@ public interface DataManagerMapper {
     /**
      * 读取所有作品
      *
-     * @return
+     * @return 详情
      */
     List<Illustration> getIllustrations();
 
     /**
      * 读取所有tag
      *
-     * @return
+     * @return tag
      */
     List<Tag> getTags();
 
     /**
      * 读取所有翻译
      *
-     * @return
+     * @return tag的翻译
      */
     List<Tag> getTrans();
 
+    /**
+     * 为tag添加翻译
+     *
+     * @param t tag
+     * @return 结果
+     */
     Integer setTagTranslation(Tag t);
 }

@@ -163,6 +163,11 @@ public class DataManagerImpl implements DataManager {
     }
 
     @Override
+    public Map<String, String> getTranslationMap() {
+        return translationMap;
+    }
+
+    @Override
     public Map<String, String> getDownloading() {
         return downloading;
     }

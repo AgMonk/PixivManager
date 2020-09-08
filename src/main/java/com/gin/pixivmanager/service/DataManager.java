@@ -62,5 +62,7 @@ public interface DataManager {
 
     String getTranslation(String k);
 
+    Map<String, String> getTranslationMap();
+
     Map<String, String> getDownloading();
 }

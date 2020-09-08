@@ -9,7 +9,9 @@ import com.gin.pixivmanager.util.ReqUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -31,28 +33,53 @@ public class PixivRequestServImpl implements PixivRequestServ {
     }
 
     /**
-     * 下载文件
+     * 下载多个文件
      *
-     * @param url
+     * @param idList  pid列表
+     * @param rootDir 下载根目录
      */
     @Override
-    public void download(String url, String filePath) {
-        downloadExecutor.execute(() -> {
-            ReqUtil.download(url, filePath);
-        });
+    public List<File> download(List<String> idList, String rootDir) {
+        List<File> list = new ArrayList<>();
+        List<Illustration> detail = getIllustrationDetail(idList);
+        Map<String, String> urlAndFilePath = getUrlAndFilePath(detail, rootDir);
+        for (Map.Entry<String, String> entry : urlAndFilePath.entrySet()) {
+            download(entry.getKey(), entry.getValue(), list);
+        }
+        return list;
+    }
 
+    @Override
+    public List<Illustration> getIllustrationDetail(List<String> idList) {
+        int size = idList.size();
+        long start = System.currentTimeMillis();
+        log.info("查询作品详情 {}", size);
+        CountDownLatch latch = new CountDownLatch(size);
+        List<Illustration> list = new ArrayList<>();
+        for (String id : idList) {
+            getIllustrationDetail(id, list, latch, size, start);
+        }
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return list;
     }
 
     /**
      * 下载文件
      *
-     * @param urlAndFilePath key为url ,  value为filePath
+     * @param url
      */
-    @Override
-    public void download(Map<String, String> urlAndFilePath) {
-        for (Map.Entry<String, String> entry : urlAndFilePath.entrySet()) {
-            download(entry.getKey(), entry.getValue());
-        }
+    private void download(String url, String filePath, List<File> files) {
+        downloadExecutor.execute(() -> {
+            File file = ReqUtil.download(url, filePath);
+            if (files != null) {
+                files.add(file);
+            }
+        });
+
     }
 
     /**
@@ -60,8 +87,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
      * @param list  接受结果的list
      * @param latch 倒数计数器
      */
-    @Override
-    public void getIllustrationDetail(String id, List<Illustration> list, CountDownLatch latch, Integer size, Long start) {
+    private void getIllustrationDetail(String id, List<Illustration> list, CountDownLatch latch, Integer size, Long start) {
         requestExecutor.execute(() -> {
             String url = pixivUrl.getIllustration().replace("{pid}", id);
             String s = ReqUtil.get(url, null, null, null);
@@ -86,24 +112,47 @@ public class PixivRequestServImpl implements PixivRequestServ {
         });
     }
 
-    @Override
-    public List<Illustration> getIllustrationDetail(List<String> idList) {
-        int size = idList.size();
-        long start = System.currentTimeMillis();
-        log.info("查询作品详情 {}", size);
-        CountDownLatch latch = new CountDownLatch(size);
-        List<Illustration> list = new ArrayList<>();
-        for (String id : idList) {
-            getIllustrationDetail(id, list, latch, size, start);
-        }
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        return list;
+    /**
+     * 生成下载链接和目标文件地址
+     *
+     * @param illList 作品详情列表
+     * @param rootDir 下载根目录
+     * @return map
+     */
+    private Map<String, String> getUrlAndFilePath(List<Illustration> illList, String rootDir) {
+        Map<String, String> map = new HashMap<>();
+        illList.forEach(ill -> map.putAll(getUrlAndFilePath(ill, rootDir)));
+        return map;
     }
 
+    /**
+     * 生成下载链接和目标文件地址
+     *
+     * @param ill     作品详情
+     * @param rootDir 下载根目录
+     * @return map
+     */
+    private Map<String, String> getUrlAndFilePath(Illustration ill, String rootDir) {
+        Map<String, String> map = new HashMap<>();
+        String urlPrefix = ill.getUrlPrefix();
+        String fileName = ill.getFileName();
+        String simpleName = rootDir + (rootDir.endsWith("/") ? "" : "/")
+                + ill.createSimpleName(dataManager.getTranslationMap());
+        Integer pageCount = ill.getPageCount();
+
+        String url = urlPrefix + fileName;
+
+        if (ill.getIllustType() == 2) {
+            map.put(url, simpleName);
+        } else {
+            for (Integer i = 0; i < pageCount; i++) {
+                String u = url.replace("_p0", "_p" + i);
+                String n = simpleName.replace("_p0", "_p" + i);
+                map.put(u, n);
+            }
+        }
+        return map;
+    }
 
     private static void printJson(Object obj) {
         System.err.println(prettyJson(obj));
