@@ -53,7 +53,9 @@ public class DataController {
 
 
         PixivRequestServ requestServ = SpringContextUtil.getBean(PixivRequestServ.class);
-        List<File> download = requestServ.download(requestServ.getIllustrationDetail(list), "f:/");
+
+        List<String> untagged = requestServ.getBookmark("未分類", 100);
+        List<File> download = requestServ.download(requestServ.getIllustrationDetail(untagged), "f:/");
         return download;
     }
 }

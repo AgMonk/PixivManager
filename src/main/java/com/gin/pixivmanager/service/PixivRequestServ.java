@@ -28,5 +28,12 @@ public interface PixivRequestServ {
      */
     List<Illustration> getIllustrationDetail(List<String> idList);
 
-
+    /**
+     * 获取收藏的作品id
+     *
+     * @param tag 需要有的tag
+     * @param max 最大获取数量
+     * @return 收藏的作品id
+     */
+    List<String> getBookmark(String tag, Integer max);
 }

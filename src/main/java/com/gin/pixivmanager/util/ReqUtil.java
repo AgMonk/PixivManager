@@ -232,7 +232,7 @@ public class ReqUtil {
         timeout = timeout == null ? TIME_OUT : timeout;
         //设置header
         headers.forEach((k, v) -> {
-            log.debug("添加header {} -> {}", k, v.substring(0, Math.min(v.length(), 20)));
+            log.debug("添加header {} -> {}", k, v);
             m.addHeader(k, v);
             m.setHeader(k, v);
         });

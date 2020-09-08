@@ -34,7 +34,6 @@ public class PixivRequestServImpl implements PixivRequestServ {
         this.pixivUrl = pixivUrl;
         this.userInfo = userInfo;
 
-        getBookmark("未分類", 100);
     }
 
     /**
@@ -110,7 +109,8 @@ public class PixivRequestServImpl implements PixivRequestServ {
      * @param max 最大获取数量
      * @return 收藏的作品id
      */
-    private List<String> getBookmark(String tag, Integer max) {
+    @Override
+    public List<String> getBookmark(String tag, Integer max) {
         long start = System.currentTimeMillis();
         log.info("获取收藏作品id tag:{}", tag);
 
