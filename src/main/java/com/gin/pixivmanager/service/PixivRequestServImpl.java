@@ -42,9 +42,19 @@ public class PixivRequestServImpl implements PixivRequestServ {
     public List<File> download(List<String> idList, String rootDir) {
         List<File> list = new ArrayList<>();
         List<Illustration> detail = getIllustrationDetail(idList);
+
         Map<String, String> urlAndFilePath = getUrlAndFilePath(detail, rootDir);
+
+        CountDownLatch latch = new CountDownLatch(urlAndFilePath.size());
+
         for (Map.Entry<String, String> entry : urlAndFilePath.entrySet()) {
-            download(entry.getKey(), entry.getValue(), list);
+            download(entry.getKey(), entry.getValue(), list, latch);
+        }
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
         return list;
     }
@@ -66,7 +76,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
         }
 
         dataManager.addIllustrations(list);
-        
+        dataManager.addTags(list);
         return list;
     }
 
@@ -74,12 +84,16 @@ public class PixivRequestServImpl implements PixivRequestServ {
      * 下载文件
      *
      * @param url
+     * @param latch
      */
-    private void download(String url, String filePath, List<File> files) {
+    private void download(String url, String filePath, List<File> files, CountDownLatch latch) {
         downloadExecutor.execute(() -> {
             File file = ReqUtil.download(url, filePath);
             if (files != null) {
                 files.add(file);
+            }
+            if (latch != null) {
+                latch.countDown();
             }
         });
 

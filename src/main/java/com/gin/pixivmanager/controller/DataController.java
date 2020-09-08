@@ -50,7 +50,6 @@ public class DataController {
         List<String> list = new ArrayList<>();
         list.add("84232385");
         list.add("84234141");
-        list.add("84228932");
 
         PixivRequestServ requestServ = SpringContextUtil.getBean(PixivRequestServ.class);
         List<File> download = requestServ.download(list, "f:/");

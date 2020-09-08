@@ -66,4 +66,12 @@ public interface DataManager {
     Map<String, String> getTranslationMap();
 
     Map<String, String> getDownloading();
+
+    /**
+     * 添加Tag
+     *
+     * @param list 作品详情列表
+     * @return 新数量
+     */
+    Integer addTags(List<Illustration> list);
 }

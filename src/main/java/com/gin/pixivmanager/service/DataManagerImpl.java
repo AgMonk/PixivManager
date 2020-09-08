@@ -28,7 +28,7 @@ public class DataManagerImpl implements DataManager {
     public DataManagerImpl(DataManagerMapper dataManagerMapper) {
         this.mapper = dataManagerMapper;
 
-//        init();
+        init();
 
     }
 
@@ -180,5 +180,23 @@ public class DataManagerImpl implements DataManager {
     @Override
     public Map<String, String> getDownloading() {
         return downloading;
+    }
+
+    @Override
+    public Integer addTags(List<Illustration> list) {
+        List<Tag> tags = new ArrayList<>();
+        for (Illustration ill : list) {
+            List<Tag> tagList = ill.getTagList();
+            for (Tag tag : tagList) {
+                if (!tags.contains(tag) && !tagMap.containsKey(tag.getName())) {
+                    tags.add(tag);
+                    addTag(tag);
+                }
+            }
+        }
+        mapper.addTags(tags);
+        int size = tags.size();
+        log.info("添加新tag {} 个 总计 {}个", size, tagMap.size());
+        return size;
     }
 }
