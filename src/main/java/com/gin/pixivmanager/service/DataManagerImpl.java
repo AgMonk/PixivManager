@@ -138,9 +138,25 @@ public class DataManagerImpl implements DataManager {
 
     @Override
     public Integer addIllustrations(List<Illustration> list) {
+        //分段插入的阈值
+        int block = 50;
+
         Integer delCount = mapper.delIllustrations(list);
         log.info("删除作品详情 {} 个", delCount);
-        Integer addCount = mapper.addIllustrations(list);
+        Integer addCount = 0;
+
+        if (list.size() <= block) {
+            //直接插入
+            addCount = mapper.addIllustrations(list);
+        } else {
+            //分段插入
+            int i = 0;
+            do {
+                List<Illustration> subList = list.subList(i * block, Math.min(list.size(), (i + 1) * block));
+                addCount += mapper.addIllustrations(subList);
+                i++;
+            } while ((i + 1) * block < list.size());
+        }
         log.info("添加作品详情 {} 个", addCount);
         list.forEach(this::addIllustration);
         return addCount;
