@@ -1,6 +1,7 @@
 package com.gin.pixivmanager.service;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.gin.pixivmanager.config.PixivUrl;
@@ -23,27 +24,30 @@ public class PixivRequestServImpl implements PixivRequestServ {
     final Executor downloadExecutor, requestExecutor, scanExecutor;
     final DataManager dataManager;
     final PixivUrl pixivUrl;
+    final UserInfo userInfo;
 
-    public PixivRequestServImpl(Executor downloadExecutor, Executor requestExecutor, Executor scanExecutor, DataManager dataManager, PixivUrl pixivUrl) {
+    public PixivRequestServImpl(Executor downloadExecutor, Executor requestExecutor, Executor scanExecutor, DataManager dataManager, PixivUrl pixivUrl, UserInfo userInfo) {
         this.downloadExecutor = downloadExecutor;
         this.requestExecutor = requestExecutor;
         this.scanExecutor = scanExecutor;
         this.dataManager = dataManager;
         this.pixivUrl = pixivUrl;
+        this.userInfo = userInfo;
+
+        getBookmark("未分類", 100);
     }
 
     /**
      * 下载多个文件
      *
-     * @param idList  pid列表
+     * @param detail  作品详情
      * @param rootDir 下载根目录
      */
     @Override
-    public List<File> download(List<String> idList, String rootDir) {
-        List<File> list = new ArrayList<>();
-        List<Illustration> detail = getIllustrationDetail(idList);
+    public List<File> download(List<Illustration> detail, String rootDir) {
 
         Map<String, String> urlAndFilePath = getUrlAndFilePath(detail, rootDir);
+        List<File> list = new ArrayList<>();
 
         CountDownLatch latch = new CountDownLatch(urlAndFilePath.size());
 
@@ -97,6 +101,84 @@ public class PixivRequestServImpl implements PixivRequestServ {
             }
         });
 
+    }
+
+    /**
+     * 获取收藏的作品id
+     *
+     * @param tag 需要有的tag
+     * @param max 最大获取数量
+     * @return 收藏的作品id
+     */
+    private List<String> getBookmark(String tag, Integer max) {
+        long start = System.currentTimeMillis();
+        log.info("获取收藏作品id tag:{}", tag);
+
+        Integer offset = 0, limit = 10;
+
+        List<String> idList = new ArrayList<>();
+        String uid = userInfo.getUid();
+        String rawUrl = pixivUrl.getBookmarks()
+                .replace("{uid}", uid)
+                .replace("{tag}", tag)
+                .replace("{limit}", limit.toString());
+
+        String url = rawUrl + offset;
+
+        String result = ReqUtil.get(url, null, null, null, userInfo.getCookie(), null, null, null);
+
+        JSONObject body = JSONObject.parseObject(result).getJSONObject("body");
+
+        Integer total = Math.min(body.getInteger("total"), max);
+
+        JSONArray works = body.getJSONArray("works");
+        for (int i = 0; i < works.size(); i++) {
+            JSONObject work = works.getJSONObject(i);
+            idList.add(work.getString("id"));
+        }
+
+        if (total <= limit) {
+            long end = System.currentTimeMillis();
+            log.info("获取完毕 总计数量 {}个 耗时{}秒", total, (end - start) / 1000);
+            return idList;
+        }
+
+        int pages = total / limit + (total % limit != 0 ? 1 : 0);
+        CountDownLatch latch = new CountDownLatch(pages - 1);
+        for (int i = 1; i < pages; i++) {
+            getBookmark(rawUrl + i * limit, idList, latch);
+        }
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        long end = System.currentTimeMillis();
+        log.info("获取完毕 总计数量 {}个 耗时{}秒", total, (end - start) / 1000);
+        return idList;
+
+    }
+
+    /**
+     * 请求收藏中的作品ID
+     *
+     * @param url   url
+     * @param list  保存id的list
+     * @param latch 计数器
+     */
+    private void getBookmark(String url, List<String> list, CountDownLatch latch) {
+        scanExecutor.execute(() -> {
+            String result = ReqUtil.get(url, null, null, null, userInfo.getCookie(), null, null, null);
+            JSONArray works = JSONObject.parseObject(result).getJSONObject("body").getJSONArray("works");
+            for (int i = 0; i < works.size(); i++) {
+                JSONObject work = works.getJSONObject(i);
+                list.add(work.getString("id"));
+            }
+            if (latch != null) {
+                latch.countDown();
+            }
+        });
     }
 
     /**

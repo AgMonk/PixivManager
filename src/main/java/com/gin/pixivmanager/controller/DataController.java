@@ -51,8 +51,9 @@ public class DataController {
         list.add("84232385");
         list.add("84234141");
 
+
         PixivRequestServ requestServ = SpringContextUtil.getBean(PixivRequestServ.class);
-        List<File> download = requestServ.download(list, "f:/");
+        List<File> download = requestServ.download(requestServ.getIllustrationDetail(list), "f:/");
         return download;
     }
 }

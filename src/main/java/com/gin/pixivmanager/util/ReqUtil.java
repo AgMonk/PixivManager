@@ -141,7 +141,7 @@ public class ReqUtil {
 
         HttpPost m = new HttpPost(url);
 
-        setHeaderConfig(m, cookie, headers, timeout);
+        setHeaderConfig(m, headers, timeout);
 
         setFormDataEntity(m, formData, fileMap);
 
@@ -165,12 +165,13 @@ public class ReqUtil {
                              Integer maxTimes, String enc) {
         Map<String, String> headers = new HashMap<>();
         headers.putAll(HEADERS_DEFUALT);
+        headers.put("cookie", cookie);
 
         String url = getUrl(urlPrefix, urlSuffix, portName, paramMap, enc);
 
         HttpGet m = new HttpGet(url);
 
-        setHeaderConfig(m, cookie, headers, timeout);
+        setHeaderConfig(m, headers, timeout);
 
         return executeRequest(m, maxTimes, enc);
     }
@@ -227,11 +228,11 @@ public class ReqUtil {
      * @param headers header
      * @param timeout 超时时间
      */
-    private static void setHeaderConfig(HttpRequestBase m, String cookie, Map<String, String> headers, Integer timeout) {
+    private static void setHeaderConfig(HttpRequestBase m, Map<String, String> headers, Integer timeout) {
         timeout = timeout == null ? TIME_OUT : timeout;
         //设置header
         headers.forEach((k, v) -> {
-            log.debug("添加header {} -> {}", k, v);
+            log.debug("添加header {} -> {}", k, v.substring(0, Math.min(v.length(), 20)));
             m.addHeader(k, v);
             m.setHeader(k, v);
         });
@@ -256,6 +257,7 @@ public class ReqUtil {
     private static String executeRequest(HttpRequestBase m, Integer maxTimes, String enc) {
         int times = 0;
         maxTimes = maxTimes == null ? MAX_TIMES : maxTimes;
+        enc = enc != null ? enc : "utf-8";
 
         long start = System.currentTimeMillis();
         String result = null;

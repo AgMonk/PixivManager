@@ -13,6 +13,21 @@ public class UserInfoImpl implements UserInfo {
     final static File file = new File(pathname);
     ;
 
+    @Override
+    public String getUid() {
+        return uid;
+    }
+
+    @Override
+    public String getCookie() {
+        return cookie;
+    }
+
+    @Override
+
+    public String getTt() {
+        return tt;
+    }
 
     public UserInfoImpl() {
         if (!file.exists()) {

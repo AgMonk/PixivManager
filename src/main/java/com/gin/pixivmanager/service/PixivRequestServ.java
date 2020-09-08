@@ -14,10 +14,10 @@ public interface PixivRequestServ {
     /**
      * 下载多个文件
      *
-     * @param idList  pid列表
+     * @param detail  作品详情
      * @param rootDir 下载根目录
      */
-    List<File> download(List<String> idList, String rootDir);
+    List<File> download(List<Illustration> detail, String rootDir);
 
 
     /**
@@ -27,5 +27,6 @@ public interface PixivRequestServ {
      * @return 作品详情
      */
     List<Illustration> getIllustrationDetail(List<String> idList);
+
 
 }
