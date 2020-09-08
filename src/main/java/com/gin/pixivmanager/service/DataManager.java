@@ -49,7 +49,8 @@ public interface DataManager {
 
     Map<String, String> getDetails();
 
-    void addIllustration(Illustration i);
+
+    Integer addIllustrations(List<Illustration> list);
 
     Illustration getIllustration(String id);
 

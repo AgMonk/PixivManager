@@ -132,10 +132,20 @@ public class DataManagerImpl implements DataManager {
         return details;
     }
 
-    @Override
-    public void addIllustration(Illustration i) {
+    private void addIllustration(Illustration i) {
         illustrationMap.put(i.getId(), i);
     }
+
+    @Override
+    public Integer addIllustrations(List<Illustration> list) {
+        Integer delCount = mapper.delIllustrations(list);
+        log.info("删除作品详情 {} 个", delCount);
+        Integer addCount = mapper.addIllustrations(list);
+        log.info("添加作品详情 {} 个", addCount);
+        list.forEach(this::addIllustration);
+        return addCount;
+    }
+
 
     @Override
     public Illustration getIllustration(String id) {
@@ -144,7 +154,7 @@ public class DataManagerImpl implements DataManager {
 
     @Override
     public void addTag(Tag t) {
-        tagMap.put(t.getName().toLowerCase(), t);
+        tagMap.put(t.getName(), t);
     }
 
     @Override
@@ -154,7 +164,7 @@ public class DataManagerImpl implements DataManager {
 
     @Override
     public String addTranslation(Tag t) {
-        return translationMap.put(t.getName().toLowerCase(), t.getTranslation());
+        return translationMap.put(t.getName(), t.getTranslation());
     }
 
     @Override

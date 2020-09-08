@@ -20,9 +20,39 @@ Mapper 3.0//EN"
         select *
         from t_tags_translation;
     </select>
-    <insert id="setTagTranslation">
+    <insert id="setTagTranslation" parameterType="java.util.List">
 
         insert into t_tags_translation (name, translation)
         values (#{name}, #{translation});
+    </insert>
+    <insert id="addIllustrations">
+        insert into t_illustration (id, userId, title, userName, description, tag, tagTranslated, urlPrefix,
+        fileName, pageCount, illustType, bookmarkCount, bookmarkData,lastUpdate)
+        values
+        <foreach collection="list" item="i" index="index" separator=",">
+            (
+            #{i.id}, #{i.userId}, #{i.title}, #{i.userName},
+            #{i.description}, #{i.tag}, #{i.tagTranslated}, #{i.urlPrefix},
+            #{i.fileName}, #{i.pageCount}, #{i.illustType},
+            #{i.bookmarkCount}, #{i.bookmarkData}, #{i.lastUpdate}
+            )
+        </foreach>
+    </insert>
+    <delete id="delIllustrations" parameterType="java.util.List">
+        delete from t_illustration
+        where id in (
+        <foreach collection="list" item="i" index="index" separator=",">
+            ${i.id}
+        </foreach>
+        )
+    </delete>
+    <insert id="addTags" parameterType="java.util.List">
+        insert into t_tags (name, translation)
+        values
+        <foreach collection="list" item="item" index="index" separator=",">
+            (
+            #{item.name},#{item.translation}
+            )
+        </foreach>
     </insert>
 </mapper>

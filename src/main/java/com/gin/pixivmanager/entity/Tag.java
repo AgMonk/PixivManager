@@ -10,8 +10,12 @@ public class Tag {
     String name, translation, trans;
 
     public Tag(String name, String translation) {
-        this.name = name;
+        this.name = name.toLowerCase();
         this.translation = translation;
+    }
+
+    public void setName(String name) {
+        this.name = name.toLowerCase();
     }
 
     @Override

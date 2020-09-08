@@ -64,6 +64,9 @@ public class PixivRequestServImpl implements PixivRequestServ {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+
+        dataManager.addIllustrations(list);
+        
         return list;
     }
 
