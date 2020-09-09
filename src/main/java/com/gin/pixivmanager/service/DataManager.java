@@ -45,13 +45,6 @@ public interface DataManager {
     Integer addIllustrations(List<Illustration> list);
 
     /**
-     * 获取下载进度
-     *
-     * @return
-     */
-    Map<String, String> getDownloading();
-
-    /**
      * 添加Tag到数据库和map
      *
      * @param list 作品详情列表
@@ -83,6 +76,13 @@ public interface DataManager {
      * @return
      */
     Map<String, String> getDetails();
+
+    /**
+     * 获取下载进度
+     *
+     * @return
+     */
+    Map<String, String> getDownloading();
 
     /**
      * 获取翻译Map

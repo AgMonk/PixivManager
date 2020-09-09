@@ -80,8 +80,8 @@
             pro: {},
         },
         methods: {
-            getProgress() {
-                get("data/progress", this.paramTag, function (res) {
+            getDownloading() {
+                get("data/downloading", this.paramTag, function (res) {
                     _this.pro = res.data
                     console.log(res.data)
                 })
@@ -89,7 +89,7 @@
         },
         created() {
             setInterval(function () {
-                _this.getProgress()
+                _this.getDownloading()
             }, 1000);
         },
     });

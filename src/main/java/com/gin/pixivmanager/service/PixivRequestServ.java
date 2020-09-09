@@ -35,4 +35,6 @@ public interface PixivRequestServ {
      * @return 收藏的作品id
      */
     List<String> getBookmarks(String tag, Integer max);
+    
+
 }

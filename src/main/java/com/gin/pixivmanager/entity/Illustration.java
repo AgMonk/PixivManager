@@ -2,12 +2,10 @@ package com.gin.pixivmanager.entity;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.luhuiguo.chinese.ChineseUtils;
 import lombok.Data;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Data
 public class Illustration {
@@ -171,6 +169,58 @@ public class Illustration {
         }
         return null;
     }
+
+    /**
+     * 生成精简tag
+     *
+     * @param dic
+     * @return
+     */
+    public String createSimpleTags(Map<String, String> dic) {
+        /*
+            步骤
+            按逗号分隔，翻译一次，删除中英文右括号，把中英文左括号 斜杠 替换为逗号再次分隔 翻译 转为简体
+         */
+        String[] tagsArray = tag.split(",");
+        Set<String> set = new HashSet<>();
+        for (int i = 0; i < tagsArray.length; i++) {
+            String t = translate(tagsArray[i], dic)
+                    .replace(")", "")
+                    .replace("）", "")
+                    .replace("(", ",")
+                    .replace("（", ",")
+                    .replace(" ", "");
+
+            if (t.indexOf("/") != t.lastIndexOf("/")) {
+                //有多个斜杠
+                t = t.replace("/", ",");
+            }
+            if (!t.contains(",")) {
+                set.add(toSimplified(t));
+            } else {
+                String[] split = t.split(",");
+                for (String s : split) {
+                    set.add(toSimplified(translate(s, dic)));
+                }
+            }
+        }
+        StringBuilder newTag = new StringBuilder();
+        for (String s : set) {
+            newTag.append(s).append(",");
+        }
+        return newTag.substring(0, newTag.length() - 1);
+    }
+
+    private static String translate(String tag, Map<String, String> dic) {
+        String s = dic.get(tag.toLowerCase());
+        String t = s != null ? s : tag;
+        return t;
+    }
+
+    private static String toSimplified(String s) {
+        return ChineseUtils.toSimplified(s);
+    }
+
 
     /**
      * 替换文件名非法字符

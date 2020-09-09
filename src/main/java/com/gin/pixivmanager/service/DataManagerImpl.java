@@ -30,6 +30,13 @@ public class DataManagerImpl implements DataManager {
 
         init();
 
+        for (Illustration i : illustrationMap.values()) {
+
+            String simpleTags = i.createSimpleTags(translationMap);
+            String id = "https://www.pixiv.net/ajax/illust/" + i.getId();
+            log.info(id + " " + simpleTags);
+        }
+
     }
 
 
