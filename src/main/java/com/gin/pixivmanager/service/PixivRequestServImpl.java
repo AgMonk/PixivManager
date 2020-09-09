@@ -99,30 +99,39 @@ public class PixivRequestServImpl implements PixivRequestServ {
                     lackList.add(s);
                 }
             }
-            Integer size = lackList.size();
-
-            Long start = System.currentTimeMillis();
-            log.info("查询作品详情 {}", size);
-            CountDownLatch latch = new CountDownLatch(size);
-            for (String id : lackList) {
-                requestExecutor.execute(() -> {
-                    list.add(getIllustrationDetail(id));
-                    String questName = "详情任务-" + start % 10000;
-                    dataManager.addDetails(questName, latch.getCount(), size);
-                    latch.countDown();
-                });
-            }
-
-            try {
-                latch.await();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            getIllustrationDetail2List(list, lackList);
 
             dataManager.addIllustrations(list);
             dataManager.addTags(list);
         }
         return list;
+    }
+
+    /**
+     * 使用多线程请求作品详情 并放入一个指定list中
+     * @param list          目标list
+     * @param lackList      请求详情的id列表
+     */
+    private void getIllustrationDetail2List(List<Illustration> list, List<String> lackList) {
+        Integer size = lackList.size();
+
+        Long start = System.currentTimeMillis();
+        log.info("查询作品详情 {}", size);
+        CountDownLatch latch = new CountDownLatch(size);
+        for (String id : lackList) {
+            requestExecutor.execute(() -> {
+                list.add(getIllustrationDetail(id));
+                String questName = "详情任务-" + start % 10000;
+                dataManager.addDetails(questName, latch.getCount(), size);
+                latch.countDown();
+            });
+        }
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
