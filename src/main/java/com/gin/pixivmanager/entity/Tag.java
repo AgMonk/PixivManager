@@ -1,17 +1,63 @@
 package com.gin.pixivmanager.entity;
 
+import com.luhuiguo.chinese.ChineseUtils;
 import lombok.Data;
 
+import java.util.Map;
 import java.util.Objects;
 
 @Data
 public class Tag {
     Integer id, count = 0;
-    String name, translation, trans;
+    /**
+     * tag名称
+     */
+    String name;
+    /**
+     * 官方翻译
+     */
+    String translation;
+    /**
+     * 推荐翻译
+     */
+    String trans;
+    final static String[] TRASH_WORDS = new String[]{"#", "*", "※"};
 
     public Tag(String name, String translation) {
         this.name = name.toLowerCase();
         this.translation = translation;
+    }
+
+    /**
+     * 生成推荐翻译
+     *
+     * @param dic
+     */
+    public void createRecommendTranslation(Map<String, String> dic) {
+        String tempName = name;
+        String tempTrans = translation;
+        for (Map.Entry<String, String> entry : dic.entrySet()) {
+            tempName = tempName.replace(entry.getKey(), entry.getValue());
+            tempTrans = tempTrans.replace(entry.getKey(), entry.getValue());
+        }
+        tempName = ChineseUtils.toSimplified(tempName);
+        tempTrans = ChineseUtils.toSimplified(tempTrans);
+
+        tempName = clean(tempName);
+        tempTrans = clean(tempTrans);
+
+        if (tempName.length() <= tempTrans.length()) {
+            trans = tempName;
+        } else {
+            trans = tempTrans;
+        }
+    }
+
+    private static String clean(String s) {
+        for (String trashWord : TRASH_WORDS) {
+            s = s.replace(trashWord, "");
+        }
+        return s;
     }
 
     public void setName(String name) {

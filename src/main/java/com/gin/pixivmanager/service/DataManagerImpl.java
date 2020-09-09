@@ -50,7 +50,12 @@ public class DataManagerImpl implements DataManager {
 
         tagList.sort(Comparator.comparingInt(Tag::getCount));
         Collections.reverse(tagList);
-        return tagList.subList((page - 1) * limit, page * limit);
+
+        List<Tag> subList = tagList.subList((page - 1) * limit, page * limit);
+
+        subList.forEach(tag -> tag.createRecommendTranslation(translationMap));
+
+        return subList;
     }
 
 
