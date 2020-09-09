@@ -122,9 +122,10 @@ public class ReqUtil {
                 return file;
             } catch (ConnectionClosedException e) {
                 log.warn("下载失败({}): 连接关闭", i);
+                dataManager.addDownloading(questName, 0, 1);
             } catch (IOException e) {
                 log.warn("下载失败({}):{}", i, response.getStatusLine());
-                dataManager.addDownloading(questName, 1, 1);
+                dataManager.addDownloading(questName, 0, 1);
                 e.printStackTrace();
             }
         }

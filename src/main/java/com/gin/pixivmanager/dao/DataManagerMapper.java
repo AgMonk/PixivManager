@@ -63,4 +63,12 @@ public interface DataManagerMapper {
      * @return 添加数量
      */
     Integer addTags(List<Tag> list);
+
+    /**
+     * 获取指定id的详情数据
+     * @param idList   id列表
+     * @param time     指定日期
+     * @return      详情
+     */
+    List<Illustration> getIllustrationsById(List<String> idList);
 }

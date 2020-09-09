@@ -94,4 +94,10 @@ public interface DataManager {
      * @return
      */
     Map<String, String> getTranslationMap();
+    /**
+     * 先从缓存中查找是否有数据 剩余项从数据库中查询
+     * @param idList id列表
+     * @return      作品详情
+     */
+    List<Illustration> getIllustrations(List<String> idList);
 }

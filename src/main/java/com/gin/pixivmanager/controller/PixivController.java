@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executor;
 
@@ -67,7 +68,12 @@ public class PixivController {
 
     @RequestMapping("test")
     public Object test() {
-
+        List<String> list = new ArrayList<>();
+        list.add("82451546");
+        list.add("82451917");
+        list.add("84269184");
+        List<Illustration> detail = pixivRequestServ.getIllustrationDetail(list);
+        detail.forEach(System.err::println);
         return null;
     }
 }

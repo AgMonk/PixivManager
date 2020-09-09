@@ -9,7 +9,7 @@ Mapper 3.0//EN"
 
 
     <select id="getIllustrations" resultType="com.gin.pixivmanager.entity.Illustration">
-        select *
+        select id,tag,tagTranslated
         from t_illuStration;
     </select>
     <select id="getTags" resultType="com.gin.pixivmanager.entity.Tag">
@@ -19,6 +19,14 @@ Mapper 3.0//EN"
     <select id="getTrans" resultType="com.gin.pixivmanager.entity.Tag">
         select *
         from t_tags_translation;
+    </select>
+    <select id="getIllustrationsById" resultType="com.gin.pixivmanager.entity.Illustration" >
+        select * from t_illustration where id in (
+        <foreach collection="idList" item="i" index="index" separator=",">
+            ${i}
+        </foreach>
+        )
+        ;
     </select>
     <insert id="addTranslation" parameterType="java.util.List">
 

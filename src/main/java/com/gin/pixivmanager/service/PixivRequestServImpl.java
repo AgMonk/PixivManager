@@ -38,6 +38,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
         this.pixivUrl = pixivUrl;
         this.userInfo = userInfo;
 
+
     }
 
     /**
@@ -60,7 +61,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
         String questName = "下载任务-" + start % 1000;
 
         log.info("{} 开始 {}", questName, size);
-        
+
         CountDownLatch latch = new CountDownLatch(size);
 
         for (Map.Entry<String, String> entry : urlAndFilePath.entrySet()) {
@@ -89,15 +90,26 @@ public class PixivRequestServImpl implements PixivRequestServ {
      */
     @Override
     public List<Illustration> getIllustrationDetail(List<String> idList) {
-        int size = idList.size();
-        List<Illustration> list = new ArrayList<>(size);
-        if (size > 0) {
-            long start = System.currentTimeMillis();
+        List<Illustration> list = dataManager.getIllustrations(idList);
+        if (list.size() > 0 && list.size() < idList.size()) {
+            List<String> lackList = new ArrayList<>();
+            for (String s : idList) {
+                Map<String, Illustration> map = dataManager.getIllustrationMap();
+                if (!map.containsKey(s)) {
+                    lackList.add(s);
+                }
+            }
+            Integer size = lackList.size();
+
+            Long start = System.currentTimeMillis();
             log.info("查询作品详情 {}", size);
             CountDownLatch latch = new CountDownLatch(size);
-            for (String id : idList) {
+            for (String id : lackList) {
                 requestExecutor.execute(() -> {
-                    list.add(getIllustrationDetail(id, latch, size, start));
+                    list.add(getIllustrationDetail(id));
+                    String questName = "详情任务-" + start % 10000;
+                    dataManager.addDetails(questName, latch.getCount(), size);
+                    latch.countDown();
                 });
             }
 
@@ -317,9 +329,8 @@ public class PixivRequestServImpl implements PixivRequestServ {
 
     /**
      * @param id    pid
-     * @param latch 倒数计数器
      */
-    private Illustration getIllustrationDetail(String id, CountDownLatch latch, Integer size, Long start) {
+    private Illustration getIllustrationDetail(String id) {
         Illustration illust = new Illustration();
         illust.setId(id);
         String url = pixivUrl.getIllustration().replace("{pid}", id);
@@ -328,14 +339,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
         if (result != null && !result.getBoolean("error")) {
             illust = new Illustration(result.getJSONObject("body"));
         }
-        if (latch != null) {
-            latch.countDown();
 
-            if (size != null && start != null) {
-                String questName = "详情任务-" + start % 10000;
-                dataManager.addDetails(questName, latch.getCount(), size);
-            }
-        }
         return illust;
     }
 
@@ -374,7 +378,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
         } else {
             for (Integer i = 0; i < pageCount; i++) {
                 String u = url.replace("_p0", "_p" + i);
-                String n = simpleName.replace("{count}",  i.toString());
+                String n = simpleName.replace("{count}", i.toString());
                 map.put(u, n);
             }
         }

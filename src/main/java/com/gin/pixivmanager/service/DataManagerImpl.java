@@ -37,6 +37,10 @@ public class DataManagerImpl implements DataManager {
 //            Illustration ill = list.get(i);
 //            log.info(ill.createSimpleName(translationMap));
 //        }
+//        List<String> list = new ArrayList<>();
+//        list.add("82451546");
+//        list.add("82451917");
+//        getIllustrations(list);
     }
 
     @Override
@@ -228,5 +232,35 @@ public class DataManagerImpl implements DataManager {
     @Override
     public Map<String, Illustration> getIllustrationMap() {
         return illustrationMap;
+    }
+
+    /**
+     * 先从缓存中查找是否有数据 剩余项从数据库中查询
+     *
+     * @param idList id列表
+     * @return 作品详情
+     */
+    @Override
+    public List<Illustration> getIllustrations(List<String> idList) {
+        List<Illustration> list = new ArrayList<>();
+
+        List<String> lackList = new ArrayList<>();
+        for (String s : idList) {
+            Illustration ill = illustrationMap.get(s);
+            if (ill==null || ill.getUserId() == null) {
+                lackList.add(s);
+            } else {
+                list.add(ill);
+            }
+        }
+
+        if (lackList.size() > 0) {
+            List<Illustration> detail = mapper.getIllustrationsById(lackList);
+            list.addAll(detail);
+            //放入缓存
+            detail.forEach(this::addIllustration2Map);
+        }
+
+        return list;
     }
 }
