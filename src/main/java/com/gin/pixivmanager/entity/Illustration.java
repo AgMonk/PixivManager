@@ -164,10 +164,22 @@ public class Illustration {
      * @return 文件名
      */
     public String createSimpleName(Map<String, String> dic) {
-        if (dic == null || dic.get(id) == null) {
+        if (dic == null) {
             return fileName;
         }
-        return null;
+        StringBuilder builder = new StringBuilder();
+
+        addBrackets(builder, "userId", userId, "65535");
+        addBrackets(builder, "u", userName, "NullName");
+        builder.append("/");
+        addBrackets(builder, "bmk", bookmarkCount, 65535);
+        addBrackets(builder, "", id + "_p{count}", null);
+        addBrackets(builder, "ti", title, null);
+        addBrackets(builder, "tags", createSimpleTags(dic), null);
+
+        //后缀名
+        builder.append(fileName.substring(fileName.lastIndexOf('.')));
+        return builder.toString();
     }
 
     /**
@@ -221,6 +233,20 @@ public class Illustration {
         return ChineseUtils.toSimplified(s);
     }
 
+    private static void addBrackets(StringBuilder builder, String field, Object value, Object defaultValue) {
+        if (value == null) {
+            if (defaultValue == null) {
+                return;
+            } else {
+                value = defaultValue;
+            }
+        }
+        builder.append("[").append(field);
+        if (!"".equals(field)) {
+            builder.append("_");
+        }
+        builder.append(value).append("]");
+    }
 
     /**
      * 替换文件名非法字符

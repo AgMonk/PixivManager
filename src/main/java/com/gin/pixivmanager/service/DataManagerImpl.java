@@ -32,6 +32,11 @@ public class DataManagerImpl implements DataManager {
 
         init();
 
+//        List<Illustration> list = new ArrayList<>(illustrationMap.values());
+//        for (int i = 0; i < 20; i++) {
+//            Illustration ill = list.get(i);
+//            log.info(ill.createSimpleName(translationMap));
+//        }
     }
 
     @Override
