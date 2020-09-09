@@ -11,6 +11,8 @@ import java.util.*;
 @Service
 @Slf4j
 public class DataManagerImpl implements DataManager {
+    final private String COMPLETED = "100.0";
+
     /**
      * 下载进度
      */
@@ -174,22 +176,35 @@ public class DataManagerImpl implements DataManager {
     }
 
     @Override
-    public String addDownloading(String k, String v) {
-        String complete = "100";
-        if (v.endsWith(complete)) {
-            return downloading.remove(k);
-        }
-        return downloading.put(k, v);
+    public String addDownloading(String questName, long count, long size) {
+        return addProgress(questName, count, size, downloading);
     }
 
     @Override
-    public String addDetails(String k, String v) {
-        String complete = "100";
-        String complete1 = "100.0";
-        if (v.endsWith(complete) || v.endsWith(complete1)) {
-            return details.remove(k);
+    public String addDetails(String questName, long count, long size) {
+        return addProgress(questName, count, size, details);
+    }
+
+    private String addProgress(String questName, long count, long size, Map<String, String> downloading) {
+        String v = calculateProgress(count, size);
+        if (v.endsWith(COMPLETED)) {
+            return downloading.remove(questName);
         }
-        return details.put(k, v);
+        return downloading.put(questName, v);
+    }
+
+    private static String calculateProgress(long count, long size) {
+        int k = 1024;
+        count = size - count;
+        double percent = Math.floor(count * 1000.0 / size) / 10;
+
+        if (size > k * k) {
+            count = count / k;
+            size = size / k;
+        }
+
+        String s1 = count + "/" + size;
+        return s1 + " " + percent;
     }
 
     private void addTag2Map(Tag t) {

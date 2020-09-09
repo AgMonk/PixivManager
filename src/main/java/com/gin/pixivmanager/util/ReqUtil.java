@@ -99,12 +99,9 @@ public class ReqUtil {
                 while ((r = inputStream.read(buffer)) > 0) {
                     output.write(buffer, 0, r);
                     totalRead += r;
-                    String progress = totalRead / 1000 + "/" + contentLength / 1000;
-                    long progressInt = totalRead * 100L / contentLength;
-                    String p = progress + " " + progressInt;
 
                     //下载进度
-                    dataManager.addDownloading(questName, p);
+                    dataManager.addDownloading(questName, contentLength - totalRead, contentLength);
                 }
 
                 FileOutputStream fos = new FileOutputStream(filePath);
@@ -119,7 +116,7 @@ public class ReqUtil {
                 //下载成功 清空所有进度
                 for (int j = 1; j <= MAX_TIMES; j++) {
                     String name = "(" + j + ")" + tempName;
-                    dataManager.addDownloading(name, "100");
+                    dataManager.addDownloading(name, 0, 1);
                 }
 
                 return file;
@@ -127,7 +124,7 @@ public class ReqUtil {
                 log.warn("下载失败({}): 连接关闭", i);
             } catch (IOException e) {
                 log.warn("下载失败({}):{}", i, response.getStatusLine());
-                dataManager.addDownloading(questName, "下载失败 NA");
+                dataManager.addDownloading(questName, 1, 1);
                 e.printStackTrace();
             }
         }

@@ -60,6 +60,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
         String questName = "下载任务-" + start % 1000;
 
         log.info("{} 开始 {}", questName, size);
+        
         CountDownLatch latch = new CountDownLatch(size);
 
         for (Map.Entry<String, String> entry : urlAndFilePath.entrySet()) {
@@ -274,9 +275,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
 
         latch.countDown();
 
-        int count = size - Math.toIntExact(latch.getCount());
-        int percent = count * 100 / size;
-        dataManager.addDetails(questName, count + "/" + size + " " + percent);
+        dataManager.addDetails(questName, latch.getCount(), size);
     }
 
     /**
@@ -292,9 +291,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
         if (latch != null) {
             latch.countDown();
         }
-        int count = size - Math.toIntExact(latch.getCount());
-        int percent = count * 100 / size;
-        dataManager.addDetails(questName, count + "/" + size + " " + percent);
+        dataManager.addDetails(questName, latch.getCount(), size);
         return file;
     }
 
@@ -335,11 +332,8 @@ public class PixivRequestServImpl implements PixivRequestServ {
             latch.countDown();
 
             if (size != null && start != null) {
-                int count = Math.toIntExact(size - latch.getCount());
-                String key = "详情任务-" + start % 10000;
-                String value = count + "/" + size + " " + Math.floor(count * 1000.0 / size) / 10;
-                log.info(key + " " + value + " 耗时{}秒", (System.currentTimeMillis() - start) / 1000);
-                dataManager.addDetails(key, value);
+                String questName = "详情任务-" + start % 10000;
+                dataManager.addDetails(questName, latch.getCount(), size);
             }
         }
         return illust;

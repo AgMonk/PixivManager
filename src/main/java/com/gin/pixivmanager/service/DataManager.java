@@ -57,20 +57,22 @@ public interface DataManager {
     /**
      * 更新文件下载进度
      *
-     * @param k
-     * @param v
+     * @param questName
+     * @param count
+     * @param size
      * @return
      */
-    String addDownloading(String k, String v);
+    String addDownloading(String questName, long count, long size);
 
     /**
      * 更新详情获取进度
      *
-     * @param k
-     * @param v
+     * @param questName
+     * @param count
+     * @param size
      * @return
      */
-    String addDetails(String k, String v);
+    String addDetails(String questName, long count, long size);
 
     /**
      * 获取详情进度
