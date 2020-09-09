@@ -374,7 +374,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
         } else {
             for (Integer i = 0; i < pageCount; i++) {
                 String u = url.replace("_p0", "_p" + i);
-                String n = simpleName.replace("_p0", "_p" + i);
+                String n = simpleName.replace("{count}",  i.toString());
                 map.put(u, n);
             }
         }
