@@ -9,4 +9,6 @@ public interface UserInfo {
     String getCookie();
 
     String getTt();
+
+    String getRootPath();
 }

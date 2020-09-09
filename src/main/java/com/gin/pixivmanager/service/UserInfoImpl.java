@@ -8,7 +8,7 @@ import java.io.*;
 @Slf4j
 @Service
 public class UserInfoImpl implements UserInfo {
-    String uid, cookie, tt;
+    String uid, cookie, tt, rootPath;
     final static String pathname = "config/user_info.txt";
     final static File file = new File(pathname);
     ;
@@ -27,6 +27,11 @@ public class UserInfoImpl implements UserInfo {
 
     public String getTt() {
         return tt;
+    }
+
+    @Override
+    public String getRootPath() {
+        return rootPath;
     }
 
     public UserInfoImpl() {
@@ -50,6 +55,9 @@ public class UserInfoImpl implements UserInfo {
                 }
                 if (line.startsWith("uid")) {
                     uid = line.substring(line.indexOf(":") + 1);
+                }
+                if (line.startsWith("rootPath")) {
+                    rootPath = line.substring(line.indexOf(":") + 1);
                 }
             }
             reader.close();

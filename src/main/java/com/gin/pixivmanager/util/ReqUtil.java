@@ -65,6 +65,15 @@ public class ReqUtil {
      * @return File
      */
     public static File download(String url, String filePath) {
+        //创建目录
+        File file = new File(filePath);
+        File parentFile = file.getParentFile();
+        if (!parentFile.exists()) {
+            parentFile.mkdirs();
+        }
+
+        DataManager dataManager = SpringContextUtil.getBean(DataManager.class);
+
         int endIndex = url.indexOf("/", url.indexOf("//") + 2);
         String tempName = url.substring(url.lastIndexOf('/') + 1);
         HttpGet get = new HttpGet(url);
@@ -74,8 +83,9 @@ public class ReqUtil {
 
         CloseableHttpResponse response = null;
         long start = System.currentTimeMillis();
-        for (int i = 1; i <= 5; i++) {
+        for (int i = 1; i <= MAX_TIMES; i++) {
             log.info("第{}次下载 {}", i, tempName);
+            String questName = "(" + i + ")" + tempName;
             try {
                 response = HttpClients.createDefault().execute(get);
                 HttpEntity entity = response.getEntity();
@@ -94,10 +104,7 @@ public class ReqUtil {
                     String p = progress + " " + progressInt;
 
                     //下载进度
-                    DataManager dataManager = SpringContextUtil.getBean(DataManager.class);
-                    if (dataManager != null) {
-                        dataManager.addDownloading("(" + i + ")" + tempName, p);
-                    }
+                    dataManager.addDownloading(questName, p);
                 }
 
                 FileOutputStream fos = new FileOutputStream(filePath);
@@ -108,11 +115,19 @@ public class ReqUtil {
                 EntityUtils.consume(entity);
                 long end = System.currentTimeMillis();
                 log.info("{} 下载完毕 总耗时 {} 秒 平均速度 {}KB/s", tempName, (end - start) / 1000, contentLength / (end - start));
-                return new File(filePath);
+
+                //下载成功 清空所有进度
+                for (int j = 1; j <= MAX_TIMES; j++) {
+                    String name = "(" + j + ")" + tempName;
+                    dataManager.addDownloading(name, "100");
+                }
+
+                return file;
             } catch (ConnectionClosedException e) {
                 log.warn("下载失败({}): 连接关闭", i);
             } catch (IOException e) {
                 log.warn("下载失败({}):{}", i, response.getStatusLine());
+                dataManager.addDownloading(questName, "下载失败 NA");
                 e.printStackTrace();
             }
         }
@@ -133,7 +148,7 @@ public class ReqUtil {
         headers.putAll(HEADERS_DEFUALT);
         headers.put("cookie", cookie);
 
-        if (fileMap == null) {
+        if (fileMap == null && formData == null) {
             headers.putAll(HEADERS_JSON);
         }
 

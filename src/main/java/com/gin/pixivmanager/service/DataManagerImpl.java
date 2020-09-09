@@ -30,15 +30,7 @@ public class DataManagerImpl implements DataManager {
 
         init();
 
-        for (Illustration i : illustrationMap.values()) {
-
-            String simpleTags = i.createSimpleTags(translationMap);
-            String id = "https://www.pixiv.net/ajax/illust/" + i.getId();
-            log.info(id + " " + simpleTags);
-        }
-
     }
-
 
     @Override
     public List<Tag> getTags(Integer page, Integer limit, String keyword, Integer all) {
@@ -128,9 +120,11 @@ public class DataManagerImpl implements DataManager {
                 }
             }
         }
-        mapper.addTags(tags);
         int size = tags.size();
-        log.info("添加新tag {} 个 总计 {}个", size, tagMap.size());
+        if (size > 0) {
+            mapper.addTags(tags);
+            log.info("添加新tag {} 个 总计 {}个", size, tagMap.size());
+        }
         return size;
     }
 
@@ -142,8 +136,6 @@ public class DataManagerImpl implements DataManager {
         Tag tag = tagMap.get(t.getName());
         tag.setCount(0);
         tagMap.put(t.getName(), t);
-
-        /*todo 请求修改tag*/
         return mapper.addTranslation(t);
     }
 
@@ -190,7 +182,8 @@ public class DataManagerImpl implements DataManager {
     @Override
     public String addDetails(String k, String v) {
         String complete = "100";
-        if (v.endsWith(complete)) {
+        String complete1 = "100.0";
+        if (v.endsWith(complete) || v.endsWith(complete1)) {
             return details.remove(k);
         }
         return details.put(k, v);
@@ -207,5 +200,10 @@ public class DataManagerImpl implements DataManager {
 
     private String addTranslation2Map(Tag t) {
         return translationMap.put(t.getName(), t.getTranslation());
+    }
+
+    @Override
+    public Map<String, Illustration> getIllustrationMap() {
+        return illustrationMap;
     }
 }

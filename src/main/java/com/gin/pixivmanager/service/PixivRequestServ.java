@@ -1,6 +1,7 @@
 package com.gin.pixivmanager.service;
 
 import com.gin.pixivmanager.entity.Illustration;
+import com.gin.pixivmanager.entity.Tag;
 
 import java.io.File;
 import java.util.List;
@@ -35,6 +36,18 @@ public interface PixivRequestServ {
      * @return 收藏的作品id
      */
     List<String> getBookmarks(String tag, Integer max);
-    
 
+    /**
+     * 批量添加tag
+     *
+     * @param list 详情列表
+     */
+    void addTags(List<Illustration> list);
+
+    /**
+     * 修改tag(批量)
+     *
+     * @param tag
+     */
+    void setTag(Tag tag);
 }

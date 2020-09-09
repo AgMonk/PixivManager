@@ -12,6 +12,8 @@ import java.util.Map;
  * @author bx002
  */
 public interface DataManager {
+    Map<String, Illustration> getIllustrationMap();
+
     /**
      * 按照过滤条件输出tag
      *

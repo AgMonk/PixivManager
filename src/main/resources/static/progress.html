@@ -4,7 +4,7 @@
     <meta name="viewport"
           content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=yes"/>
     <meta charset="UTF-8">
-    <title>网页标题</title>
+    <title>任务进度</title>
     <script type="text/javascript" src="/js/vue.js"></script>
     <script type="text/javascript" src="/js/axios.min.js"></script>
     <script type="text/javascript" src="/js/queryString.js"></script>
@@ -59,17 +59,25 @@
 </head>
 <body>
 <div id="app">
+    <button @click="downloadUntagged()">下载未分类</button>
+    <br><br>
     <table class="customers">
         <tr>
             <th>名称</th>
             <th>进度</th>
             <th>%</th>
         </tr>
+        <tr v-for="(value,key) in details">
+            <td>{{key}}</td>
+            <td>{{value.substr(0, value.indexOf(" "))}}</td>
+            <td>{{value.substr(value.indexOf(" ") + 1)}}</td>
+        </tr>
         <tr v-for="(value,key) in pro">
             <td>{{key}}</td>
             <td>{{value.substr(0, value.indexOf(" "))}}</td>
             <td>{{value.substr(value.indexOf(" ") + 1)}}</td>
         </tr>
+
     </table>
 </div>
 </body>
@@ -78,6 +86,7 @@
         el: "#app",
         data: {
             pro: {},
+            details: {},
         },
         methods: {
             getDownloading() {
@@ -86,10 +95,20 @@
                     console.log(res.data)
                 })
             },
+            getDetails() {
+                get("data/details", this.paramTag, function (res) {
+                    _this.details = res.data
+                    console.log(res.data)
+                })
+            },
+            downloadUntagged() {
+                get("pixiv/downloadUntagged", null, null)
+            }
         },
         created() {
             setInterval(function () {
                 _this.getDownloading()
+                _this.getDetails()
             }, 1000);
         },
     });

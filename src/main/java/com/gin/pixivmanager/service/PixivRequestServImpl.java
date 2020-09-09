@@ -6,6 +6,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.gin.pixivmanager.config.PixivUrl;
 import com.gin.pixivmanager.entity.Illustration;
+import com.gin.pixivmanager.entity.Tag;
 import com.gin.pixivmanager.util.ReqUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -47,15 +48,19 @@ public class PixivRequestServImpl implements PixivRequestServ {
      */
     @Override
     public List<File> download(List<Illustration> detail, String rootDir) {
-
+        long start = System.currentTimeMillis();
         Map<String, String> urlAndFilePath = getUrlAndFilePath(detail, rootDir);
         List<File> list = new ArrayList<>();
 
-        CountDownLatch latch = new CountDownLatch(urlAndFilePath.size());
+        int size = urlAndFilePath.size();
+        String questName = "下载任务-" + start % 1000;
+
+        log.info("{} 开始 {}", questName, size);
+        CountDownLatch latch = new CountDownLatch(size);
 
         for (Map.Entry<String, String> entry : urlAndFilePath.entrySet()) {
             downloadExecutor.execute(() -> {
-                list.add(download(entry.getKey(), entry.getValue(), latch));
+                list.add(download(entry.getKey(), entry.getValue(), latch, size, questName));
             });
         }
 
@@ -64,6 +69,10 @@ public class PixivRequestServImpl implements PixivRequestServ {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+        long end = System.currentTimeMillis();
+
+        log.info("{} 完毕 {} 耗时 {} 秒", questName, size, (end - start) / 1000);
+
         return list;
     }
 
@@ -125,7 +134,9 @@ public class PixivRequestServImpl implements PixivRequestServ {
         JSONObject body = JSONObject.parseObject(result).getJSONObject("body");
 
 
-        Integer total = Math.min(body.getInteger("total"), max);
+        Integer total = body.getInteger("total");
+        max = max != null ? max : total;
+        total = Math.min(total, max);
 
         JSONArray works = body.getJSONArray("works");
         for (int i = 0; i < works.size(); i++) {
@@ -156,16 +167,121 @@ public class PixivRequestServImpl implements PixivRequestServ {
     }
 
     /**
+     * 批量添加tag
+     *
+     * @param list 详情列表
+     */
+    @Override
+    public void addTags(List<Illustration> list) {
+        long start = System.currentTimeMillis();
+        int size = list.size();
+        String questName = "Tag添加任务-" + start % 1000;
+        log.info("{} {}", questName, size);
+        CountDownLatch latch = new CountDownLatch(size);
+
+        for (Illustration ill : list) {
+            requestExecutor.execute(() -> {
+                addTags(ill, latch, size, questName);
+            });
+        }
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        long end = System.currentTimeMillis();
+
+        log.info("为 {} 件作品添加tag 完毕 总耗时 {} 秒", size, (end - start) / 1000);
+    }
+
+    /**
+     * 修改tag(批量)
+     *
+     * @param tag
+     */
+    @Override
+    public void setTag(Tag tag) {
+        String url = pixivUrl.getSetTag();
+        Map<String, String> formData = new HashMap<>();
+        String name = tag.getName();
+        String translation = tag.getTranslation().replace(" ", "");
+
+        if (translation.contains("(")) {
+            translation = translation.substring(0, translation.indexOf("("));
+        }
+        if (translation.contains("（")) {
+            translation = translation.substring(0, translation.indexOf("（"));
+        }
+
+        formData.put("mode", "mod");
+        formData.put("tag", name);
+        formData.put("new_tag", translation);
+        formData.put("tt", userInfo.getTt());
+
+        log.info("修改tag {} -> {}", name, translation);
+
+
+    }
+
+    /**
+     * 为作品添加tag
+     *
+     * @param ill       作品
+     * @param latch
+     * @param size
+     * @param questName
+     */
+    private void addTags(Illustration ill, CountDownLatch latch, int size, String questName) {
+        String id = ill.getId();
+        String url = pixivUrl.getAddTags() + id;
+        String tt = userInfo.getTt();
+        String cookie = userInfo.getCookie();
+        Map<String, String> dic = dataManager.getTranslationMap();
+        String tag = ill.createSimpleTags(dic).replace(",", " ");
+
+        Map<String, String> formData = new HashMap<>();
+        formData.put("mode", "add");
+        formData.put("type", "illust");
+        formData.put("from_sid", "");
+        formData.put("original_tag", "");
+        formData.put("original_untagged", "0");
+        formData.put("original_p", "1");
+        formData.put("original_rest", "");
+        formData.put("original_order", "");
+        formData.put("comment", "");
+        formData.put("restrict", "0");
+        formData.put("tt", tt);
+        formData.put("id", id);
+        formData.put("tag", tag);
+
+        log.info("{} 添加tag  {}", ill.getLink(), tag);
+
+        ReqUtil.post(url, null, null, null, cookie, 5000, formData, null, 1, null);
+
+        latch.countDown();
+
+        int count = size - Math.toIntExact(latch.getCount());
+        int percent = count * 100 / size;
+        dataManager.addDetails(questName, count + "/" + size + " " + percent);
+    }
+
+    /**
      * 下载文件
      *
      * @param url
      * @param latch
+     * @param size
+     * @param questName 任务名称
      */
-    private File download(String url, String filePath, CountDownLatch latch) {
+    private File download(String url, String filePath, CountDownLatch latch, int size, String questName) {
         File file = ReqUtil.download(url, filePath);
         if (latch != null) {
             latch.countDown();
         }
+        int count = size - Math.toIntExact(latch.getCount());
+        int percent = count * 100 / size;
+        dataManager.addDetails(questName, count + "/" + size + " " + percent);
         return file;
     }
 
