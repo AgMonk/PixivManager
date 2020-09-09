@@ -157,13 +157,17 @@ public class Illustration {
         return tagList;
     }
 
+    public String createSimpleName(Integer count){
+        return id+"_p"+count+fileName.substring(fileName.lastIndexOf("."));
+    }
+
     /**
      * 生成简单文件名
      *
      * @param dic 翻译字典
      * @return 文件名
      */
-    public String createSimpleName(Map<String, String> dic) {
+    public String createFormatName(Map<String, String> dic) {
         if (dic == null) {
             return fileName;
         }

@@ -367,18 +367,17 @@ public class PixivRequestServImpl implements PixivRequestServ {
         Map<String, String> map = new HashMap<>();
         String urlPrefix = ill.getUrlPrefix();
         String fileName = ill.getFileName();
-        String simpleName = rootDir + (rootDir.endsWith("/") ? "" : "/")
-                + ill.createSimpleName(dataManager.getTranslationMap());
+        rootDir += rootDir.endsWith("/") ? "" : "/";
         Integer pageCount = ill.getPageCount();
 
         String url = urlPrefix + fileName;
 
         if (ill.getIllustType() == 2) {
-            map.put(url, simpleName);
+            map.put(url,rootDir+ ill.createSimpleName(0));
         } else {
             for (Integer i = 0; i < pageCount; i++) {
                 String u = url.replace("_p0", "_p" + i);
-                String n = simpleName.replace("{count}", i.toString());
+                String n = rootDir+ill.createSimpleName(i);
                 map.put(u, n);
             }
         }
