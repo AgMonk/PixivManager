@@ -38,7 +38,7 @@ public interface DataManagerMapper {
      * @param t tag
      * @return 结果
      */
-    Integer setTagTranslation(Tag t);
+    Integer addTranslation(Tag t);
 
     /**
      * 批量添加作品详情

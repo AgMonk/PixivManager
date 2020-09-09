@@ -20,7 +20,7 @@ Mapper 3.0//EN"
         select *
         from t_tags_translation;
     </select>
-    <insert id="setTagTranslation" parameterType="java.util.List">
+    <insert id="addTranslation" parameterType="java.util.List">
 
         insert into t_tags_translation (name, translation)
         values (#{name}, #{translation});

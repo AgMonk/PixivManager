@@ -67,6 +67,12 @@ public class PixivRequestServImpl implements PixivRequestServ {
         return list;
     }
 
+    /**
+     * 请求一个列表中的pid详情
+     *
+     * @param idList pid
+     * @return 作品详情
+     */
     @Override
     public List<Illustration> getIllustrationDetail(List<String> idList) {
         int size = idList.size();

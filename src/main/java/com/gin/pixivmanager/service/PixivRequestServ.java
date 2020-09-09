@@ -19,7 +19,6 @@ public interface PixivRequestServ {
      */
     List<File> download(List<Illustration> detail, String rootDir);
 
-
     /**
      * 请求一个列表中的pid详情
      *

@@ -29,12 +29,35 @@ public interface DataManager {
      * @param t
      * @return
      */
-    Integer setTagTranslation(Tag t);
+    Integer addTranslation(Tag t);
 
     /**
      * 数据初始化
      */
     void init();
+
+    /**
+     * 添加作品详情到数据库和Map
+     *
+     * @param list 详情列表
+     * @return 添加数量
+     */
+    Integer addIllustrations(List<Illustration> list);
+
+    /**
+     * 获取下载进度
+     *
+     * @return
+     */
+    Map<String, String> getDownloading();
+
+    /**
+     * 添加Tag到数据库和map
+     *
+     * @param list 作品详情列表
+     * @return 新数量
+     */
+    Integer addTags(List<Illustration> list);
 
     /**
      * 更新文件下载进度
@@ -45,33 +68,26 @@ public interface DataManager {
      */
     String addDownloading(String k, String v);
 
+    /**
+     * 更新详情获取进度
+     *
+     * @param k
+     * @param v
+     * @return
+     */
     String addDetails(String k, String v);
 
+    /**
+     * 获取详情进度
+     *
+     * @return
+     */
     Map<String, String> getDetails();
 
-
-    Integer addIllustrations(List<Illustration> list);
-
-    Illustration getIllustration(String id);
-
-    void addTag(Tag t);
-
-    Tag getTag(String name);
-
-
-    String addTranslation(Tag t);
-
-    String getTranslation(String k);
-
-    Map<String, String> getTranslationMap();
-
-    Map<String, String> getDownloading();
-
     /**
-     * 添加Tag
+     * 获取翻译Map
      *
-     * @param list 作品详情列表
-     * @return 新数量
+     * @return
      */
-    Integer addTags(List<Illustration> list);
+    Map<String, String> getTranslationMap();
 }

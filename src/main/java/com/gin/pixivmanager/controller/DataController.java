@@ -33,9 +33,10 @@ public class DataController {
         return dataManager.getTags(page, limit, keyword, all);
     }
 
-    @RequestMapping("setTagTranslation")
-    public Integer setTagTranslation(Tag tag) {
-        return dataManager.setTagTranslation(tag);
+    @RequestMapping("addTranslation")
+    public Integer addTranslation(Tag tag) {
+        /*todo 请求pixiv修改tag*/
+        return dataManager.addTranslation(tag);
     }
 
     @RequestMapping("progress")

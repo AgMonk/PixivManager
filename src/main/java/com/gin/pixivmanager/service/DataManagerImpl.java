@@ -57,31 +57,19 @@ public class DataManagerImpl implements DataManager {
     }
 
 
-    @Override
-    public Integer setTagTranslation(Tag t) {
-        log.info("添加Tag翻译 {} -> {}", t.getName(), t.getTranslation());
-        addTranslation(t);
-        Tag tag = tagMap.get(t.getName());
-        tag.setCount(0);
-        tagMap.put(t.getName(), t);
-        /*todo 请求修改tag*/
-        return mapper.setTagTranslation(t);
-    }
-
-
     /**
      * 数据初始化
      */
     @Override
     public void init() {
         List<Illustration> illList = mapper.getIllustrations();
-        illList.forEach(this::addIllustration);
+        illList.forEach(this::addIllustration2Map);
         log.info("作品数量 {}", illustrationMap.size());
         List<Tag> tagList = mapper.getTags();
-        tagList.forEach(this::addTag);
+        tagList.forEach(this::addTag2Map);
         log.info("tag数量 {}", tagMap.size());
         List<Tag> transList = mapper.getTrans();
-        transList.forEach(this::addTranslation);
+        transList.forEach(this::addTranslation2Map);
         log.info("自定义翻译数量 {}", translationMap.size());
 
 
@@ -92,48 +80,6 @@ public class DataManagerImpl implements DataManager {
         log.info("数据载入完毕");
 
 
-    }
-
-    private void countTags() {
-        List<Illustration> illList = new ArrayList<>(illustrationMap.values());
-        for (Illustration ill : illList) {
-            List<Tag> tagList = ill.getTagList();
-            for (Tag tag : tagList) {
-                String tagName = tag.getName();
-                Tag t = tagMap.get(tagName);
-                t = t != null ? t : tag;
-                t.addCount();
-                tagMap.put(tagName, t);
-            }
-        }
-
-    }
-
-    @Override
-    public String addDownloading(String k, String v) {
-        String complete = "100";
-        if (v.endsWith(complete)) {
-            return downloading.remove(k);
-        }
-        return downloading.put(k, v);
-    }
-
-    @Override
-    public String addDetails(String k, String v) {
-        String complete = "100";
-        if (v.endsWith(complete)) {
-            return details.remove(k);
-        }
-        return details.put(k, v);
-    }
-
-    @Override
-    public Map<String, String> getDetails() {
-        return details;
-    }
-
-    private void addIllustration(Illustration i) {
-        illustrationMap.put(i.getId(), i);
     }
 
     @Override
@@ -158,35 +104,42 @@ public class DataManagerImpl implements DataManager {
             } while ((i + 1) * block < list.size());
         }
         log.info("添加作品详情 {} 个", addCount);
-        list.forEach(this::addIllustration);
+
+        list.forEach(this::addIllustration2Map);
         return addCount;
     }
 
-
     @Override
-    public Illustration getIllustration(String id) {
-        return illustrationMap.get(id);
+    public Integer addTags(List<Illustration> list) {
+        List<Tag> tags = new ArrayList<>();
+        for (Illustration ill : list) {
+            List<Tag> tagList = ill.getTagList();
+            for (Tag tag : tagList) {
+                if (!tags.contains(tag) && !tagMap.containsKey(tag.getName())) {
+                    tags.add(tag);
+                    addTag2Map(tag);
+                }
+            }
+        }
+        mapper.addTags(tags);
+        int size = tags.size();
+        log.info("添加新tag {} 个 总计 {}个", size, tagMap.size());
+        return size;
     }
 
     @Override
-    public void addTag(Tag t) {
+    public Integer addTranslation(Tag t) {
+        log.info("添加Tag翻译 {} -> {}", t.getName(), t.getTranslation());
+        addTranslation2Map(t);
+        //清空使用次数
+        Tag tag = tagMap.get(t.getName());
+        tag.setCount(0);
         tagMap.put(t.getName(), t);
+
+        /*todo 请求修改tag*/
+        return mapper.addTranslation(t);
     }
 
-    @Override
-    public Tag getTag(String name) {
-        return tagMap.get(name);
-    }
-
-    @Override
-    public String addTranslation(Tag t) {
-        return translationMap.put(t.getName(), t.getTranslation());
-    }
-
-    @Override
-    public String getTranslation(String k) {
-        return translationMap.get(k);
-    }
 
     @Override
     public Map<String, String> getTranslationMap() {
@@ -198,21 +151,54 @@ public class DataManagerImpl implements DataManager {
         return downloading;
     }
 
-    @Override
-    public Integer addTags(List<Illustration> list) {
-        List<Tag> tags = new ArrayList<>();
-        for (Illustration ill : list) {
+    private void countTags() {
+        List<Illustration> illList = new ArrayList<>(illustrationMap.values());
+        for (Illustration ill : illList) {
             List<Tag> tagList = ill.getTagList();
             for (Tag tag : tagList) {
-                if (!tags.contains(tag) && !tagMap.containsKey(tag.getName())) {
-                    tags.add(tag);
-                    addTag(tag);
-                }
+                String tagName = tag.getName();
+                Tag t = tagMap.get(tagName);
+                t = t != null ? t : tag;
+                t.addCount();
+                tagMap.put(tagName, t);
             }
         }
-        mapper.addTags(tags);
-        int size = tags.size();
-        log.info("添加新tag {} 个 总计 {}个", size, tagMap.size());
-        return size;
+
+    }
+
+    @Override
+    public Map<String, String> getDetails() {
+        return details;
+    }
+
+    @Override
+    public String addDownloading(String k, String v) {
+        String complete = "100";
+        if (v.endsWith(complete)) {
+            return downloading.remove(k);
+        }
+        return downloading.put(k, v);
+    }
+
+    @Override
+    public String addDetails(String k, String v) {
+        String complete = "100";
+        if (v.endsWith(complete)) {
+            return details.remove(k);
+        }
+        return details.put(k, v);
+    }
+
+    private void addTag2Map(Tag t) {
+
+        tagMap.put(t.getName(), t);
+    }
+
+    private void addIllustration2Map(Illustration i) {
+        illustrationMap.put(i.getId(), i);
+    }
+
+    private String addTranslation2Map(Tag t) {
+        return translationMap.put(t.getName(), t.getTranslation());
     }
 }
