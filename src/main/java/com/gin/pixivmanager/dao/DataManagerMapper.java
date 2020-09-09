@@ -2,14 +2,14 @@ package com.gin.pixivmanager.dao;
 
 import com.gin.pixivmanager.entity.Illustration;
 import com.gin.pixivmanager.entity.Tag;
-import org.apache.ibatis.annotations.Mapper;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
 /**
  * @author bx002
  */
-@Mapper
+@Repository
 public interface DataManagerMapper {
     /**
      * 读取所有作品
