@@ -378,6 +378,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
         String urlPrefix = ill.getUrlPrefix();
         String fileName = ill.getFileName();
         rootDir += rootDir.endsWith("/") ? "" : "/";
+        urlPrefix += urlPrefix.endsWith("/") ? "" : "/";
         Integer pageCount = ill.getPageCount();
 
         String url = urlPrefix + fileName;
@@ -391,6 +392,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
                 map.put(u, n);
             }
         }
+
         return map;
     }
 
