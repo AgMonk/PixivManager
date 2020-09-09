@@ -7,7 +7,6 @@ import com.gin.pixivmanager.util.SpringContextUtil;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -54,8 +53,8 @@ public class DataController {
 
         PixivRequestServ requestServ = SpringContextUtil.getBean(PixivRequestServ.class);
 
-        List<String> untagged = requestServ.getBookmark("未分類", 100);
-        List<File> download = requestServ.download(requestServ.getIllustrationDetail(untagged), "f:/");
-        return download;
+        List<String> untagged = requestServ.getBookmarks("未分類", 100);
+//        List<File> download = requestServ.download(requestServ.getIllustrationDetail(untagged), "f:/");
+        return null;
     }
 }
