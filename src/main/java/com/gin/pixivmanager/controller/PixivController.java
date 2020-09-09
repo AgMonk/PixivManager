@@ -26,6 +26,7 @@ public class PixivController {
     final PixivRequestServ pixivRequestServ;
     final UserInfo userInfo;
     final Executor controllerExecutor;
+boolean downloading = false;
 
     public PixivController(DataManager dataManager, PixivRequestServ pixivRequestServ, UserInfo userInfo, Executor controllerExecutor) {
         this.dataManager = dataManager;
@@ -40,7 +41,13 @@ public class PixivController {
     @RequestMapping("downloadUntagged")
     @Scheduled(cron = "0 0/10 * * * *")
     public void downloadUntagged() {
+        if (downloading) {
+            return ;
+        }
+        downloading = true;
         downloadBookmark("未分類", 10);
+        downloading = false;
+
     }
 
     /**
