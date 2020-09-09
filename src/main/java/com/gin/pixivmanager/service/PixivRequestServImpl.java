@@ -48,6 +48,10 @@ public class PixivRequestServImpl implements PixivRequestServ {
      */
     @Override
     public List<File> download(List<Illustration> detail, String rootDir) {
+        if (detail.size() == 0) {
+            return null;
+        }
+
         long start = System.currentTimeMillis();
         Map<String, String> urlAndFilePath = getUrlAndFilePath(detail, rootDir);
         List<File> list = new ArrayList<>();
@@ -85,24 +89,26 @@ public class PixivRequestServImpl implements PixivRequestServ {
     @Override
     public List<Illustration> getIllustrationDetail(List<String> idList) {
         int size = idList.size();
-        long start = System.currentTimeMillis();
-        log.info("查询作品详情 {}", size);
-        CountDownLatch latch = new CountDownLatch(size);
-        List<Illustration> list = new ArrayList<>();
-        for (String id : idList) {
-            requestExecutor.execute(() -> {
-                list.add(getIllustrationDetail(id, latch, size, start));
-            });
-        }
+        List<Illustration> list = new ArrayList<>(size);
+        if (size > 0) {
+            long start = System.currentTimeMillis();
+            log.info("查询作品详情 {}", size);
+            CountDownLatch latch = new CountDownLatch(size);
+            for (String id : idList) {
+                requestExecutor.execute(() -> {
+                    list.add(getIllustrationDetail(id, latch, size, start));
+                });
+            }
 
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+            try {
+                latch.await();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
 
-        dataManager.addIllustrations(list);
-        dataManager.addTags(list);
+            dataManager.addIllustrations(list);
+            dataManager.addTags(list);
+        }
         return list;
     }
 
@@ -173,8 +179,12 @@ public class PixivRequestServImpl implements PixivRequestServ {
      */
     @Override
     public void addTags(List<Illustration> list) {
-        long start = System.currentTimeMillis();
         int size = list.size();
+        if (size == 0) {
+            return;
+        }
+
+        long start = System.currentTimeMillis();
         String questName = "Tag添加任务-" + start % 1000;
         log.info("{} {}", questName, size);
         CountDownLatch latch = new CountDownLatch(size);
@@ -221,6 +231,9 @@ public class PixivRequestServImpl implements PixivRequestServ {
 
         log.info("修改tag {} -> {}", name, translation);
 
+        scanExecutor.execute(() -> {
+            ReqUtil.post(url, null, null, null, userInfo.getCookie(), 5000, formData, null, 1, "utf-8");
+        });
 
     }
 

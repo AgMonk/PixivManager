@@ -45,9 +45,7 @@ public class DataManagerImpl implements DataManager {
             });
         }
         if (all != 1) {
-            tagList.removeIf(tag -> {
-                return translationMap.containsKey(tag.getName()) || translationMap.containsKey(tag.getName().toLowerCase());
-            });
+            tagList.removeIf(tag -> translationMap.containsKey(tag.getName()) || translationMap.containsKey(tag.getName().toLowerCase()));
         }
 
         tagList.sort(Comparator.comparingInt(Tag::getCount));

@@ -5,7 +5,6 @@ import com.gin.pixivmanager.entity.Tag;
 import com.gin.pixivmanager.service.DataManager;
 import com.gin.pixivmanager.service.PixivRequestServ;
 import com.gin.pixivmanager.service.UserInfo;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -39,7 +38,6 @@ public class PixivController {
      */
     @RequestMapping("downloadUntagged")
     @Scheduled(cron = "0 0/10 * * * *")
-    @Async("controllerExecutor")
     public void downloadUntagged() {
         downloadBookmark("未分類", 10);
     }
