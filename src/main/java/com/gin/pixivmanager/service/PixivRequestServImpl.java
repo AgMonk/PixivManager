@@ -91,7 +91,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
     @Override
     public List<Illustration> getIllustrationDetail(List<String> idList) {
         List<Illustration> list = dataManager.getIllustrations(idList);
-        if (list.size() > 0 && list.size() < idList.size()) {
+        if ( list.size() < idList.size()) {
             List<String> lackList = new ArrayList<>();
             for (String s : idList) {
                 Map<String, Illustration> map = dataManager.getIllustrationMap();
@@ -116,14 +116,15 @@ public class PixivRequestServImpl implements PixivRequestServ {
         Integer size = lackList.size();
 
         Long start = System.currentTimeMillis();
+        String questName = "详情任务-" + start % 10000;
+
         log.info("查询作品详情 {}", size);
         CountDownLatch latch = new CountDownLatch(size);
         for (String id : lackList) {
             requestExecutor.execute(() -> {
                 list.add(getIllustrationDetail(id));
-                String questName = "详情任务-" + start % 10000;
-                dataManager.addDetails(questName, latch.getCount(), size);
                 latch.countDown();
+                dataManager.addDetails(questName, latch.getCount(), size);
             });
         }
 
