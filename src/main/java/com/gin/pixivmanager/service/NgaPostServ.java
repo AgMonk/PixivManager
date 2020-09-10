@@ -10,13 +10,6 @@ import java.util.Map;
  */
 public interface NgaPostServ {
 
-    /**
-     * 为上传准备附件文件
-     *
-     * @param ids id
-     * @return 文件列表
-     */
-    Map<String, File> prepare4Files(String... ids);
 
 
     /**
@@ -25,5 +18,5 @@ public interface NgaPostServ {
      * @param ids pid
      * @return 发帖地址
      */
-    String repost(String... ids);
+    String repost(String f,String t, String... id);
 }

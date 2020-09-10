@@ -24,8 +24,9 @@
 	<div id="app">
 		<a href="tag.html">tag翻译</a><br><br>
 		<a href="progress.html">任务进度</a><br><br>
-
-		<input type="text" v-model="pid" @change="pidChanged()" @keypress="repost(pid)">
+		<input type="text" v-model="f"  @keypress="repost(f,t,pid)" >
+		<input type="text" v-model="t" @keypress="repost(f,t,pid)" >
+		<input type="text" v-model="pid" @change="pidChanged()" @keypress="repost(f,t,pid)">
 		<button @click="repost(pid)">转发</button>
 	</div>
 </body>
@@ -34,6 +35,8 @@
 		el:"#app",
 		data:{
 			pid:"",
+			f:"少女前线",
+			t:"少前水楼",
 		},
 		methods:{
 			pidChanged(){
@@ -41,9 +44,9 @@
 				this.pid = this.pid.replace(/_p\d+/g, "");
 				this.pid += this.pid.endsWith(",") ? "" : ",";
 			},
-			repost(pid){
+			repost(f,t,pid){
 				let pids = pid.split(',');
-				let url = "nga/repost?";
+				let url = "nga/repost?f="+f+"&t="+t;
 				for (let i = 0; i < pids.length-1; i++) {
 					url+="&id="+pids[i];
 				}

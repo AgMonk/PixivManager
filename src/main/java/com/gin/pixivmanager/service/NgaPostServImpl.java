@@ -37,8 +37,7 @@ public class NgaPostServImpl implements NgaPostServ {
      *
      * @return 附件列表
      */
-    @Override
-    public Map<String, File> prepare4Files(String... ids) {
+    private Map<String, File> prepare4Files(String... ids) {
         String tempPath = userInfo.getRootPath() + "/temp/";
         List<String> lackList = new ArrayList<>();
         Map<String, File> filesMap = dataManager.getFilesMap();
@@ -93,12 +92,10 @@ public class NgaPostServImpl implements NgaPostServ {
     }
 
     @Override
-    public String repost(String... ids) {
+    public String repost(String f,String t, String... ids) {
         String cookie = userInfo.getNgaCookie("左牵黄");
-        String fid = userInfo.getNgaFid("测试版面");
-        String tid = userInfo.getNgaTid("测试楼");
-//        String fid = userInfo.getNgaFid("少女前线");
-//        String tid = userInfo.getNgaTid("少前水楼");
+        String fid = userInfo.getNgaFid(f);
+        String tid = userInfo.getNgaTid(t);
         String action = NgaPost.ACTION_REPLY;
         NgaPost ngaPost = NgaPost.create(cookie, fid, tid, action);
         String wrap = ngaPost.getWrap();
@@ -155,8 +152,8 @@ public class NgaPostServImpl implements NgaPostServ {
         log.info("发帖成功: {}", send);
 
         //删除临时文件
-        for (File f : map.values()) {
-            f.delete();
+        for (File file : map.values()) {
+            file.delete();
         }
         return send;
     }

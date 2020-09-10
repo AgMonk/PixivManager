@@ -25,8 +25,8 @@ public class NgaController {
     }
 
     @RequestMapping("repost")
-    public void repost(HttpServletResponse response, String... id) throws IOException {
-        String repost = ngaPostServ.repost(id);
+    public void repost(HttpServletResponse response,String f,String t, String... id) throws IOException {
+        String repost = ngaPostServ.repost(f,t,id);
         response.sendRedirect(repost);
     }
 }
