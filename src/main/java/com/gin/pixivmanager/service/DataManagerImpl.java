@@ -6,14 +6,25 @@ import com.gin.pixivmanager.entity.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 @Slf4j
 public class DataManagerImpl implements DataManager {
-    final private String COMPLETED = "100.0";
+    /**
+     * 常规文件名正则
+     */
+    final static Pattern PATTERN_ILLUST = Pattern.compile("\\d+_p\\d+");
+    /**
+     * 动图文件名正则
+     */
+    final static Pattern PATTERN_UGOIRA = Pattern.compile("\\d+_ugoira\\d+");
+
 
     /**
      * 下载进度
@@ -36,12 +47,20 @@ public class DataManagerImpl implements DataManager {
      * 自定义翻译数据
      */
     final private Map<String, String> translationMap = new HashMap<>();
-    final private Executor serviceExecutor;
-    final DataManagerMapper mapper;
+    /**
+     * 文件列表
+     */
+    private Map<String, File> filesMap;
 
-    public DataManagerImpl(Executor serviceExecutor, DataManagerMapper dataManagerMapper) {
+
+    final private Executor serviceExecutor;
+    final private DataManagerMapper mapper;
+    final private UserInfo userInfo;
+
+    public DataManagerImpl(Executor serviceExecutor, DataManagerMapper dataManagerMapper, UserInfo userInfo) {
         this.serviceExecutor = serviceExecutor;
         this.mapper = dataManagerMapper;
+        this.userInfo = userInfo;
 
         init();
     }
@@ -78,7 +97,7 @@ public class DataManagerImpl implements DataManager {
      */
     @Override
     public void init() {
-        CountDownLatch latch = new CountDownLatch(3);
+        CountDownLatch latch = new CountDownLatch(4);
 
         serviceExecutor.execute(() -> {
             List<Tag> tagList = mapper.getTags();
@@ -98,6 +117,35 @@ public class DataManagerImpl implements DataManager {
             log.info("作品数量 {}", illustrationMap.size());
             latch.countDown();
         });
+        serviceExecutor.execute(() -> {
+            filesMap = new HashMap<>();
+
+            //获取根目录下所有文件
+            List<File> list = new ArrayList<>();
+            listFiles(new File(userInfo.getRootPath()), list);
+
+            for (File file : list) {
+                String name = file.getName();
+                String key = null;
+                Matcher matcherIllust = PATTERN_ILLUST.matcher(name);
+                Matcher matcherUgoira = PATTERN_UGOIRA.matcher(name);
+                if (matcherIllust.find()) {
+                    key = matcherIllust.group();
+                }
+                if (matcherUgoira.find()) {
+                    String group = matcherUgoira.group();
+                    key = group.substring(0, group.indexOf("_"));
+                }
+                if (key != null) {
+                    filesMap.put(key, file);
+                }
+            }
+
+
+            latch.countDown();
+        });
+
+
         try {
             latch.await();
         } catch (InterruptedException e) {
@@ -212,6 +260,7 @@ public class DataManagerImpl implements DataManager {
 
     private String addProgress(String questName, long count, long size, Map<String, String> downloading) {
         String v = calculateProgress(count, size);
+        String COMPLETED = "100.0";
         if (v.endsWith(COMPLETED)) {
             return downloading.remove(questName);
         }
@@ -281,5 +330,31 @@ public class DataManagerImpl implements DataManager {
         }
 
         return list;
+    }
+
+    /**
+     * 遍历目录下的所有文件
+     *
+     * @param file 根目录
+     * @param list 用以存储的文件列表
+     */
+    private static void listFiles(File file, List<File> list) {
+        File[] fs = file.listFiles();
+        if (fs == null || fs.length == 0) {
+            return;
+        }
+        for (File f : fs) {
+            if (f.isDirectory()) {
+                listFiles(f, list);
+            }
+            if (f.isFile()) {
+                list.add(f);
+            }
+        }
+    }
+
+    @Override
+    public Map<String, File> getFilesMap() {
+        return filesMap;
     }
 }

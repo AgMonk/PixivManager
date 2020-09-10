@@ -3,6 +3,7 @@ package com.gin.pixivmanager.service;
 import com.gin.pixivmanager.entity.Illustration;
 import com.gin.pixivmanager.entity.Tag;
 
+import java.io.File;
 import java.util.List;
 import java.util.Map;
 
@@ -94,10 +95,14 @@ public interface DataManager {
      * @return
      */
     Map<String, String> getTranslationMap();
+
     /**
      * 先从缓存中查找是否有数据 剩余项从数据库中查询
+     *
      * @param idList id列表
-     * @return      作品详情
+     * @return 作品详情
      */
     List<Illustration> getIllustrations(List<String> idList);
+
+    Map<String, File> getFilesMap();
 }
