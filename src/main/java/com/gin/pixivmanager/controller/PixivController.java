@@ -66,6 +66,7 @@ public class PixivController {
         List<Illustration> detail = pixivRequestServ.getIllustrationDetail(idList);
         List<File> download = pixivRequestServ.download(detail, userInfo.getRootPath() + "/" + tag);
         pixivRequestServ.addTags(detail);
+
         return download;
     }
 

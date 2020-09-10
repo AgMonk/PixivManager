@@ -124,23 +124,7 @@ public class DataManagerImpl implements DataManager {
             List<File> list = new ArrayList<>();
             listFiles(new File(userInfo.getRootPath()), list);
 
-            for (File file : list) {
-                String name = file.getName();
-                String key = null;
-                Matcher matcherIllust = PATTERN_ILLUST.matcher(name);
-                Matcher matcherUgoira = PATTERN_UGOIRA.matcher(name);
-                if (matcherIllust.find()) {
-                    key = matcherIllust.group();
-                }
-                if (matcherUgoira.find()) {
-                    String group = matcherUgoira.group();
-                    key = group.substring(0, group.indexOf("_"));
-                }
-                if (key != null) {
-                    filesMap.put(key, file);
-                }
-            }
-
+            addFilesMap(list);
 
             latch.countDown();
         });
@@ -356,5 +340,24 @@ public class DataManagerImpl implements DataManager {
     @Override
     public Map<String, File> getFilesMap() {
         return filesMap;
+    }
+    @Override
+    public void addFilesMap(List<File> list){
+        for (File file : list) {
+            String name = file.getName();
+            String key = null;
+            Matcher matcherIllust = PATTERN_ILLUST.matcher(name);
+            Matcher matcherUgoira = PATTERN_UGOIRA.matcher(name);
+            if (matcherIllust.find()) {
+                key = matcherIllust.group();
+            }
+            if (matcherUgoira.find()) {
+                String group = matcherUgoira.group();
+                key = group.substring(0, group.indexOf("_"));
+            }
+            if (key != null) {
+                filesMap.put(key, file);
+            }
+        }
     }
 }

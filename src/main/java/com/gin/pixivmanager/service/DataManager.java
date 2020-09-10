@@ -105,4 +105,6 @@ public interface DataManager {
     List<Illustration> getIllustrations(List<String> idList);
 
     Map<String, File> getFilesMap();
+
+    void addFilesMap(List<File> list);
 }

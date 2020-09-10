@@ -95,10 +95,10 @@ public class NgaPostServImpl implements NgaPostServ {
     @Override
     public String repost(String... ids) {
         String cookie = userInfo.getNgaCookie("左牵黄");
-        String fid = userInfo.getNgaFid("测试版面");
-        String tid = userInfo.getNgaTid("测试楼");
-//        String fid = userInfo.getNgaFid("少女前线");
-//        String tid = userInfo.getNgaTid("少前水楼");
+//        String fid = userInfo.getNgaFid("测试版面");
+//        String tid = userInfo.getNgaTid("测试楼");
+        String fid = userInfo.getNgaFid("少女前线");
+        String tid = userInfo.getNgaTid("少前水楼");
         String action = NgaPost.ACTION_REPLY;
         NgaPost ngaPost = NgaPost.create(cookie, fid, tid, action);
         String wrap = ngaPost.getWrap();
