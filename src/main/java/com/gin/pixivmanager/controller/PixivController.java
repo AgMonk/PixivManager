@@ -5,6 +5,8 @@ import com.gin.pixivmanager.entity.Tag;
 import com.gin.pixivmanager.service.DataManager;
 import com.gin.pixivmanager.service.PixivRequestServ;
 import com.gin.pixivmanager.service.UserInfo;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -19,6 +21,7 @@ import java.util.concurrent.Executor;
  *
  * @author bx002
  */
+@Slf4j
 @RestController
 @RequestMapping("pixiv")
 public class PixivController {
@@ -26,7 +29,8 @@ public class PixivController {
     final PixivRequestServ pixivRequestServ;
     final UserInfo userInfo;
     final Executor controllerExecutor;
-boolean downloading = false;
+
+    final String untaggedLocker = "";
 
     public PixivController(DataManager dataManager, PixivRequestServ pixivRequestServ, UserInfo userInfo, Executor controllerExecutor) {
         this.dataManager = dataManager;
@@ -40,14 +44,12 @@ boolean downloading = false;
      */
     @RequestMapping("downloadUntagged")
     @Scheduled(cron = "0 0/10 * * * *")
+    @Async(value = "controllerExecutor")
     public void downloadUntagged() {
-        if (downloading) {
-            return ;
+        log.info("未分类任务加入队列");
+        synchronized (untaggedLocker) {
+            downloadBookmark("未分類", 10);
         }
-        downloading = true;
-        downloadBookmark("未分類", 10);
-        downloading = false;
-
     }
 
     /**
