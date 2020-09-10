@@ -5,6 +5,8 @@ import org.springframework.stereotype.Service;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 用户自定义配置
@@ -15,8 +17,29 @@ import java.nio.charset.StandardCharsets;
 @Service
 public class UserInfoImpl implements UserInfo {
     String uid, cookie, tt, rootPath;
-    final static String pathname = "config/user_info.txt";
-    final static File file = new File(pathname);
+    final static String PIXIV_INFO = "config/pixiv.txt";
+    final static String NGA_INFO = "config/nga.txt";
+    final static File pixivFile = new File(PIXIV_INFO);
+    final static File ngaFile = new File(NGA_INFO);
+
+    final static Map<String, String> ngaCookieMap = new HashMap<>();
+    final static Map<String, String> ngaFidMap = new HashMap<>();
+    final static Map<String, String> ngaTidMap = new HashMap<>();
+
+    @Override
+    public String getNgaCookie(String s) {
+        return ngaCookieMap.get(s);
+    }
+
+    @Override
+    public String getNgaFid(String s) {
+        return ngaFidMap.get(s);
+    }
+
+    @Override
+    public String getNgaTid(String s) {
+        return ngaTidMap.get(s);
+    }
 
     @Override
     public String getUid() {
@@ -40,16 +63,40 @@ public class UserInfoImpl implements UserInfo {
     }
 
     public UserInfoImpl() {
-        if (!file.exists()) {
-            log.info("配置文件未找到 {}", pathname);
+        if (!pixivFile.exists()) {
+            log.info("配置文件未找到 {}", PIXIV_INFO);
             try {
-                boolean newFile = file.createNewFile();
+                boolean newFile = pixivFile.createNewFile();
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
         try {
-            BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8));
+            BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(ngaFile), StandardCharsets.UTF_8));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] s;
+                if (line.indexOf(':') != line.lastIndexOf(':')) {
+                    s = line.split(":");
+
+                    if (line.startsWith("cookie")) {
+                        ngaCookieMap.put(s[1], s[2]);
+                    }
+                    if (line.startsWith("fid")) {
+                        ngaFidMap.put(s[1], s[2]);
+                    }
+                    if (line.startsWith("tid")) {
+                        ngaTidMap.put(s[1], s[2]);
+                    }
+                }
+            }
+            reader.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        try {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(pixivFile), StandardCharsets.UTF_8));
             String line;
             while ((line = reader.readLine()) != null) {
                 if (line.startsWith("cookie")) {
@@ -70,14 +117,6 @@ public class UserInfoImpl implements UserInfo {
             e.printStackTrace();
         }
 
-        log.info(toString());
     }
 
-    @Override
-    public String toString() {
-        return "UserInfoImpl{" + "uid='" + uid + '\'' +
-                ", cookie='" + cookie.substring(0, 20) + '\'' +
-                ", tt='" + tt + '\'' +
-                '}';
-    }
 }
