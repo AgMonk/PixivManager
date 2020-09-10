@@ -7,6 +7,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -20,6 +21,7 @@ import java.util.regex.Pattern;
  * @author bx002
  */
 public class NgaPost {
+    final static String NBSP = "\r\n";
     public final static String ACTION_NEW = "new";
     public final static String ACTION_REPLY = "reply";
     final static String NGA_ROOT_URL = "https://bbs.nga.cn";
@@ -28,8 +30,7 @@ public class NgaPost {
     static String BBS_CODE_TAG_IMG = "[img]./{url}[/img]";
     static String BBS_CODE_TAG_FLASH = "[flash=video]./{url}[/flash]";
     static String BBS_CODE_TAG_COLLAPSE = "[collapse={title}]{content}[/collapse]";
-    static String BBS_CODE_TAG_QUOTE = "[quote]{content}[/quote]";
-    final static String NBSP = "\r\n";
+    static String BBS_CODE_TAG_QUOTE = "[quote]" + NBSP + "{content}" + NBSP + "[/quote]";
 
     final static Pattern PATTERN_PID = Pattern.compile("pid\\d+");
     final static Pattern PATTERN_TID = Pattern.compile("tid=\\d+");
@@ -130,8 +131,9 @@ public class NgaPost {
      * 多线程上传文件
      *
      * @param map 标识符 - 文件
+     * @return
      */
-    public void uploadFiles(Map<String, File> map) {
+    public Set<String> uploadFiles(Map<String, File> map) {
         getAuthAndAttachUrl();
 
         CountDownLatch latch = new CountDownLatch(map.size());
@@ -153,7 +155,7 @@ public class NgaPost {
             e.printStackTrace();
         }
 
-
+        return attachmentsMap.keySet();
     }
 
     /**
@@ -242,7 +244,7 @@ public class NgaPost {
         if (title == null || "".equals(title)) {
             code = code.replace("={title}", "");
         } else {
-            code = code.replace("{title}", title);
+            code = code.replace("{title}", delKorea(title));
         }
         code = code.replace("{content}", content);
 
@@ -396,5 +398,24 @@ public class NgaPost {
 
     public StringBuilder getTitleBuilder() {
         return titleBuilder;
+    }
+
+    /**
+     * 删除韩文
+     *
+     * @param str
+     * @return
+     */
+    private static String delKorea(String str) {
+        StringBuilder unicode = new StringBuilder();
+        for (int i = 0; i < str.length(); i++) {
+            // 取出每一个字符
+            char c = str.charAt(i);
+            // 韩文转换为unicode
+            if (!(c >= 44032 && c <= 55215)) {
+                unicode.append(c);
+            }
+        }
+        return unicode.toString();
     }
 }

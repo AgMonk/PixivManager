@@ -270,6 +270,9 @@ public class Illustration {
         return s;
     }
 
+    public String getUserUrl() {
+        return "https://www.pixiv.net/users/{userId}/artworks".replace("{userId}", userId);
+    }
 
     @Override
     public String toString() {

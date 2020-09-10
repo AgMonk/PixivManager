@@ -421,7 +421,7 @@ public class ReqUtil {
         enc = StringUtils.isEmpty(enc) ? "utf-8" : enc;
         try {
             encode = URLEncoder
-                    .encode(s, enc)
+                    .encode(unicodeEncode(s), enc)
                     .replace("+", "%20");
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
@@ -436,7 +436,7 @@ public class ReqUtil {
      * @return 编码完成字符串
      */
     private static String unicodeEncode(String str) {
-        StringBuffer unicode = new StringBuffer();
+        StringBuilder unicode = new StringBuilder();
         for (int i = 0; i < str.length(); i++) {
             // 取出每一个字符
             char c = str.charAt(i);

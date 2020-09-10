@@ -103,11 +103,6 @@ public class NgaPostServImpl implements NgaPostServ {
         String action = NgaPost.ACTION_REPLY;
 
         NgaPost ngaPost = NgaPost.create(cookie, fid, tid, action);
-        File[] files = new File[]{};
-        Map<String, File> map = new HashMap<>();
-        map.put("84256106_p0", new File("F:/[pixiv]/未分類/84256106_p0.jpg"));
-        map.put("84256700_p0", new File("F:/[pixiv]/未分類/84256700_p0.jpg"));
-        ngaPost.uploadFiles(map);
 
 
         String img1 = ngaPost.getAttachmentCode("84256106_p0");
