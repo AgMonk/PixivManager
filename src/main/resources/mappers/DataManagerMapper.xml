@@ -57,7 +57,12 @@ Mapper 3.0//EN"
         )
     </delete>
     <insert id="addTags" parameterType="java.util.List">
-        delete from t_tags where name = #{name};
+        delete from t_tags where name in (
+
+        <foreach collection="list" item="item" index="index" separator=",">
+            #{item.name}
+        </foreach>;
+        )
         insert into t_tags (name, translation)
         values
         <foreach collection="list" item="item" index="index" separator=",">
