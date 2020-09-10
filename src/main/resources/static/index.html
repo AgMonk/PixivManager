@@ -45,9 +45,10 @@
 				let pids = pid.split(',');
 				let url = "nga/repost?";
 				for (let i = 0; i < pids.length-1; i++) {
-					url+="pid="+pids[i];
+					url+="&id="+pids[i];
 				}
 				window.open(url);
+				// console.log(url)
 			}
 		},
 		created(){
