@@ -47,6 +47,7 @@ public class PixivController {
     @Async(value = "controllerExecutor")
     public void downloadUntagged() {
         log.info("未分类任务加入队列");
+
         synchronized (untaggedLocker) {
             downloadBookmark("未分類", 10);
         }

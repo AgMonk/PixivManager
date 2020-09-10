@@ -223,13 +223,16 @@ public class DataManagerImpl implements DataManager {
         count = size - count;
         double percent = Math.floor(count * 1000.0 / size) / 10;
 
-        if (size > k * k) {
+        String s;
+        if (size > 100 * k) {
             count = count / k;
             size = size / k;
+            s = count + "k/" + size + "k";
+        } else {
+            s = count + "/" + size;
         }
 
-        String s1 = count + "/" + size;
-        return s1 + " " + percent;
+        return s + " " + percent;
     }
 
     private void addTag2Map(Tag t) {

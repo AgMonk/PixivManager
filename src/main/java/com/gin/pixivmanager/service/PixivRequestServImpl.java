@@ -63,12 +63,14 @@ public class PixivRequestServImpl implements PixivRequestServ {
         log.info("{} 开始 {}", questName, size);
 
         CountDownLatch latch = new CountDownLatch(size);
+        dataManager.addDetails(questName, latch.getCount(), size);
 
         for (Map.Entry<String, String> entry : urlAndFilePath.entrySet()) {
+
             downloadExecutor.execute(() -> {
                 list.add(download(entry.getKey(), entry.getValue()));
-                dataManager.addDetails(questName, latch.getCount(), size);
                 latch.countDown();
+                dataManager.addDetails(questName, latch.getCount(), size);
             });
         }
 
@@ -123,7 +125,9 @@ public class PixivRequestServImpl implements PixivRequestServ {
 
         log.info("查询作品详情 {}", size);
         CountDownLatch latch = new CountDownLatch(size);
+        dataManager.addDetails(questName, latch.getCount(), size);
         for (String id : lackList) {
+
             requestExecutor.execute(() -> {
                 list.add(getIllustrationDetail(id));
                 latch.countDown();
@@ -150,7 +154,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
         long start = System.currentTimeMillis();
         log.info("获取收藏作品id tag:{}", tag);
 
-        int offset = 0, limit = 10;
+        int offset = 0, limit = Math.min(10, max);
 
         List<String> idList = new ArrayList<>();
         String uid = userInfo.getUid();
@@ -218,8 +222,8 @@ public class PixivRequestServImpl implements PixivRequestServ {
         for (Illustration ill : list) {
             requestExecutor.execute(() -> {
                 addTags(ill);
-                dataManager.addDetails(questName, latch.getCount(), size);
                 latch.countDown();
+                dataManager.addDetails(questName, latch.getCount(), size);
             });
         }
 

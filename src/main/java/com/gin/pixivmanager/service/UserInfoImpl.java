@@ -4,14 +4,19 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 
+/**
+ * 用户自定义配置
+ *
+ * @author bx002
+ */
 @Slf4j
 @Service
 public class UserInfoImpl implements UserInfo {
     String uid, cookie, tt, rootPath;
     final static String pathname = "config/user_info.txt";
     final static File file = new File(pathname);
-    ;
 
     @Override
     public String getUid() {
@@ -38,13 +43,13 @@ public class UserInfoImpl implements UserInfo {
         if (!file.exists()) {
             log.info("配置文件未找到 {}", pathname);
             try {
-                file.createNewFile();
+                boolean newFile = file.createNewFile();
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
         try {
-            BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file), "utf-8"));
+            BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8));
             String line;
             while ((line = reader.readLine()) != null) {
                 if (line.startsWith("cookie")) {
@@ -70,11 +75,9 @@ public class UserInfoImpl implements UserInfo {
 
     @Override
     public String toString() {
-        final StringBuffer sb = new StringBuffer("UserInfoImpl{");
-        sb.append("uid='").append(uid).append('\'');
-        sb.append(", cookie='").append(cookie.substring(0, 20)).append('\'');
-        sb.append(", tt='").append(tt).append('\'');
-        sb.append('}');
-        return sb.toString();
+        return "UserInfoImpl{" + "uid='" + uid + '\'' +
+                ", cookie='" + cookie.substring(0, 20) + '\'' +
+                ", tt='" + tt + '\'' +
+                '}';
     }
 }
