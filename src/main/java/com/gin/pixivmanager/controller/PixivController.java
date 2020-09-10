@@ -49,7 +49,9 @@ public class PixivController {
         log.info("未分类任务加入队列");
 
         synchronized (untaggedLocker) {
-            downloadBookmark("未分類", 10);
+         List<File> list =   downloadBookmark("未分類", 10);
+        dataManager.addFilesMap(list);
+
         }
     }
 

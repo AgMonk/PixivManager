@@ -83,7 +83,6 @@ public class PixivRequestServImpl implements PixivRequestServ {
 
         log.info("{} 完毕 {} 耗时 {} 秒", questName, size, (end - start) / 1000);
 
-        dataManager.addFilesMap(list);
         return list;
     }
 

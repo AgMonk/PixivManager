@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta name="viewport"
+	content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+	<meta charset="UTF-8">
+	<title>网页标题</title>
+	<script type="text/javascript" src="/js/vue.js"></script>
+	<script type="text/javascript" src="/js/axios.min.js"></script>
+	<script type="text/javascript" src="/js/queryString.js"></script>
+	<script type="text/javascript">
+
+	</script>
+	<style type="text/css">
+		.err {
+			color: red;
+		}
+		input{
+			width: 90%;
+		}
+	</style>
+</head>
+<body>
+	<div id="app">
+		<a href="tag.html">tag翻译</a><br><br>
+		<a href="progress.html">任务进度</a><br><br>
+
+		<input type="text" v-model="pid" @change="pidChanged()" @keypress="repost(pid)">
+		<button @click="repost(pid)">转发</button>
+	</div>
+</body>
+<script>
+	const app = new Vue({
+		el:"#app",
+		data:{
+			pid:"",
+		},
+		methods:{
+			pidChanged(){
+				this.pid = this.pid.replace(/https:\/\/www.pixiv.net\/artworks\//g, "");
+				this.pid = this.pid.replace(/_p\d+/g, "");
+				this.pid += this.pid.endsWith(",") ? "" : ",";
+			},
+			repost(pid){
+				let pids = pid.split(',');
+				let url = "nga/repost?";
+				for (let i = 0; i < pids.length-1; i++) {
+					url+="pid="+pids[i];
+				}
+				window.open(url);
+			}
+		},
+		created(){
+
+		},
+	});
+	const _this = app;
+</script>
+</html>
+
