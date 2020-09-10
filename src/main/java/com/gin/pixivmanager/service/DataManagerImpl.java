@@ -7,6 +7,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executor;
 
 @Service
 @Slf4j
@@ -21,17 +23,27 @@ public class DataManagerImpl implements DataManager {
      * 查询详情进度
      */
     final private Map<String, String> details = new HashMap<>();
-    final private Map<String, Illustration> illustrationMap = new HashMap<>();
-    final private Map<String, Tag> tagMap = new HashMap<>();
-    final private Map<String, String> translationMap = new HashMap<>();
 
+    /**
+     * 作品数据
+     */
+    final private Map<String, Illustration> illustrationMap = new HashMap<>();
+    /**
+     * tag数据
+     */
+    final private Map<String, Tag> tagMap = new HashMap<>();
+    /**
+     * 自定义翻译数据
+     */
+    final private Map<String, String> translationMap = new HashMap<>();
+    final private Executor serviceExecutor;
     final DataManagerMapper mapper;
 
-    public DataManagerImpl(DataManagerMapper dataManagerMapper) {
+    public DataManagerImpl(Executor serviceExecutor, DataManagerMapper dataManagerMapper) {
+        this.serviceExecutor = serviceExecutor;
         this.mapper = dataManagerMapper;
 
         init();
-
     }
 
     @Override
@@ -66,23 +78,36 @@ public class DataManagerImpl implements DataManager {
      */
     @Override
     public void init() {
-        List<Illustration> illList = mapper.getIllustrations();
-        illList.forEach(this::addIllustration2Map);
-        log.info("作品数量 {}", illustrationMap.size());
-        List<Tag> tagList = mapper.getTags();
-        tagList.forEach(this::addTag2Map);
-        log.info("tag数量 {}", tagMap.size());
-        List<Tag> transList = mapper.getTrans();
-        transList.forEach(this::addTranslation2Map);
-        log.info("自定义翻译数量 {}", translationMap.size());
+        CountDownLatch latch = new CountDownLatch(3);
 
-
+        serviceExecutor.execute(() -> {
+            List<Tag> tagList = mapper.getTags();
+            tagList.forEach(this::addTag2Map);
+            log.info("tag数量 {}", tagMap.size());
+            latch.countDown();
+        });
+        serviceExecutor.execute(() -> {
+            List<Tag> transList = mapper.getTrans();
+            transList.forEach(this::addTranslation2Map);
+            log.info("自定义翻译数量 {}", translationMap.size());
+            latch.countDown();
+        });
+        serviceExecutor.execute(() -> {
+            List<Illustration> illList = mapper.getIllustrations();
+            illList.forEach(this::addIllustration2Map);
+            log.info("作品数量 {}", illustrationMap.size());
+            latch.countDown();
+        });
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         log.info("开始统计tag");
 
         countTags();
 
         log.info("数据载入完毕");
-
 
     }
 

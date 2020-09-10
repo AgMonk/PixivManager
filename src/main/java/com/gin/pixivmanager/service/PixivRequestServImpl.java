@@ -66,7 +66,9 @@ public class PixivRequestServImpl implements PixivRequestServ {
 
         for (Map.Entry<String, String> entry : urlAndFilePath.entrySet()) {
             downloadExecutor.execute(() -> {
-                list.add(download(entry.getKey(), entry.getValue(), latch, size, questName));
+                list.add(download(entry.getKey(), entry.getValue()));
+                dataManager.addDetails(questName, latch.getCount(), size);
+                latch.countDown();
             });
         }
 
@@ -91,7 +93,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
     @Override
     public List<Illustration> getIllustrationDetail(List<String> idList) {
         List<Illustration> list = dataManager.getIllustrations(idList);
-        if ( list.size() < idList.size()) {
+        if (list.size() < idList.size()) {
             List<String> lackList = new ArrayList<>();
             for (String s : idList) {
                 Map<String, Illustration> map = dataManager.getIllustrationMap();
@@ -109,13 +111,14 @@ public class PixivRequestServImpl implements PixivRequestServ {
 
     /**
      * 使用多线程请求作品详情 并放入一个指定list中
-     * @param list          目标list
-     * @param lackList      请求详情的id列表
+     *
+     * @param list     目标list
+     * @param lackList 请求详情的id列表
      */
     private void getIllustrationDetail2List(List<Illustration> list, List<String> lackList) {
-        Integer size = lackList.size();
+        int size = lackList.size();
 
-        Long start = System.currentTimeMillis();
+        long start = System.currentTimeMillis();
         String questName = "详情任务-" + start % 10000;
 
         log.info("查询作品详情 {}", size);
@@ -147,18 +150,17 @@ public class PixivRequestServImpl implements PixivRequestServ {
         long start = System.currentTimeMillis();
         log.info("获取收藏作品id tag:{}", tag);
 
-        Integer offset = 0, limit = 10;
+        int offset = 0, limit = 10;
 
         List<String> idList = new ArrayList<>();
         String uid = userInfo.getUid();
         String rawUrl = pixivUrl.getBookmarks()
                 .replace("{uid}", uid)
                 .replace("{tag}", tag)
-                .replace("{limit}", limit.toString());
+                .replace("{limit}", String.valueOf(limit));
 
-        String url = rawUrl + offset;
 
-        String result = ReqUtil.get(url, null, null, null, userInfo.getCookie(), null, null, null);
+        String result = ReqUtil.get(rawUrl + offset, null, null, null, userInfo.getCookie(), null, null, null);
 
         JSONObject body = JSONObject.parseObject(result).getJSONObject("body");
 
@@ -177,9 +179,10 @@ public class PixivRequestServImpl implements PixivRequestServ {
             int pages = total / limit + (total % limit != 0 ? 1 : 0);
             CountDownLatch latch = new CountDownLatch(pages - 1);
             for (int i = 1; i < pages; i++) {
-                int finalI = i;
+                String url = rawUrl + i * limit;
                 scanExecutor.execute(() -> {
-                    idList.addAll(getBookmark(rawUrl + finalI * limit, latch));
+                    idList.addAll(getBookmark(url));
+                    latch.countDown();
                 });
             }
 
@@ -214,7 +217,9 @@ public class PixivRequestServImpl implements PixivRequestServ {
 
         for (Illustration ill : list) {
             requestExecutor.execute(() -> {
-                addTags(ill, latch, size, questName);
+                addTags(ill);
+                dataManager.addDetails(questName, latch.getCount(), size);
+                latch.countDown();
             });
         }
 
@@ -231,7 +236,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
     /**
      * 修改tag(批量)
      *
-     * @param tag
+     * @param tag tag
      */
     @Override
     public void setTag(Tag tag) {
@@ -254,21 +259,16 @@ public class PixivRequestServImpl implements PixivRequestServ {
 
         log.info("修改tag {} -> {}", name, translation);
 
-        scanExecutor.execute(() -> {
-            ReqUtil.post(url, null, null, null, userInfo.getCookie(), 5000, formData, null, 1, "utf-8");
-        });
+        scanExecutor.execute(() -> ReqUtil.post(url, null, null, null, userInfo.getCookie(), 5000, formData, null, 1, "utf-8"));
 
     }
 
     /**
      * 为作品添加tag
      *
-     * @param ill       作品
-     * @param latch
-     * @param size
-     * @param questName
+     * @param ill 作品
      */
-    private void addTags(Illustration ill, CountDownLatch latch, int size, String questName) {
+    private void addTags(Illustration ill) {
         String id = ill.getId();
         String url = pixivUrl.getAddTags() + id;
         String tt = userInfo.getTt();
@@ -295,35 +295,24 @@ public class PixivRequestServImpl implements PixivRequestServ {
 
         ReqUtil.post(url, null, null, null, cookie, 5000, formData, null, 1, null);
 
-        latch.countDown();
 
-        dataManager.addDetails(questName, latch.getCount(), size);
     }
 
     /**
      * 下载文件
      *
-     * @param url
-     * @param latch
-     * @param size
-     * @param questName 任务名称
+     * @param url 地址
      */
-    private File download(String url, String filePath, CountDownLatch latch, int size, String questName) {
-        File file = ReqUtil.download(url, filePath);
-        if (latch != null) {
-            latch.countDown();
-        }
-        dataManager.addDetails(questName, latch.getCount(), size);
-        return file;
+    private File download(String url, String filePath) {
+        return ReqUtil.download(url, filePath);
     }
 
     /**
      * 请求收藏中的作品ID
      *
-     * @param url   url
-     * @param latch 计数器
+     * @param url url
      */
-    private List<String> getBookmark(String url, CountDownLatch latch) {
+    private List<String> getBookmark(String url) {
         List<String> list = new ArrayList<>();
         String result = ReqUtil.get(url, null, null, null, userInfo.getCookie(), null, null, null);
         JSONArray works = JSONObject.parseObject(result).getJSONObject("body").getJSONArray("works");
@@ -331,14 +320,11 @@ public class PixivRequestServImpl implements PixivRequestServ {
             JSONObject work = works.getJSONObject(i);
             list.add(work.getString("id"));
         }
-        if (latch != null) {
-            latch.countDown();
-        }
         return list;
     }
 
     /**
-     * @param id    pid
+     * @param id pid
      */
     private Illustration getIllustrationDetail(String id) {
         Illustration illust = new Illustration();
@@ -384,11 +370,11 @@ public class PixivRequestServImpl implements PixivRequestServ {
         String url = urlPrefix + fileName;
 
         if (ill.getIllustType() == 2) {
-            map.put(url,rootDir+ ill.createSimpleName(0));
+            map.put(url, rootDir + ill.createSimpleName(0));
         } else {
             for (Integer i = 0; i < pageCount; i++) {
                 String u = url.replace("_p0", "_p" + i);
-                String n = rootDir+ill.createSimpleName(i);
+                String n = rootDir + ill.createSimpleName(i);
                 map.put(u, n);
             }
         }
