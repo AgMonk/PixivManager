@@ -32,15 +32,6 @@ public class DataManagerImpl implements DataManager {
 
         init();
 
-//        List<Illustration> list = new ArrayList<>(illustrationMap.values());
-//        for (int i = 0; i < 20; i++) {
-//            Illustration ill = list.get(i);
-//            log.info(ill.createSimpleName(translationMap));
-//        }
-//        List<String> list = new ArrayList<>();
-//        list.add("82451546");
-//        list.add("82451917");
-//        getIllustrations(list);
     }
 
     @Override
@@ -247,7 +238,7 @@ public class DataManagerImpl implements DataManager {
         List<String> lackList = new ArrayList<>();
         for (String s : idList) {
             Illustration ill = illustrationMap.get(s);
-            if (ill==null || ill.getUserId() == null) {
+            if (ill == null || ill.getUserId() == null) {
                 lackList.add(s);
             } else {
                 list.add(ill);

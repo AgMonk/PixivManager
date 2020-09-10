@@ -9,6 +9,13 @@ import java.util.*;
 
 @Data
 public class Illustration {
+    /**
+     * illustType=0 插画  illustType=1 漫画 illustType=2 动图
+     */
+    final static int ILLUST_TYPE_ILLUSTRATION = 0;
+    final static int ILLUST_TYPE_MANGA = 1;
+    final static int ILLUST_TYPE_GIF = 2;
+
     Long lastUpdate = System.currentTimeMillis();
     /**
      * 作品pid
@@ -50,9 +57,6 @@ public class Illustration {
      * 作品数量
      */
     Integer pageCount;
-    /**
-     * illustType=0 插画  illustType=1 漫画 illustType=2 动图
-     */
     Integer illustType;
     /**
      * 收藏数
@@ -64,19 +68,19 @@ public class Illustration {
     Integer bookmarkData;
 
     final static String[] USERNAME_TRASH = new String[]{"@", "＠", "|", "FANBOX", "fanbox", "仕事", "■"};
-    final static Map<String, String> illegalChar = new HashMap<>();
+    final static Map<String, String> ILLEGAL_CHAR = new HashMap<>();
 
     static {
-        illegalChar.put(":", "：");
-        illegalChar.put("\n", "");
-        illegalChar.put("?", "？");
-        illegalChar.put("<", "《");
-        illegalChar.put(">", "》");
-        illegalChar.put("*", "×");
-        illegalChar.put("|", "^");
-        illegalChar.put("\"", "“");
-        illegalChar.put("\\", "_");
-        illegalChar.put("/", "~");
+        ILLEGAL_CHAR.put(":", "：");
+        ILLEGAL_CHAR.put("\n", "");
+        ILLEGAL_CHAR.put("?", "？");
+        ILLEGAL_CHAR.put("<", "《");
+        ILLEGAL_CHAR.put(">", "》");
+        ILLEGAL_CHAR.put("*", "×");
+        ILLEGAL_CHAR.put("|", "^");
+        ILLEGAL_CHAR.put("\"", "“");
+        ILLEGAL_CHAR.put("\\", "_");
+        ILLEGAL_CHAR.put("/", "~");
     }
 
     public Illustration() {
@@ -105,7 +109,7 @@ public class Illustration {
         fileName = original.substring(indexOf + 1);
         urlPrefix = original.substring(0, indexOf + 1);
         //如果是动图
-        if (illustType == 2) {
+        if (illustType == ILLUST_TYPE_GIF) {
             urlPrefix = urlPrefix.replace("img-original", "img-zip-ugoira");
             fileName = fileName.replace("ugoira0.jpg", "ugoira1920x1080.zip");
         }
@@ -157,8 +161,8 @@ public class Illustration {
         return tagList;
     }
 
-    public String createSimpleName(Integer count){
-        return id+"_p"+count+fileName.substring(fileName.lastIndexOf("."));
+    public String createSimpleName(Integer count) {
+        return id + "_p" + count + fileName.substring(fileName.lastIndexOf("."));
     }
 
     /**
@@ -174,23 +178,25 @@ public class Illustration {
         StringBuilder builder = new StringBuilder();
 
         addBrackets(builder, "userId", userId, "65535");
-        addBrackets(builder, "u", userName, "NullName");
+        addBrackets(builder, "u", clean(userName), "NullName");
         builder.append("/");
         addBrackets(builder, "bmk", bookmarkCount, 65535);
         addBrackets(builder, "", id + "_p{count}", null);
-        addBrackets(builder, "ti", title, null);
-        addBrackets(builder, "tags", createSimpleTags(dic), null);
+        addBrackets(builder, "ti", clean(title), null);
+        addBrackets(builder, "tags", clean(createSimpleTags(dic)), null);
 
         //后缀名
         builder.append(fileName.substring(fileName.lastIndexOf('.')));
+
+
         return builder.toString();
     }
 
     /**
      * 生成精简tag
      *
-     * @param dic
-     * @return
+     * @param dic 字典
+     * @return tag字符串
      */
     public String createSimpleTags(Map<String, String> dic) {
         /*
@@ -199,8 +205,8 @@ public class Illustration {
          */
         String[] tagsArray = tag.split(",");
         Set<String> set = new HashSet<>();
-        for (int i = 0; i < tagsArray.length; i++) {
-            String t = translate(tagsArray[i], dic)
+        for (String value : tagsArray) {
+            String t = translate(value, dic)
                     .replace(")", "")
                     .replace("）", "")
                     .replace("(", ",")
@@ -229,8 +235,7 @@ public class Illustration {
 
     private static String translate(String tag, Map<String, String> dic) {
         String s = dic.get(tag.toLowerCase());
-        String t = s != null ? s : tag;
-        return t;
+        return s != null ? s : tag;
     }
 
     private static String toSimplified(String s) {
@@ -259,7 +264,7 @@ public class Illustration {
      * @return 输出字符串
      */
     private static String clean(String s) {
-        for (Map.Entry<String, String> entry : illegalChar.entrySet()) {
+        for (Map.Entry<String, String> entry : ILLEGAL_CHAR.entrySet()) {
             s = s.replace(entry.getKey(), entry.getValue());
         }
         return s;
@@ -268,22 +273,20 @@ public class Illustration {
 
     @Override
     public String toString() {
-        final StringBuffer sb = new StringBuffer("Illustration{");
-        sb.append("lastUpdate=").append(lastUpdate);
-        sb.append(", id='").append(id).append('\'');
-        sb.append(", userId='").append(userId).append('\'');
-        sb.append(", title='").append(title).append('\'');
-        sb.append(", userName='").append(userName).append('\'');
-        sb.append(", description='").append(description).append('\'');
-        sb.append(", tag='").append(tag).append('\'');
-        sb.append(", tagTranslated='").append(tagTranslated).append('\'');
-        sb.append(", urlPrefix='").append(urlPrefix).append('\'');
-        sb.append(", fileName='").append(fileName).append('\'');
-        sb.append(", pageCount=").append(pageCount);
-        sb.append(", illustType=").append(illustType);
-        sb.append(", bookmarkCount=").append(bookmarkCount);
-        sb.append(", bookmarkData=").append(bookmarkData);
-        sb.append('}');
-        return sb.toString();
+        return "Illustration{" + "lastUpdate=" + lastUpdate +
+                ", id='" + id + '\'' +
+                ", userId='" + userId + '\'' +
+                ", title='" + title + '\'' +
+                ", userName='" + userName + '\'' +
+                ", description='" + description + '\'' +
+                ", tag='" + tag + '\'' +
+                ", tagTranslated='" + tagTranslated + '\'' +
+                ", urlPrefix='" + urlPrefix + '\'' +
+                ", fileName='" + fileName + '\'' +
+                ", pageCount=" + pageCount +
+                ", illustType=" + illustType +
+                ", bookmarkCount=" + bookmarkCount +
+                ", bookmarkData=" + bookmarkData +
+                '}';
     }
 }
