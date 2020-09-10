@@ -10,6 +10,8 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Slf4j
 /**
@@ -20,13 +22,41 @@ import java.util.concurrent.ThreadPoolExecutor;
 public class NgaPost {
     public final static String ACTION_NEW = "new";
     public final static String ACTION_REPLY = "reply";
-    final static String URL_POST_PHP = "https://bbs.nga.cn/post.php";
+    final static String NGA_ROOT_URL = "https://bbs.nga.cn";
+    final static String NGA_POST_URL = NGA_ROOT_URL + "/post.php";
+    final static String NGA_READ_URL = NGA_ROOT_URL + "/read.php";
+    static String BBS_CODE_TAG_IMG = "[img]./{url}[/img]";
+    static String BBS_CODE_TAG_FLASH = "[flash=video]./{url}[/flash]";
+    static String BBS_CODE_TAG_COLLAPSE = "[collapse={title}]{content}[/collapse]";
+    static String BBS_CODE_TAG_QUOTE = "[quote]{content}[/quote]";
+    final static String NBSP = "\r\n";
 
-    final String cookie, fid, tid, action;
+    final static Pattern PATTERN_PID = Pattern.compile("pid\\d+");
+    final static Pattern PATTERN_TID = Pattern.compile("tid=\\d+");
+    /**
+     * 发帖账号的cookie
+     */
+    final String cookie;
+    /**
+     * 发帖版面id
+     */
+    final String fid;
+    /**
+     * 回复主题id
+     */
+    final String tid;
+    /**
+     * 动作 new = 发帖  reply = 回复
+     */
+    final String action;
     /**
      * 帖子正文
      */
-    StringBuilder content = new StringBuilder();
+    StringBuilder contentBuilder = new StringBuilder();
+    /**
+     * 帖子标题
+     */
+    StringBuilder titleBuilder = new StringBuilder();
 
     /**
      * 上传附件验证码
@@ -49,24 +79,204 @@ public class NgaPost {
      */
     Map<String, String> attachmentsMap = new HashMap<>();
 
-    private NgaPost(String cookie, String fid, String tid, String action) {
-        this.cookie = cookie;
-        this.fid = fid;
-        this.tid = tid;
-        this.action = action;
-    }
-
     public static NgaPost create(String cookie, String fid, String tid, String action) {
-        NgaPost ngaPost = new NgaPost(cookie, fid, tid, action);
-
-        return ngaPost;
+        return new NgaPost(cookie, fid, tid, action);
     }
+
+    /**
+     * 发帖
+     *
+     * @return 发帖/回复的地址
+     */
+    public String send() {
+        Map<String, String[]> paramMap = new HashMap<>();
+        paramMap.put("action", new String[]{action});
+        paramMap.put("fid", new String[]{fid});
+        paramMap.put("lite", new String[]{"htmljs"});
+        paramMap.put("step", new String[]{"2"});
+        paramMap.put("post_subject", new String[]{titleBuilder.toString()});
+        paramMap.put("post_content", new String[]{contentBuilder.toString()});
+        paramMap.put("tpic_misc_bit1", new String[]{"40"});
+        paramMap.put("attachments", new String[]{attachmentsBuffer.toString()});
+        paramMap.put("attachments_check", new String[]{attachmentsCheckBuffer.toString()});
+
+        if (action.equals(ACTION_REPLY)) {
+            paramMap.put("tid", new String[]{tid});
+        }
+        String post = ReqUtil.post(NGA_POST_URL, null, null, paramMap, cookie,
+                null, null, null, 2, "gbk");
+        String url = null;
+        if (post.contains("发贴完毕")) {
+            if (action.equals(ACTION_REPLY)) {
+                Matcher matcher = PATTERN_PID.matcher(post);
+                if (matcher.find()) {
+                    String pid = matcher.group().substring(3);
+                    url = NGA_READ_URL + "?pid=" + pid;
+                }
+            }
+            if (action.equals(ACTION_NEW)) {
+                Matcher matcher = PATTERN_TID.matcher(post);
+                if (matcher.find()) {
+                    String tid = matcher.group();
+                    url = NGA_READ_URL + "?" + tid;
+                }
+            }
+        }
+
+        return url;
+    }
+
+    /**
+     * 多线程上传文件
+     *
+     * @param map 标识符 - 文件
+     */
+    public void uploadFiles(Map<String, File> map) {
+        getAuthAndAttachUrl();
+
+        CountDownLatch latch = new CountDownLatch(map.size());
+        Executor executor = getExecutor();
+        //一次上传多个文件
+        int i = 0;
+        for (Map.Entry<String, File> entry : map.entrySet()) {
+            int finalI = i;
+            executor.execute(() -> {
+                uploadFile(finalI, entry.getKey(), entry.getValue());
+                latch.countDown();
+            });
+            i++;
+        }
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+
+    }
+
+    /**
+     * 插入附件
+     *
+     * @param name
+     */
+    public NgaPost addAttachment(String name) {
+        addContent(getAttachmentCode(name));
+        return this;
+    }
+
+    /**
+     * 换行
+     */
+    public NgaPost addWrap() {
+        addContent(getWrap());
+        return this;
+    }
+
+    /**
+     * 换行
+     *
+     * @return
+     */
+    public String getWrap() {
+        return NBSP;
+    }
+
+    /**
+     * 添加正文内容
+     *
+     * @return this
+     */
+    public NgaPost addContent(String s) {
+        contentBuilder.append(s);
+        return this;
+    }
+
+    /**
+     * 添加标题内容
+     *
+     * @return this
+     */
+    public NgaPost addTitle(String s) {
+        titleBuilder.append(s);
+        return this;
+    }
+
+    /**
+     * 添加折叠
+     *
+     * @param title   标题
+     * @param content 内容
+     * @return this
+     */
+    public NgaPost addCollapse(String title, String content) {
+        addContent(getCollapse(title, content));
+        return this;
+    }
+
+    /**
+     * 获得附件的bbscode
+     *
+     * @param name 附件名
+     * @return bbscode
+     */
+    public String getAttachmentCode(String name) {
+        String url = attachmentsMap.get(name);
+        if (url.contains("mp4")) {
+            return BBS_CODE_TAG_FLASH.replace("{url}", url);
+        } else {
+            return BBS_CODE_TAG_IMG.replace("{url}", url);
+        }
+    }
+
+    /**
+     * 获得折叠的bbscode
+     *
+     * @param title   标题
+     * @param content 内容
+     * @return code
+     */
+    public static String getCollapse(String title, String content) {
+        String code = BBS_CODE_TAG_COLLAPSE;
+        if (title == null || "".equals(title)) {
+            code = code.replace("={title}", "");
+        } else {
+            code = code.replace("{title}", title);
+        }
+        code = code.replace("{content}", content);
+
+        return code;
+    }
+
+    /**
+     * 获得引用的bbscode
+     *
+     * @param content 内容
+     * @return code
+     */
+    public static String getQuote(String content) {
+        return BBS_CODE_TAG_QUOTE.replace("{content}", content);
+    }
+
+
+    /**
+     * 获得链接的bbscode
+     *
+     * @param title 标题
+     * @param url   链接
+     * @return code
+     */
+    public static String getUrlCode(String title, String url) {
+        return "[url=" + url + "]" + title + "[/url]";
+    }
+
 
     /**
      * 请求attach_url和auth
      */
     private void getAuthAndAttachUrl() {
-        StringBuilder urlbuilder = new StringBuilder(URL_POST_PHP);
+        StringBuilder urlbuilder = new StringBuilder(NGA_POST_URL);
         urlbuilder
                 .append("?action=").append(action).append("&")
                 .append("fid=").append(fid).append("&")
@@ -146,38 +356,6 @@ public class NgaPost {
         attachmentsMap.put(name, url);
     }
 
-
-    /**
-     * 多线程上传文件
-     *
-     * @param map 标识符 - 文件
-     */
-    public void uploadFiles(Map<String, File> map) {
-        getAuthAndAttachUrl();
-
-        CountDownLatch latch = new CountDownLatch(map.size());
-        Executor executor = getExecutor();
-        //一次上传多个文件
-        int i = 0;
-        for (Map.Entry<String, File> entry : map.entrySet()) {
-            int finalI = i;
-            executor.execute(() -> {
-                uploadFile(finalI, entry.getKey(), entry.getValue());
-                latch.countDown();
-            });
-            i++;
-        }
-
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-
-    }
-
-
     /**
      * 上传线程池
      *
@@ -205,4 +383,18 @@ public class NgaPost {
         return executor;
     }
 
+    private NgaPost(String cookie, String fid, String tid, String action) {
+        this.cookie = cookie;
+        this.fid = fid;
+        this.tid = tid;
+        this.action = action;
+    }
+
+    public StringBuilder getContentBuilder() {
+        return contentBuilder;
+    }
+
+    public StringBuilder getTitleBuilder() {
+        return titleBuilder;
+    }
 }

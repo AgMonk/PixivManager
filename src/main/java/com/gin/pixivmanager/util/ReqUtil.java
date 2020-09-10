@@ -451,9 +451,4 @@ public class ReqUtil {
     }
 
 
-    public static void main(String[] args) {
-        String url = "https://i.pximg.net/img-original/img/2019/12/28/00/22/04/78532610_p6.jpg";
-
-        download(url, "f:/123.jpg");
-    }
 }
