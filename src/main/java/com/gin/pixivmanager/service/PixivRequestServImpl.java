@@ -325,6 +325,16 @@ public class PixivRequestServImpl implements PixivRequestServ {
         return idList;
     }
 
+    /**
+     * 下载一个作品并添加tag
+     * @param ill       作品
+     * @param rootPath  根目录
+     * @return          下载好的文件（列表）
+     */
+    private List<File> downloadIllustAndAddTags(Illustration ill,String rootPath){
+        /*todo*/
+        return null;
+    }
 
     /**
      * 为作品添加tag

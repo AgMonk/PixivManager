@@ -87,7 +87,15 @@ public class ReqUtil {
             log.info("第{}次下载 {}", i, tempName);
             String questName = "(" + i + ")" + tempName;
             try {
-                response = HttpClients.createDefault().execute(get);
+                RequestConfig config =RequestConfig.custom()
+                        .setConnectionRequestTimeout(60*1000)
+                        .setConnectTimeout(60*1000)
+                        .setSocketTimeout(60*1000).build()
+                        ;
+
+                CloseableHttpClient client = HttpClients.custom()
+                        .setDefaultRequestConfig(config).build();
+                response = client.execute(get);
                 HttpEntity entity = response.getEntity();
                 long contentLength = entity.getContentLength();
                 InputStream inputStream = entity.getContent();

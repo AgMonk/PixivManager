@@ -3,8 +3,14 @@ package com.gin.pixivmanager.util;
 import com.alibaba.fastjson.JSONObject;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.util.StringUtils;
 
-import java.io.File;
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -332,16 +338,24 @@ public class NgaPost {
         formData.put("__output", "8");
         //大于4M自动压缩
         int maxLength = 4;
+        int largeLength = 12;
         int k = 1024;
-        if (file.length() >= maxLength * k * k) {
-            formData.put("attachment_file" + i + "_auto_size", "1");
+        HashMap<String, File> fileMap = null;
+        if (file.length() >= largeLength * k * k) {
+            log.warn("文件过大>12M");
+            /*todo 把文件转换为base64字符串*/
+            return ;
+//            formData.put("attachment_base64_file" + i, encryptToBase64(file.getPath()));
         } else {
-            formData.put("attachment_file" + i + "_auto_size", "0");
+            if (file.length() >= maxLength * k * k) {
+                formData.put("attachment_file" + i + "_auto_size", "1");
+            } else {
+                formData.put("attachment_file" + i + "_auto_size", "0");
+            }
+            //放入文件
+            fileMap = new HashMap<>(1);
+            fileMap.put("attachment_file" + i, file);
         }
-
-        //放入文件
-        HashMap<String, File> fileMap = new HashMap<>(1);
-        fileMap.put("attachment_file" + i, file);
 
         String result = ReqUtil.post(attachUrl, "", null,
                 null, null, null, formData, fileMap,
@@ -417,5 +431,34 @@ public class NgaPost {
             }
         }
         return unicode.toString();
+    }
+
+    /**
+     * 把文件转换为base64
+     *
+     * @param imgPath
+     * @return
+     */
+    public static String encryptToBase64(String imgPath)  {
+        byte[] data = null;
+        // 读取图片字节数组
+        try {
+            InputStream in = new FileInputStream(imgPath);
+            System.out.println("文件大小（字节）="+in.available());
+            data = new byte[in.available()];
+            in.read(data);
+            in.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        // 对字节数组进行Base64编码，得到Base64编码的字符串
+        Base64.Encoder encoder = Base64.getEncoder();
+        String base64Str = encoder.encodeToString(data);
+        return base64Str;
+    }
+
+    public static void main(String[] args) throws IOException {
+        String s = encryptToBase64("F:\\[pixiv]\\未分類\\84303763_p0.jpg");
+        System.err.println(s);
     }
 }
