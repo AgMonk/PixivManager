@@ -49,8 +49,8 @@ public class DataController {
     }
 
     @RequestMapping("delFile")
-    public String delFile(String path) {
-        return dataManager.delFile(path);
+    public String delFile(String pid) {
+        return dataManager.delFile(pid);
     }
 
 

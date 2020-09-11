@@ -54,8 +54,8 @@ public interface PixivRequestServ {
     /**
      * 文件归档(重命名)
      *
-     * @param id id列表
+     * @param name id列表 格式  xxxx_p0
      * @return id列表
      */
-    String[] archive(String[] id);
+    List<String> archive(String[] name);
 }

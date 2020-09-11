@@ -11,6 +11,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 
 /**
@@ -37,62 +38,137 @@ public class NgaPostServImpl implements NgaPostServ {
      *
      * @return 附件列表
      */
-    private Map<String, File> prepare4Files(String... ids) {
+    private Map<String, File> prepare4Files(String... name) {
         String tempPath = userInfo.getRootPath() + "/temp/";
-        List<String> lackList = new ArrayList<>();
-        Map<String, File> filesMap = dataManager.getFilesMap();
-
         /**
-         * 已准备好的列表
+         * 缺少的文件名
          */
-        Map<String, File> map = new HashMap<>();
+        List<String> lackList = new ArrayList<>();
+        /**
+         * 缺少的文件pid
+         */
+        List<String> lackPidList = new ArrayList<>();
+        /**
+         * 现成的文件
+         */
+        Map<String, File> filesMap = dataManager.getFilesMap(name);
+        /**
+         * 需要上传的文件
+         */
+        Map<String, File> uploadMap = new HashMap<>();
 
-        for (String id : ids) {
-            boolean b = true;
-
-            //从现有文件中查找所需文件
+        //新线程 复制文件到temp目录
+        CountDownLatch latch = new CountDownLatch(2);
+        serviceExecutor.execute(() -> {
             for (Map.Entry<String, File> entry : filesMap.entrySet()) {
-                String key = entry.getKey();
-                if (key.equals(id) || key.contains(id + "_")) {
-                    b = false;
-                    File source = entry.getValue();
-                    String name = source.getName();
-                    String suffix = name.substring(name.lastIndexOf('.'));
-                    File destFile = new File(tempPath + key + suffix);
+                //目标文件名
+                String fileName = entry.getKey();
+                //源文件
+                File sourceFile = entry.getValue();
+                String sFileName = sourceFile.getName();
+                //后缀
+                String suffix = sFileName.substring(sFileName.lastIndexOf('.'));
+                //目标文件
+                File destFile = new File(tempPath + fileName + suffix);
 
-                    try {
-                        log.info("发现所需文件 复制到 {}", destFile.getPath());
-                        copyFile(source, destFile);
-                        map.put(key, destFile);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-
+                try {
+                    log.info("发现所需文件 复制到 {}", destFile.getPath());
+                    copyFile(sourceFile, destFile);
+                    uploadMap.put(fileName, destFile);
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
             }
-            //现有文件中没有
-            if (b) {
-                lackList.add(id);
-            }
+            latch.countDown();
+        });
 
-        }
-        //有缺少的文件
-
-        if (lackList.size() > 0) {
-            log.info("缺少文件  {}个", lackList.size());
-            List<Illustration> detail = pixivRequestServ.getIllustrationDetail(lackList);
-            List<File> downloadList = pixivRequestServ.download(detail, tempPath);
-            for (File file : downloadList) {
-                String name = file.getName();
-                name = name.substring(0, name.lastIndexOf('.'));
-                map.put(name, file);
+        //缺少的文件
+        for (String s : name) {
+            if (!filesMap.containsKey(s)) {
+                String pid = s.substring(0, s.indexOf('_'));
+                lackList.add(s);
+                if (!lackPidList.contains(pid)) {
+                    lackPidList.add(pid);
+                }
             }
         }
-        return map;
+
+        //有缺少文件
+        serviceExecutor.execute(() -> {
+            if (lackPidList.size() > 0) {
+                //查询详情
+                List<Illustration> detail = pixivRequestServ.getIllustrationDetail(lackPidList);
+                //下载文件
+                List<File> download = pixivRequestServ.download(detail, tempPath);
+                for (File file : download) {
+                    String fileName = file.getName();
+                    String pidAndCount = fileName.substring(0, fileName.lastIndexOf('.'));
+                    //发现需要文件
+                    if (lackList.contains(pidAndCount)) {
+                        //加入map
+                        uploadMap.put(pidAndCount, file);
+                    }
+                }
+            }
+            latch.countDown();
+        });
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+//        /**
+//         * 已准备好的列表
+//         */
+//        Map<String, File> map = new HashMap<>();
+//
+//        for (String id : name) {
+//            boolean b = true;
+//
+//            //从现有文件中查找所需文件
+//            for (Map.Entry<String, File> entry : filesMap.entrySet()) {
+//                String key = entry.getKey();
+//                if (key.equals(id) || key.contains(id + "_")) {
+//                    b = false;
+//                    File source = entry.getValue();
+//                    String fileName = source.getName();
+//                    String suffix = fileName.substring(fileName.lastIndexOf('.'));
+//                    File destFile = new File(tempPath + key + suffix);
+//
+//                    try {
+//                        log.info("发现所需文件 复制到 {}", destFile.getPath());
+//                        copyFile(source, destFile);
+//                        map.put(key, destFile);
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+//
+//                }
+//            }
+//            //现有文件中没有
+//            if (b) {
+//                lackList.add(id);
+//            }
+//
+//        }
+//        //有缺少的文件
+//        if (lackList.size() > 0) {
+//            log.info("缺少文件  {}个", lackList.size());
+//            List<Illustration> detail = pixivRequestServ.getIllustrationDetail(lackList);
+//            List<File> downloadList = pixivRequestServ.download(detail, tempPath);
+//            for (File file : downloadList) {
+//                String fileName = file.getName();
+//                fileName = fileName.substring(0, fileName.lastIndexOf('.'));
+//                map.put(fileName, file);
+//            }
+//        }
+        return uploadMap;
     }
 
     @Override
-    public String repost(String f,String t, String... ids) {
+    public String repost(String f, String t, String... name) {
         String cookie = userInfo.getNgaCookie("左牵黄");
         String fid = userInfo.getNgaFid(f);
         String tid = userInfo.getNgaTid(t);
@@ -101,19 +177,20 @@ public class NgaPostServImpl implements NgaPostServ {
         String wrap = ngaPost.getWrap();
 
         //准备附件
-        Map<String, File> map = prepare4Files(ids);
+        Map<String, File> map = prepare4Files(name);
         //上传附件
         Set<String> attachmentsName = ngaPost.uploadFiles(map);
 
-        dataManager.getIllustrations(Arrays.asList(ids));
+        dataManager.getIllustrations(Arrays.asList(name));
+        /*todo 载入所有所涉id的详情数据*/
 
         StringBuilder sb = new StringBuilder();
 
-        for (String id : ids) {
+        for (String id : name) {
             StringBuilder attachments = new StringBuilder();
-            for (String name : attachmentsName) {
-                if (id.equals(name) || name.contains(id + "_")) {
-                    attachments.append(ngaPost.getAttachmentCode(name)).append(wrap);
+            for (String aName : attachmentsName) {
+                if (id.equals(aName) || aName.contains(id + "_")) {
+                    attachments.append(ngaPost.getAttachmentCode(aName)).append(wrap);
                 }
             }
             Illustration ill = dataManager.getIllustrationMap().get(id);

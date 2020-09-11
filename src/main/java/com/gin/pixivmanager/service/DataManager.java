@@ -109,10 +109,10 @@ public interface DataManager {
     /**
      * 获得指定id的文件列表
      *
-     * @param id
+     * @param name
      * @return
      */
-    Map<String, File> getFilesMap(String... id);
+    Map<String, File> getFilesMap(String... name);
 
     void addFilesMap(List<File> list);
 
@@ -126,8 +126,8 @@ public interface DataManager {
     /**
      * 删除文件
      *
-     * @param path
+     * @param name
      * @return
      */
-    String delFile(String path);
+    String delFile(String name);
 }

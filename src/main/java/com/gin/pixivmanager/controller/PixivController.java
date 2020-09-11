@@ -81,12 +81,12 @@ public class PixivController {
     /**
      * 文件归档(重命名)
      *
-     * @param id
+     * @param name
      * @return
      */
     @RequestMapping("archive")
-    public String[] archive(String... id) {
-        return pixivRequestServ.archive(id);
+    public List<String> archive(String... name) {
+        return pixivRequestServ.archive(name);
     }
 
     @RequestMapping("test")

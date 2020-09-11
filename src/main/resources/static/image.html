@@ -60,50 +60,58 @@
 <body>
 <div id="app">
     <div style="position: fixed">
-        <select v-model="fid">
+        <select v-model="param.f">
             <option>测试版</option>
             <option>少女前线</option>
         </select><br>
-        <select v-model="tid">
+        <select v-model="param.t">
             <option>测试楼</option>
             <option>少前水楼</option>
         </select><br>
 
-        <select v-model="selected" size="5" @change="updatePid(selected)">
-            <option v-for="(item) in fileUrls" :value="item.value" :id="item.key">
-                {{item.key.replace("p", "")}}
+        <select v-model="selected" size="5">
+            <option v-for="(item,i) in fileUrls" :value="item.key" :id="item.key"
+                    @click.prevent.right="addFile(item.key)">
+                {{item.key}}
             </option>
         </select>
 
 
-        <button @click="addPid()">添加</button>
-        <button @click="addAllPid()">添加全部</button>
-        <br>
-        <select :size="pidArray.length">
-            <option v-for="t in pidArray">{{t}}</option>
-        </select>
+        <button @click="addFile()">添加</button>
+        <button @click="addAllFile()">添加全部</button>
+        <br><br>
         <button @click="repost()">转发</button>
         <button @click="archive()">归档</button>
+        <button @click="">删除</button>
+        <br>
+        <select :size="param.name.length">
+            <option v-for="t in param.name">{{t}}</option>
+        </select>
 
     </div>
-    <a :href="selected"><img :src="selected" style="width: 100%"></a>
+    <!--    <a :href="selected"><img :src="selected" style="width: 100%"></a>-->
 </div>
 </body>
 <script>
     const app = new Vue({
         el: "#app",
         data: {
+            param: {
+                name: [],
+                f: "测试版面",
+                t: "测试楼",
+            },
             fileUrls: [],
+            nga: {},
             selected: "",
             pid: "",
             selectedKey: "",
             pidArray: [],
-            fid: "测试版",
-            tid: "测试楼",
+
         },
         methods: {
             getFileUrls() {
-                get("/data/getFileUrls", null, function (res) {
+                get("/data/getFilesPath", null, function (res) {
                     let fileUrls = res.data;
                     let t = [];
                     for (let key in fileUrls) {
@@ -111,74 +119,60 @@
                     }
                     t.sort(function (a, b) {
                         let aPid = a.key.substr(0, a.key.indexOf("_"));
-                        let aCount = a.key.substr(a.key.indexOf("_") + 1);
+                        let aCount = a.key.substr(a.key.indexOf("_p") + 2);
                         let bPid = b.key.substr(0, b.key.indexOf("_"));
-                        let bCount = b.key.substr(b.key.indexOf("_") + 1);
-                        if (aPid !== bPid) {
-                            return aPid - bPid;
+                        let bCount = b.key.substr(b.key.indexOf("_p") + 2);
+                        if (parseInt(aPid) !== parseInt(bPid)) {
+                            return parseInt(aPid) - parseInt(bPid);
                         } else {
-                            return aCount - bCount;
+                            return parseInt(aCount) - parseInt(bCount);
                         }
                     })
                     _this.fileUrls = t;
-                    _this.selected = t[0].value;
-                    _this.updatePid(_this.selected);
+                    _this.selected = t[0].key;
                 })
             },
-            updatePid(v) {
-                for (let obj of this.fileUrls) {
-                    if (obj.value === v) {
-                        this.pid = obj.key.substr(0, obj.key.indexOf("_"));
-                        console.log(this.pid)
-                        return;
-                    }
-                }
-            },
-            addPid() {
-                for (let i = this.fileUrls.length - 1; i >= 0; i--) {
-                    let o = this.fileUrls[i].key;
-                    console.log(o + " " + this.pid + "_  " + o.startsWith(this.pid + "_"))
-                    if (o.startsWith(this.pid + "_")) {
-                        console.log("删除" + o)
+            addFile(n) {
+                n = n == null ? this.selected : n;
+                this.param.name.push(n);
+                for (let i = 0; i < this.fileUrls.length; i++) {
+                    if (this.fileUrls[i].key === n) {
                         this.fileUrls.splice(i, 1);
+                        if (this.fileUrls[0] != null) {
+                            this.selected = this.fileUrls[0].key;
+                        }
+                        break;
                     }
                 }
-                this.pidArray.push(this.pid);
-                if (this.selected.length > 0) {
-                    this.selected = this.fileUrls[0].value;
-                    this.updatePid(this.selected);
-                }
-
-
             },
-            addAllPid() {
-                while (this.selected.length > 0) {
-                    this.addPid();
+            addAllFile() {
+                while (this.fileUrls.length > 0) {
+                    this.addFile();
                 }
             },
+
             repost() {
-                let url = "nga/repost?f=" + this.fid + "&t=" + this.tid
-                let p = this.pidArray;
-                for (let i = 0; i < p.length; i++) {
-                    url += "&id=" + p[i];
-                }
+                let url = "nga/repost?" + qs(this.param);
+
                 // console.log(url)
                 window.open(url);
             },
             archive() {
                 let url = "pixiv/archive?";
-                let p = this.pidArray;
-                for (let i = 0; i < p.length; i++) {
-                    url += "&id=" + p[i];
-                }
-                console.log(url)
-                get(url, null, function (res) {
+                get(url, this.param, function (res) {
                     location.reload();
+                })
+            },
+            getInfo() {
+                get("nga/getInfo", null, function (res) {
+                    this.nga = res.data;
+                    console.log(res.data);
                 })
             }
         },
         created() {
             this.getFileUrls();
+            this.getInfo();
         },
     });
     const _this = app;

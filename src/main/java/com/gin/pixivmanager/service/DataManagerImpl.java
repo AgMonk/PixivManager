@@ -345,14 +345,11 @@ public class DataManagerImpl implements DataManager {
     }
 
     @Override
-    public Map<String, File> getFilesMap(String... id) {
+    public Map<String, File> getFilesMap(String... name) {
         Map<String, File> map = new HashMap<>();
-        for (String s : id) {
-            for (Map.Entry<String, File> entry : filesMap.entrySet()) {
-                String key = entry.getKey();
-                if (key.startsWith(s + "_")) {
-                    map.put(key, entry.getValue());
-                }
+        for (String s : name) {
+            if (filesMap.containsKey(s)) {
+                map.put(s, filesMap.get(s));
             }
         }
         return map;
@@ -396,24 +393,15 @@ public class DataManagerImpl implements DataManager {
     }
 
     @Override
-    public String delFile(String path) {
-        File destFile = new File(path);
-        if (filesMap.containsValue(destFile)) {
-            Iterator<Map.Entry<String, File>> iterator = filesMap.entrySet().iterator();
-            while (iterator.hasNext()) {
-                Map.Entry<String, File> next = iterator.next();
-                File file = next.getValue();
-                String key = next.getKey();
-                if (file.equals(destFile)) {
-                    if (file.delete()) {
-                        log.debug("删除文件 {}", file.getPath());
-                        iterator.remove();
-                        return key;
-                    } else {
-                        log.warn("删除失败 {}", file.getPath());
-                    }
-
-                }
+    public String delFile(String name) {
+        if (filesMap.containsKey(name)) {
+            File file = filesMap.get(name);
+            if (file.delete()) {
+                log.debug("删除文件 {}", file.getPath());
+                filesMap.remove(name);
+                return name;
+            } else {
+                log.warn("删除失败 {}", file.getPath());
             }
         }
         return null;

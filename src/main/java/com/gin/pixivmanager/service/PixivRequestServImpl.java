@@ -12,7 +12,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 
@@ -265,70 +268,61 @@ public class PixivRequestServImpl implements PixivRequestServ {
     }
 
     @Override
-    public String[] archive(String[] id) {
-        //获得id的详情信息
-        List<Illustration> detail = getIllustrationDetail(Arrays.asList(id));
-        detail.forEach(ill -> {
-            ill.createFormatName(dataManager.getTranslationMap());
-        });
-
-        //获得文件列表
-        Map<String, File> filesMap = dataManager.getFilesMap(id);
-        //文件总目录
-        Map<String, File> map = dataManager.getFilesMap();
-        //归档目录
-        String archivePath = userInfo.getArchivePath();
-        for (Illustration ill : detail) {
-            String key = archive(ill, filesMap, archivePath);
-            //删除已归档的文件
-            if (key != null) {
-                map.remove(key);
+    public List<String> archive(String[] name) {
+        List<String> idList = new ArrayList<>();
+        for (String s : name) {
+            String pid = s.substring(0, s.indexOf("_"));
+            if (!idList.contains(pid)) {
+                idList.add(pid);
             }
         }
-        return id;
-    }
-
-    /**
-     * 归档一个id
-     *
-     * @param ill         作品
-     * @param filesMap    文件列表
-     * @param archivePath
-     */
-    private String archive(Illustration ill, Map<String, File> filesMap, String archivePath) {
-        String formatName = ill.getFormatName();
+        //获得id的详情信息
+        List<Illustration> detail = getIllustrationDetail(idList);
+        idList = new ArrayList<>();
+        //归档目录
+        String archivePath = userInfo.getArchivePath();
+        //获得文件列表
+        Map<String, File> filesMap = dataManager.getFilesMap(name);
+        //文件总目录
+        Map<String, File> map = dataManager.getFilesMap();
 
         for (Map.Entry<String, File> entry : filesMap.entrySet()) {
             String key = entry.getKey();
             File file = entry.getValue();
-            if (key.startsWith(ill.getId() + "_")) {
-                String count;
-                if (ill.getIllustType() == Illustration.ILLUST_TYPE_GIF) {
-                    count = "0";
-                } else {
-                    count = key.substring(key.indexOf("_p") + 2);
-                }
-                String destPath = archivePath + "/" + formatName.replace("{count}", count);
-                File dest = new File(destPath);
-
-                File parentFile = dest.getParentFile();
-                if (!parentFile.exists()) {
-                    if (parentFile.mkdirs()) {
-                        log.debug("创建文件夹 {}", parentFile.getPath());
+            String pid = key.substring(0, key.indexOf('_'));
+            String destPath = archivePath;
+            for (Illustration ill : detail) {
+                if (ill.getId().equals(pid)) {
+                    String count;
+                    if (ill.getIllustType() == Illustration.ILLUST_TYPE_GIF) {
+                        count = "0";
                     } else {
-                        log.warn("创建文件夹失败 {}", parentFile.getPath());
+                        count = key.substring(key.indexOf("_p") + 2);
                     }
-                }
-
-                if (file.renameTo(dest)) {
-                    log.debug("移动文件 {} 到 {}", file.getPath(), destPath);
-                    return key;
-                } else {
-                    log.warn("移动失败 {} 到 {}", file.getPath(), destPath);
+                    destPath += "/" + ill.createFormatName(dataManager.getTranslationMap()).replace("{count}", count);
+                    break;
                 }
             }
+            File dest = new File(destPath);
+
+            File parentFile = dest.getParentFile();
+            if (!parentFile.exists()) {
+                if (parentFile.mkdirs()) {
+                    log.debug("创建文件夹 {}", parentFile.getPath());
+                } else {
+                    log.warn("创建文件夹失败 {}", parentFile.getPath());
+                }
+            }
+            if (file.renameTo(dest)) {
+                log.debug("移动文件 {} 到 {}", file.getPath(), destPath);
+                map.remove(key);
+                idList.add(key);
+            } else {
+                log.warn("移动失败 {} 到 {}", file.getPath(), destPath);
+            }
+
         }
-        return null;
+        return idList;
     }
 
 
