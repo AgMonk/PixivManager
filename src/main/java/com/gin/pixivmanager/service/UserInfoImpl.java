@@ -147,4 +147,13 @@ public class UserInfoImpl implements UserInfo {
 
     }
 
+    @Override
+    public Map<String, Object> getInfos() {
+        Map<String, Object> map = new HashMap<>();
+        map.put("user", ngaCookieMap.keySet());
+        map.put("fid", ngaFidMap.keySet());
+        map.put("tid", ngaTidMap.keySet());
+        return map;
+    }
+
 }

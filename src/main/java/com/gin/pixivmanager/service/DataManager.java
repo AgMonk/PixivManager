@@ -121,7 +121,13 @@ public interface DataManager {
      *
      * @return
      */
-    Map<String, String> getFileUrls();
+    Map<String, String> getFilesPath();
 
-
+    /**
+     * 删除文件
+     *
+     * @param path
+     * @return
+     */
+    String delFile(String path);
 }

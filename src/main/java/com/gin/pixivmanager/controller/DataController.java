@@ -43,9 +43,14 @@ public class DataController {
     }
 
 
-    @RequestMapping("getFileUrls")
-    public Map<String, String> getFileUrls() {
-        return dataManager.getFileUrls();
+    @RequestMapping("getFilesPath")
+    public Map<String, String> getFilesPath() {
+        return dataManager.getFilesPath();
+    }
+
+    @RequestMapping("delFile")
+    public String delFile(String path) {
+        return dataManager.delFile(path);
     }
 
 

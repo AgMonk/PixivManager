@@ -382,7 +382,7 @@ public class DataManagerImpl implements DataManager {
     }
 
     @Override
-    public Map<String, String> getFileUrls() {
+    public Map<String, String> getFilesPath() {
         Map<String, String> map = new HashMap<>();
         for (Map.Entry<String, File> entry : filesMap.entrySet()) {
             String path = "/pixiv" + entry.getValue().getPath()
@@ -393,6 +393,30 @@ public class DataManagerImpl implements DataManager {
             }
         }
         return map;
+    }
+
+    @Override
+    public String delFile(String path) {
+        File destFile = new File(path);
+        if (filesMap.containsValue(destFile)) {
+            Iterator<Map.Entry<String, File>> iterator = filesMap.entrySet().iterator();
+            while (iterator.hasNext()) {
+                Map.Entry<String, File> next = iterator.next();
+                File file = next.getValue();
+                String key = next.getKey();
+                if (file.equals(destFile)) {
+                    if (file.delete()) {
+                        log.debug("删除文件 {}", file.getPath());
+                        iterator.remove();
+                        return key;
+                    } else {
+                        log.warn("删除失败 {}", file.getPath());
+                    }
+
+                }
+            }
+        }
+        return null;
     }
 
 
