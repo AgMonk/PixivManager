@@ -16,7 +16,26 @@ import java.util.Map;
 @Slf4j
 @Service
 public class UserInfoImpl implements UserInfo {
-    String uid, cookie, tt, rootPath;
+    /**
+     * pixiv用户uid
+     */
+    String uid;
+    /**
+     * pixiv cookie
+     */
+    String cookie;
+    /**
+     * pixiv tt 与cookie一一对应
+     */
+    String tt;
+    /**
+     * 下载文件的根目录
+     */
+    String rootPath;
+    /**
+     * 归档根目录
+     */
+    String archivePath;
     final static String PIXIV_INFO = "config/pixiv.txt";
     final static String NGA_INFO = "config/nga.txt";
     final static File pixivFile = new File(PIXIV_INFO);
@@ -59,7 +78,13 @@ public class UserInfoImpl implements UserInfo {
 
     @Override
     public String getRootPath() {
-        return rootPath;
+        String s = rootPath.endsWith("/") ? rootPath.substring(0, rootPath.length() - 1) : rootPath;
+        return s;
+    }
+
+    @Override
+    public String getArchivePath() {
+        return archivePath;
     }
 
     public UserInfoImpl() {
@@ -110,6 +135,9 @@ public class UserInfoImpl implements UserInfo {
                 }
                 if (line.startsWith("rootPath")) {
                     rootPath = line.substring(line.indexOf(":") + 1);
+                }
+                if (line.startsWith("archivePath")) {
+                    archivePath = line.substring(line.indexOf(":") + 1);
                 }
             }
             reader.close();

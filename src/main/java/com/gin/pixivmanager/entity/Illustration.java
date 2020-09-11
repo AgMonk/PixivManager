@@ -12,9 +12,9 @@ public class Illustration {
     /**
      * illustType=0 插画  illustType=1 漫画 illustType=2 动图
      */
-    final static int ILLUST_TYPE_ILLUSTRATION = 0;
-    final static int ILLUST_TYPE_MANGA = 1;
-    final static int ILLUST_TYPE_GIF = 2;
+    public final static int ILLUST_TYPE_ILLUSTRATION = 0;
+    public final static int ILLUST_TYPE_MANGA = 1;
+    public final static int ILLUST_TYPE_GIF = 2;
 
     Long lastUpdate = System.currentTimeMillis();
     /**
@@ -66,6 +66,10 @@ public class Illustration {
      * 是否已收藏
      */
     Integer bookmarkData;
+    /**
+     * 归档文件名
+     */
+    String formatName;
 
     final static String[] USERNAME_TRASH = new String[]{"@", "＠", "|", "FANBOX", "fanbox", "仕事", "■"};
     final static Map<String, String> ILLEGAL_CHAR = new HashMap<>();
@@ -188,8 +192,8 @@ public class Illustration {
         //后缀名
         builder.append(fileName.substring(fileName.lastIndexOf('.')));
 
-
-        return builder.toString();
+        formatName = builder.toString();
+        return formatName;
     }
 
     /**

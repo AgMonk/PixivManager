@@ -18,4 +18,6 @@ public interface UserInfo {
     String getTt();
 
     String getRootPath();
+
+    String getArchivePath();
 }

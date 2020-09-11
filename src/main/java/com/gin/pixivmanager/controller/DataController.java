@@ -43,6 +43,12 @@ public class DataController {
     }
 
 
+    @RequestMapping("getFileUrls")
+    public Map<String, String> getFileUrls() {
+        return dataManager.getFileUrls();
+    }
+
+
     @RequestMapping("test")
     public Object test() {
         return null;

@@ -50,4 +50,12 @@ public interface PixivRequestServ {
      * @param tag
      */
     void setTag(Tag tag);
+
+    /**
+     * 文件归档(重命名)
+     *
+     * @param id id列表
+     * @return id列表
+     */
+    String[] archive(String[] id);
 }

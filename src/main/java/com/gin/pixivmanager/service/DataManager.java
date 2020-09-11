@@ -106,5 +106,22 @@ public interface DataManager {
 
     Map<String, File> getFilesMap();
 
+    /**
+     * 获得指定id的文件列表
+     *
+     * @param id
+     * @return
+     */
+    Map<String, File> getFilesMap(String... id);
+
     void addFilesMap(List<File> list);
+
+    /**
+     * 获取根目录下的所有文件  pid - 文件路径的对应 用以显示图片
+     *
+     * @return
+     */
+    Map<String, String> getFileUrls();
+
+
 }

@@ -49,8 +49,8 @@ public class PixivController {
         log.info("未分类任务加入队列");
 
         synchronized (untaggedLocker) {
-         List<File> list =   downloadBookmark("未分類", 10);
-        dataManager.addFilesMap(list);
+            List<File> list = downloadBookmark("未分類", 10);
+            dataManager.addFilesMap(list);
 
         }
     }
@@ -78,6 +78,16 @@ public class PixivController {
         return dataManager.addTranslation(tag);
     }
 
+    /**
+     * 文件归档(重命名)
+     *
+     * @param id
+     * @return
+     */
+    @RequestMapping("archive")
+    public String[] archive(String... id) {
+        return pixivRequestServ.archive(id);
+    }
 
     @RequestMapping("test")
     public Object test() {

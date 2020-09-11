@@ -63,6 +63,7 @@ public class DataManagerImpl implements DataManager {
         this.userInfo = userInfo;
 
         init();
+
     }
 
     @Override
@@ -122,7 +123,8 @@ public class DataManagerImpl implements DataManager {
 
             //获取根目录下所有文件
             List<File> list = new ArrayList<>();
-            listFiles(new File(userInfo.getRootPath()), list);
+            String rootPath = userInfo.getRootPath();
+            listFiles(new File(rootPath), list);
 
             addFilesMap(list);
 
@@ -341,8 +343,26 @@ public class DataManagerImpl implements DataManager {
     public Map<String, File> getFilesMap() {
         return filesMap;
     }
+
     @Override
-    public void addFilesMap(List<File> list){
+    public Map<String, File> getFilesMap(String... id) {
+        Map<String, File> map = new HashMap<>();
+        for (String s : id) {
+            for (Map.Entry<String, File> entry : filesMap.entrySet()) {
+                String key = entry.getKey();
+                if (key.startsWith(s + "_")) {
+                    map.put(key, entry.getValue());
+                }
+            }
+        }
+        return map;
+    }
+
+    @Override
+    public void addFilesMap(List<File> list) {
+        if (list == null || list.size() == 0) {
+            return;
+        }
         for (File file : list) {
             String name = file.getName();
             String key = null;
@@ -360,4 +380,20 @@ public class DataManagerImpl implements DataManager {
             }
         }
     }
+
+    @Override
+    public Map<String, String> getFileUrls() {
+        Map<String, String> map = new HashMap<>();
+        for (Map.Entry<String, File> entry : filesMap.entrySet()) {
+            String path = "/pixiv" + entry.getValue().getPath()
+                    .replace("\\", "/")
+                    .replace(userInfo.getRootPath(), "");
+            if (path.endsWith("jpg") || path.endsWith("png")) {
+                map.put(entry.getKey(), path);
+            }
+        }
+        return map;
+    }
+
+
 }
