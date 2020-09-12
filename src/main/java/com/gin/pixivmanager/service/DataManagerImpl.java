@@ -386,9 +386,10 @@ public class DataManagerImpl implements DataManager {
             String path = "/pixiv" + entry.getValue().getPath()
                     .replace("\\", "/")
                     .replace(userInfo.getRootPath(), "");
-            if (path.endsWith("jpg") || path.endsWith("png")) {
-                map.put(entry.getKey(), path);
-            }
+            //只返回图片
+//            if (path.endsWith("jpg") || path.endsWith("png")) {
+            map.put(entry.getKey(), path);
+//            }
         }
         return map;
     }

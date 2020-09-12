@@ -189,11 +189,11 @@ public class NgaPostServImpl implements NgaPostServ {
         //上传附件
         ngaPost.uploadFiles(map);
 
-        List<Illustration> illList = dataManager.getIllustrations(Arrays.asList(name));
-
+        List<Illustration> illList = pixivRequestServ.getIllustrationDetail(Arrays.asList(name));
         StringBuilder sb = new StringBuilder();
 
         for (Illustration ill : illList) {
+            log.info("添加卡片 {}", ill.getId());
             String card = getIllustrationCard(ill, ngaPost.getAttachmentsMap());
             sb.append(card);
         }
@@ -242,7 +242,7 @@ public class NgaPostServImpl implements NgaPostServ {
      * @param attachmentsMap 附件map
      * @return 卡片字符串
      */
-    private static String getIllustrationCard(Illustration ill, Map<String, String> attachmentsMap) {
+    private String getIllustrationCard(Illustration ill, Map<String, String> attachmentsMap) {
         StringBuilder sb = new StringBuilder();
 
         String id = ill.getId();
@@ -275,7 +275,7 @@ public class NgaPostServImpl implements NgaPostServ {
             sb.append("标题: ").append(title).append(wrap);
         }
         //tag
-        sb.append("标签: ").append(review(ill.getTag())).append(wrap);
+        sb.append("标签: ").append(review(ill.createSimpleTags(dataManager.getTranslationMap()))).append(wrap);
         //图片
         for (String s : aNameList) {
             String url = attachmentsMap.get(s);

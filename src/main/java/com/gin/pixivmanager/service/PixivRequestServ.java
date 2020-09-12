@@ -63,6 +63,7 @@ public interface PixivRequestServ {
      * 下载多个作品 并添加tag
      *
      * @param illustList 作品列表
+     * @param rootPath   下载根目录
      * @return 下载完成的文件
      */
     List<File> downloadIllustAndAddTags(List<Illustration> illustList, String rootPath);
@@ -71,6 +72,7 @@ public interface PixivRequestServ {
      * 下载多个作品 并添加tag
      *
      * @param illustArray 作品id列表
+     * @param rootPath    下载根目录
      * @return 下载完成的文件
      */
     List<File> downloadIllustAndAddTags(String[] illustArray, String rootPath);

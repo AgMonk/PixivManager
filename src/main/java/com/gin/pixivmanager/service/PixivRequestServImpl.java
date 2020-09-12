@@ -96,6 +96,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
         if (list.size() < idList.size()) {
             List<String> lackList = new ArrayList<>();
             for (String s : idList) {
+                s = getPidFromFileName(s);
                 Map<String, Illustration> map = dataManager.getIllustrationMap();
                 if (!map.containsKey(s)) {
                     lackList.add(s);
@@ -110,7 +111,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
     }
 
     /**
-     * 使用多线程请求作品详情 并放入一个指定list中
+     * 使用多线程请求多个作品详情 并放入一个指定list中
      *
      * @param list     目标list
      * @param lackList 请求详情的id列表
@@ -124,10 +125,9 @@ public class PixivRequestServImpl implements PixivRequestServ {
         log.info("查询作品详情 {}", size);
         CountDownLatch latch = new CountDownLatch(size);
         dataManager.addDetails(questName, latch.getCount(), size);
-        for (String id : lackList) {
-
+        for (String s : lackList) {
             requestExecutor.execute(() -> {
-                list.add(getIllustrationDetail(id));
+                list.add(getIllustrationDetail(s));
                 latch.countDown();
                 dataManager.addDetails(questName, latch.getCount(), size);
             });
@@ -269,7 +269,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
     public List<String> archive(String[] name) {
         List<String> idList = new ArrayList<>();
         for (String s : name) {
-            String pid = s.substring(0, s.indexOf("_"));
+            String pid = getPidFromFileName(s);
             if (!idList.contains(pid)) {
                 idList.add(pid);
             }
@@ -287,7 +287,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
         for (Map.Entry<String, File> entry : filesMap.entrySet()) {
             String key = entry.getKey();
             File file = entry.getValue();
-            String pid = key.substring(0, key.indexOf('_'));
+            String pid = getPidFromFileName(key);
             String destPath = archivePath;
             for (Illustration ill : detail) {
                 if (ill.getId().equals(pid)) {
@@ -315,6 +315,16 @@ public class PixivRequestServImpl implements PixivRequestServ {
                 log.debug("移动文件 {} 到 {}", file.getPath(), destPath);
                 map.remove(key);
                 idList.add(key);
+
+                //如果目录已空 删除目录
+                File parent = file.getParentFile();
+                if (parent.listFiles().length == 0) {
+                    if (parent.delete()) {
+                        log.debug("删除目录 {}", parent);
+                    } else {
+                        log.warn("删除目录失败 {}", parent);
+                    }
+                }
             } else {
                 log.warn("移动失败 {} 到 {}", file.getPath(), destPath);
             }
@@ -333,6 +343,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
             downloadMainExecutor.execute(() -> {
                 List<File> files = downloadIllustAndAddTags(ill, rootPath);
                 outputFiles.addAll(files);
+                dataManager.addFilesMap(files);
                 latch.countDown();
             });
         }
@@ -376,6 +387,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
                 fileList.add(download);
                 latch.countDown();
                 dataManager.addDownloading(questName, latch.getCount(), size);
+
             });
         }
 
@@ -457,6 +469,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
      * @param id pid
      */
     private Illustration getIllustrationDetail(String id) {
+        id = getPidFromFileName(id);
         Illustration illust = new Illustration();
         illust.setId(id);
         String url = pixivUrl.getIllustration().replace("{pid}", id);
@@ -519,5 +532,15 @@ public class PixivRequestServImpl implements PixivRequestServ {
     private static String prettyJson(Object obj) {
         return JSON.toJSONString(obj, SerializerFeature.PrettyFormat, SerializerFeature.WriteMapNullValue,
                 SerializerFeature.WriteDateUseDateFormat);
+    }
+
+    /**
+     * 如有 _ 截断 _
+     *
+     * @return
+     */
+    private static String getPidFromFileName(String s) {
+        return s.contains("_") ? s.substring(0, s.indexOf("_")) : s;
+
     }
 }

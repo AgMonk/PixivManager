@@ -114,6 +114,11 @@ public interface DataManager {
      */
     Map<String, File> getFilesMap(String... name);
 
+    /**
+     * 添加文件列表到 filesMap
+     *
+     * @param list
+     */
     void addFilesMap(List<File> list);
 
     /**

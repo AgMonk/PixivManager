@@ -186,6 +186,8 @@ public class Illustration {
         }
         StringBuilder builder = new StringBuilder();
 
+        builder.append(illustType).append("/");
+        
         addBrackets(builder, "userId", userId, "65535");
         addBrackets(builder, "u", clean(userName), "NullName");
         builder.append("/");

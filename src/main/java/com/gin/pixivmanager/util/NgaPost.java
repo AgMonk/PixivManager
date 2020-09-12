@@ -1,6 +1,8 @@
 package com.gin.pixivmanager.util;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import lombok.extern.slf4j.Slf4j;
 import net.coobird.thumbnailator.Thumbnails;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -347,10 +349,9 @@ public class NgaPost {
         int largeLength = 12;
         int k = 1024;
         HashMap<String, File> fileMap = null;
-        if (file.length() >= largeLength * k * k) {
-            log.info("文件过大>12M 进行压缩..");
-            file = zipImage(file, largeLength * k * k);
-        }
+        //压缩
+        file = zipImage(file, largeLength * k * k);
+
         if (file.length() >= maxLength * k * k) {
             formData.put("attachment_file" + i + "_auto_size", "1");
         } else {
@@ -364,16 +365,21 @@ public class NgaPost {
         String result = ReqUtil.post(attachUrl, "", null,
                 null, null, null, formData, fileMap,
                 null, "gbk");
-        JSONObject data = JSONObject.parseObject(result).getJSONObject("data");
+        log.info("开始上传 {}", file);
+        JSONObject json = JSONObject.parseObject(result);
+        JSONObject data = json.getJSONObject("data");
+        if (data == null) {
+            printJson(json);
+        } else {
+            String attachments = data.getString("attachments");
+            String attachmentsCheck = data.getString("attachments_check");
+            String url = data.getString("url");
 
-        String attachments = data.getString("attachments");
-        String attachmentsCheck = data.getString("attachments_check");
-        String url = data.getString("url");
-
-        //保存 附件 验证码 url
-        attachmentsBuffer.append(attachments).append("\t");
-        attachmentsCheckBuffer.append(attachmentsCheck).append("\t");
-        attachmentsMap.put(name, url);
+            //保存 附件 验证码 url
+            attachmentsBuffer.append(attachments).append("\t");
+            attachmentsCheckBuffer.append(attachmentsCheck).append("\t");
+            attachmentsMap.put(name, url);
+        }
     }
 
     /**
@@ -447,6 +453,8 @@ public class NgaPost {
      */
     private static File zipImage(File file, long toLength) throws IOException {
         if (file.length() > toLength) {
+            log.info("文件大于 {}K 进行压缩..", toLength / 1024);
+
             String path = file.getPath();
             String filePath = path.substring(0, path.lastIndexOf('.'));
             String newPath = filePath + "_z.jpg";
@@ -459,14 +467,27 @@ public class NgaPost {
             ;
 
             File newFile = new File(newPath);
+            log.info("压缩完毕 大小 {}K", file.length() / 1024);
             if (newFile.length() > toLength) {
                 return zipImage(newFile, toLength);
+            } else {
+                return newFile;
             }
         }
+
         return file;
     }
 
     public Map<String, String> getAttachmentsMap() {
         return attachmentsMap;
+    }
+
+    private static void printJson(Object obj) {
+        System.err.println(prettyJson(obj));
+    }
+
+    private static String prettyJson(Object obj) {
+        return JSON.toJSONString(obj, SerializerFeature.PrettyFormat, SerializerFeature.WriteMapNullValue,
+                SerializerFeature.WriteDateUseDateFormat);
     }
 }
