@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -315,6 +316,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
         int size = illustList.size();
         log.info("下载 {}个作品", size);
         CountDownLatch latch = new CountDownLatch(size);
+
         for (Illustration ill : illustList) {
             downloadMainExecutor.execute(() -> {
                 List<File> files = downloadIllustAndAddTags(ill, rootPath);
@@ -325,9 +327,9 @@ public class PixivRequestServImpl implements PixivRequestServ {
         }
 
         try {
-            latch.await();
+            latch.await(9, TimeUnit.MINUTES);
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            log.warn("当前任务已持续9分钟 放弃剩余任务");
         }
 
         return outputFiles;

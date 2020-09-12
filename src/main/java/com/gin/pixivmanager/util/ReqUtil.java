@@ -67,10 +67,7 @@ public class ReqUtil {
     public static File download(String url, String filePath) throws IOException {
         //创建目录
         File file = new File(filePath);
-        File parentFile = file.getParentFile();
-        if (!parentFile.exists()) {
-            parentFile.mkdirs();
-        }
+
 
         DataManager dataManager = SpringContextUtil.getBean(DataManager.class);
 
@@ -111,7 +108,10 @@ public class ReqUtil {
                     //下载进度
                     dataManager.addDownloading(questName, contentLength - totalRead, contentLength);
                 }
-
+                File parentFile = file.getParentFile();
+                if (!parentFile.exists()) {
+                    parentFile.mkdirs();
+                }
                 FileOutputStream fos = new FileOutputStream(filePath);
                 output.writeTo(fos);
                 output.flush();
@@ -307,7 +307,7 @@ public class ReqUtil {
                         Thread.sleep(10 * 1000);
                         break;
                     case HttpStatus.SC_MOVED_TEMPORARILY:
-                        log.info("第{}次请求 连接被重定向({})", times, statusCode);
+                        log.info("第{}次请求 连接被重定向({}) {}", times, statusCode, m.getURI());
                         break lableA;
                     case HttpStatus.SC_OK:
                         long end = System.currentTimeMillis();

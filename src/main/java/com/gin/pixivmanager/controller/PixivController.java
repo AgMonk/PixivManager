@@ -49,8 +49,6 @@ public class PixivController {
 
         synchronized (untaggedLocker) {
             List<File> list = downloadBookmark("未分類", 10);
-            dataManager.addFilesMap(list);
-
         }
     }
 
