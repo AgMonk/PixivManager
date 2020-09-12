@@ -71,25 +71,26 @@ public class PixivRequestServImpl implements PixivRequestServ {
                 }
             }
         }
-        /**
-         * 向pixiv查询到的作品详情
-         */
-        List<Illustration> detailsFromPixiv = new ArrayList<>();
-        getIllustrationDetail2List(detailsFromPixiv, lackList);
-
-        list.addAll(detailsFromPixiv);
-        dataManager.addIllustrations(detailsFromPixiv);
-        dataManager.addTags(list);
+        if (lackList.size() > 0) {
+            /**
+             * 向pixiv查询到的作品详情
+             */
+            List<Illustration> detailsFromPixiv = getIllustrationDetail2List(lackList);
+            list.addAll(detailsFromPixiv);
+            dataManager.addIllustrations(detailsFromPixiv);
+            dataManager.addTags(detailsFromPixiv);
+        }
         return list;
     }
 
     /**
-     * 使用多线程请求多个作品详情 并放入一个指定list中
+     * 使用多线程请求多个作品详情
      *
-     * @param list     目标list
      * @param lackList 请求详情的id列表
+     * @return 请求到的详情
      */
-    private void getIllustrationDetail2List(List<Illustration> list, List<String> lackList) {
+    private List<Illustration> getIllustrationDetail2List(List<String> lackList) {
+        List<Illustration> list = new ArrayList<>();
         int size = lackList.size();
 
         long start = System.currentTimeMillis();
@@ -115,6 +116,8 @@ public class PixivRequestServImpl implements PixivRequestServ {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+
+        return list;
     }
 
     /**
@@ -144,7 +147,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
         JSONObject body = JSONObject.parseObject(result).getJSONObject("body");
 
         Integer total = body.getInteger("total");
-        log.info("{} 标签下有 {} 个作品", tag, total);
+        log.info("{} 标签下有总计 {} 个作品", tag, total);
         max = max != null ? max : total;
         total = Math.min(total, max);
 
@@ -172,7 +175,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
             }
         }
         long end = System.currentTimeMillis();
-        log.info("获取完毕 总计数量 {}个 耗时{}秒", total, (end - start) / 1000);
+        log.info("{} 标签获取完毕 总计数量 {}个 耗时{}秒", tag, total, (end - start) / 1000);
         return idList;
 
     }

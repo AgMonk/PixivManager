@@ -95,6 +95,11 @@ public class ReqUtil {
                 response = client.execute(get);
                 HttpEntity entity = response.getEntity();
                 long contentLength = entity.getContentLength();
+                if (file.exists() && file.length() == contentLength) {
+                    //文件已存在且大小相同
+                    log.info("文件已存在且大小相同 跳过 {}", file);
+                    return file;
+                }
                 InputStream inputStream = entity.getContent();
                 ByteArrayOutputStream output = new ByteArrayOutputStream();
                 //缓存大小

@@ -256,21 +256,40 @@ public class DataManagerImpl implements DataManager {
         return downloading.put(questName, v);
     }
 
+    /**
+     * 格式化显示进度
+     *
+     * @param count
+     * @param size
+     * @return
+     */
     private static String calculateProgress(long count, long size) {
         int k = 1024;
         count = size - count;
-        double percent = Math.floor(count * 1000.0 / size) / 10;
+        double percent = Math.floor(1.0 * count / size * 1000) / 10;
 
-        String s;
-        if (size > 100 * k) {
-            count = count / k;
-            size = size / k;
-            s = count + "k/" + size + "k";
-        } else {
-            s = count + "/" + size;
-        }
+        String s = formatSize(count) + "/" + formatSize(size);
 
         return s + " " + percent;
+    }
+
+    /**
+     * 格式化大小
+     *
+     * @param num 大小数值
+     * @return
+     */
+    private static String formatSize(long num) {
+        String s = "" + num;
+        int k = 1024;
+        if (num > k * k) {
+            double v = Math.floor(num * 100.0 / k / k) / 100;
+            s = v + "M";
+        } else if (num > 10 * k) {
+            double v = Math.floor(num * 10.0 / k) / 10;
+            s = v + "K";
+        }
+        return s;
     }
 
     private void addTag2Map(Tag t) {

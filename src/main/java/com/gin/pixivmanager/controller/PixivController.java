@@ -62,6 +62,9 @@ public class PixivController {
         tag = tag != null ? tag : "未分類";
 
         List<String> idList = pixivRequestServ.getBookmarks(tag, max);
+        if (idList.size() == 0) {
+            return null;
+        }
         List<Illustration> detail = pixivRequestServ.getIllustrationDetail(idList);
         List<File> download = pixivRequestServ.downloadIllustAndAddTags(detail, userInfo.getRootPath() + "/" + tag);
 
