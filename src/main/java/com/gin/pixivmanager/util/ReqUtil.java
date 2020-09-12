@@ -64,7 +64,7 @@ public class ReqUtil {
      * @param filePath 保存文件的完整地址
      * @return File
      */
-    public static File download(String url, String filePath) {
+    public static File download(String url, String filePath) throws IOException {
         //创建目录
         File file = new File(filePath);
         File parentFile = file.getParentFile();
@@ -87,7 +87,7 @@ public class ReqUtil {
             log.info("第{}次下载 {}", i, tempName);
             String questName = "(" + i + ")" + tempName;
             try {
-                int connectionRequestTimeout = 5 * 1000;
+                int connectionRequestTimeout = 10 * 1000;
                 RequestConfig config = RequestConfig.custom()
                         .setConnectionRequestTimeout(connectionRequestTimeout)
                         .setConnectTimeout(connectionRequestTimeout)
@@ -141,7 +141,7 @@ public class ReqUtil {
             }
         }
         log.warn("下载失败 {}", url);
-        return null;
+        throw new IOException("下载失败 超出最大次数 " + MAX_TIMES);
     }
 
     /**

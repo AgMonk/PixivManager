@@ -12,9 +12,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * @author bx002
@@ -37,51 +39,6 @@ public class PixivRequestServImpl implements PixivRequestServ {
         this.userInfo = userInfo;
 
 
-    }
-
-    /**
-     * 下载多个文件
-     *
-     * @param detail  作品详情
-     * @param rootDir 下载根目录
-     */
-    @Override
-    public List<File> download(List<Illustration> detail, String rootDir) {
-        if (detail.size() == 0) {
-            return null;
-        }
-
-        long start = System.currentTimeMillis();
-        Map<String, String> urlAndFilePath = getUrlAndFilePath(detail, rootDir);
-        List<File> list = new ArrayList<>();
-
-        int size = urlAndFilePath.size();
-        String questName = "下载任务-" + start % 1000;
-
-        log.info("{} 开始 {}", questName, size);
-
-        CountDownLatch latch = new CountDownLatch(size);
-        dataManager.addDetails(questName, latch.getCount(), size);
-
-        for (Map.Entry<String, String> entry : urlAndFilePath.entrySet()) {
-
-            downloadExecutor.execute(() -> {
-                list.add(download(entry.getKey(), entry.getValue()));
-                latch.countDown();
-                dataManager.addDetails(questName, latch.getCount(), size);
-            });
-        }
-
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        long end = System.currentTimeMillis();
-
-        log.info("{} 完毕 {} 耗时 {} 秒", questName, size, (end - start) / 1000);
-
-        return list;
     }
 
     /**
@@ -376,15 +333,21 @@ public class PixivRequestServImpl implements PixivRequestServ {
         List<File> fileList = new ArrayList<>();
         int size = urls.size();
         CountDownLatch latch = new CountDownLatch(size);
-
+        AtomicBoolean error = new AtomicBoolean(true);
         dataManager.addDownloading(questName, latch.getCount(), size);
 
         for (String url : urls) {
             String filePath = rootPath + "/"
                     + url.substring(url.lastIndexOf("/") + 1);
             downloadExecutor.execute(() -> {
-                File download = download(url, filePath);
-                fileList.add(download);
+                try {
+                    File download = download(url, filePath);
+                    fileList.add(download);
+                } catch (IOException e) {
+                    //如果出错则不添加tag
+                    log.error(e.getMessage());
+                    error.set(false);
+                }
                 latch.countDown();
                 dataManager.addDownloading(questName, latch.getCount(), size);
 
@@ -397,7 +360,9 @@ public class PixivRequestServImpl implements PixivRequestServ {
             e.printStackTrace();
         }
 
-        addTags(ill);
+        if (error.get()) {
+            addTags(ill);
+        }
 
         return fileList;
     }
@@ -442,7 +407,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
      *
      * @param url 地址
      */
-    private File download(String url, String filePath) {
+    private File download(String url, String filePath) throws IOException {
         log.debug("开始下载 {} -> {}", url, filePath);
         File download = ReqUtil.download(url, filePath);
         log.debug("下载完毕 {} -> {}", url, filePath);

@@ -12,13 +12,6 @@ import java.util.List;
  * @author bx002
  */
 public interface PixivRequestServ {
-    /**
-     * 下载多个文件
-     *
-     * @param detail  作品详情
-     * @param rootDir 下载根目录
-     */
-    List<File> download(List<Illustration> detail, String rootDir);
 
     /**
      * 请求一个列表中的pid详情
