@@ -46,7 +46,8 @@ public class DataController {
 
     @RequestMapping("getFilesPath")
     public  List<Map<String,String>> getFilesPath() {
-        return dataManager.getFilesPath();
+        List<Map<String, String>> list = dataManager.getFilesPath();
+        return list.subList(0,Math.min(list.size(),50));
     }
 
     @RequestMapping("delFile")

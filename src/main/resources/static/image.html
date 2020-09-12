@@ -69,7 +69,7 @@
             <option>少前水楼</option>
         </select><br>
 
-        <select v-model="selected" size="5" multiple="multiple">
+        <select v-model="selected" size="5" multiple="multiple" @change="getNames()">
             <option v-for="(item,i) in fileUrls" :value="i" :id="item.name"
                     @click.prevent.right="addFile(i)">
                 {{item.name}}
@@ -77,19 +77,14 @@
         </select>
 
 
-        <button @click="addFile()">添加</button>
-        <button @click="addAllFile()">添加全部</button>
         <br><br>
         <button @click="repost()">转发</button>
-        <button @click="archive()">归档</button>
+        <button @click="archive()">归档</button>        <br>
+
         <button @click="del()">删除</button>
-        <br>
-        <select :size="param.name.length">
-            <option v-for="t in param.name">{{t}}</option>
-        </select>
 
     </div>
-    <a :href="getUrlByFileName(selected)"><img :src="getUrlByFileName(selected)" style="width: 100%"></a>
+    <a :href="getPath(0)"><img :src="getPath(0)" style="width: 100%"></a>
 </div>
 </body>
 <script>
@@ -101,9 +96,9 @@
                 f: "测试版面",
                 t: "测试楼",
             },
-            fileUrls: [],
+            fileUrls: [{name:1,path:1}],
             nga: {},
-            selected: 0,
+            selected: [0],
             pid: "",
             selectedKey: "",
             pidArray: [],
@@ -116,25 +111,12 @@
 
                 })
             },
-            addFile(n) {
-                n = n == null ? this.selected : n;
-                this.param.name.push(n);
-                for (let i = 0; i < this.fileUrls.length; i++) {
-                    if (this.fileUrls[i].key === n) {
-                        this.fileUrls.splice(i, 1);
-                        if (this.fileUrls[0] != null) {
-                            this.selected = this.fileUrls[0].key;
-                        }
-                        break;
-                    }
-                }
+            getInfo() {
+                post("nga/getInfo", null, function (res) {
+                    this.nga = res.data;
+                    console.log(res.data);
+                })
             },
-            addAllFile() {
-                while (this.fileUrls.length > 0) {
-                    this.addFile();
-                }
-            },
-
             repost() {
                 if (this.param.name.length === 0) {
                     alert("作品数不能为0");
@@ -152,18 +134,23 @@
                     location.reload();
                 })
             },
-            getInfo() {
-                post("nga/getInfo", null, function (res) {
-                    this.nga = res.data;
-                    console.log(res.data);
-                })
-            },
 
             del(){
                 post("data/delFile", {name:this.selected}, function (res) {
                     location.reload();
                     console.log(res.data);
                 })
+            },
+            getPath(i){
+                return this.fileUrls[this.selected[i]].path;
+            },
+            getNames(){
+                this.param.name = [];
+                for (let i = 0; i < this.selected.length; i++) {
+                    let index = this.selected[i];
+                    this.param.name [this.param.name .length] = this.fileUrls[index].name;
+                }
+                console.log(this.param.name);;
             },
         },
         created() {
