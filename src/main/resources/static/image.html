@@ -89,7 +89,7 @@
         </select>
 
     </div>
-    <!--    <a :href="selected"><img :src="selected" style="width: 100%"></a>-->
+    <a :href="getUrlByFileName(selected)"><img :src="getUrlByFileName(selected)" style="width: 100%"></a>
 </div>
 </body>
 <script>
@@ -173,7 +173,15 @@
                     this.nga = res.data;
                     console.log(res.data);
                 })
-            }
+            },
+            getUrlByFileName(name) {
+                for (let i = 0; i < this.fileUrls.length; i++) {
+                    let d = this.fileUrls[i];
+                    if (d.key === name) {
+                        return d.value;
+                    }
+                }
+            },
         },
         created() {
             this.getFileUrls();

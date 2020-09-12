@@ -268,24 +268,43 @@ public class PixivRequestServImpl implements PixivRequestServ {
                     log.warn("创建文件夹失败 {}", parentFile.getPath());
                 }
             }
-            if (file.renameTo(dest)) {
-                log.debug("移动文件 {} 到 {}", file.getPath(), destPath);
-                map.remove(key);
-                idList.add(key);
-
-                //如果目录已空 删除目录
-                File parent = file.getParentFile();
-                if (parent.listFiles().length == 0) {
-                    if (parent.delete()) {
-                        log.debug("删除目录 {}", parent);
+            //如果目标文件存在
+            if (dest.exists()) {
+                if (dest.length() == file.length()) {
+                    map.remove(key);
+                    if (file.delete()) {
+                        log.info("目标文件已存在 且大小相同 删除原文件");
                     } else {
-                        log.warn("删除目录失败 {}", parent);
+                        log.warn("目标文件已存在 且大小相同 删除原文件 失败");
                     }
+                } else {
+                    do {
+                        String path = dest.getPath();
+                        String newPath = path.substring(0, path.lastIndexOf("."));
+                        String suffix = path.substring(path.lastIndexOf("."));
+                        dest = new File(newPath + "_bak" + suffix);
+                    } while (dest.exists());
+                    log.info("目标文件已存在 且带大小不同 请自行确认保留 {}", dest.getPath());
                 }
             } else {
-                log.warn("移动失败 {} 到 {}", file.getPath(), destPath);
-            }
+                if (file.renameTo(dest)) {
+                    log.debug("移动文件 {} 到 {}", file.getPath(), destPath);
+                    map.remove(key);
+                    idList.add(key);
 
+                    //如果目录已空 删除目录
+                    File parent = file.getParentFile();
+                    if (parent.listFiles().length == 0) {
+                        if (parent.delete()) {
+                            log.debug("删除目录 {}", parent);
+                        } else {
+                            log.warn("删除目录失败 {}", parent);
+                        }
+                    }
+                } else {
+                    log.warn("移动失败 {} 到 {}", file.getPath(), destPath);
+                }
+            }
         }
         return idList;
     }
