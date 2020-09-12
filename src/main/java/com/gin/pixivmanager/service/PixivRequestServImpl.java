@@ -294,10 +294,12 @@ public class PixivRequestServImpl implements PixivRequestServ {
                     idList.add(key);
 
                     //如果目录已空 删除目录
-                    File parent = file.getParentFile();
-                    if (parent.listFiles().length == 0) {
+                    File parent;
+                    parent = file.getParentFile();
+                    while (parent.listFiles().length == 0) {
                         if (parent.delete()) {
                             log.debug("删除目录 {}", parent);
+                            parent = parent.getParentFile();
                         } else {
                             log.warn("删除目录失败 {}", parent);
                         }
