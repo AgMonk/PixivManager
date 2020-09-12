@@ -205,10 +205,6 @@ public class NgaPostServImpl implements NgaPostServ {
         String send = ngaPost.send();
         log.info("发帖成功: {}", send);
 
-        //删除临时文件
-        for (File file : map.values()) {
-            file.delete();
-        }
         return send;
     }
 

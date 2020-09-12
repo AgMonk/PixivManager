@@ -152,6 +152,11 @@
             },
 
             repost() {
+                if (this.param.name.length === 0) {
+                    alert("作品数不能为0");
+                    return;
+                }
+
                 let url = "nga/repost?" + qs(this.param);
 
                 // console.log(url)

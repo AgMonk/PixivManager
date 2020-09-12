@@ -379,6 +379,12 @@ public class NgaPost {
             attachmentsBuffer.append(attachments).append("\t");
             attachmentsCheckBuffer.append(attachmentsCheck).append("\t");
             attachmentsMap.put(name, url);
+
+            if (file.delete()) {
+                log.debug("删除文件 {}", file);
+            } else {
+                log.warn("删除失败 {}", file);
+            }
         }
     }
 
@@ -468,6 +474,11 @@ public class NgaPost {
 
             File newFile = new File(newPath);
             log.info("压缩完毕 大小 {}K", file.length() / 1024);
+            if (file.delete()) {
+                log.debug("删除源文件 {}", file);
+            } else {
+                log.warn("删除源失败 {}", file);
+            }
             if (newFile.length() > toLength) {
                 return zipImage(newFile, toLength);
             } else {
