@@ -38,15 +38,15 @@ public class DataManagerImpl implements DataManager {
     /**
      * 作品数据
      */
-    final private Map<String, Illustration> illustrationMap = new HashMap<>();
+    private Map<String, Illustration> illustrationMap = new HashMap<>();
     /**
      * tag数据
      */
-    final private Map<String, Tag> tagMap = new HashMap<>();
+    private Map<String, Tag> tagMap = new HashMap<>();
     /**
      * 自定义翻译数据
      */
-    final private Map<String, String> translationMap = new HashMap<>();
+    private Map<String, String> translationMap = new HashMap<>();
     /**
      * 文件列表
      */
@@ -101,18 +101,21 @@ public class DataManagerImpl implements DataManager {
         CountDownLatch latch = new CountDownLatch(4);
 
         serviceExecutor.execute(() -> {
+            tagMap = new HashMap<>();
             List<Tag> tagList = mapper.getTags();
             tagList.forEach(this::addTag2Map);
             log.info("tag数量 {}", tagMap.size());
             latch.countDown();
         });
         serviceExecutor.execute(() -> {
+            translationMap = new HashMap<>();
             List<Tag> transList = mapper.getTrans();
             transList.forEach(this::addTranslation2Map);
             log.info("自定义翻译数量 {}", translationMap.size());
             latch.countDown();
         });
         serviceExecutor.execute(() -> {
+            illustrationMap = new HashMap<>();
             List<Illustration> illList = mapper.getIllustrations();
             illList.forEach(this::addIllustration2Map);
             log.info("作品数量 {}", illustrationMap.size());
