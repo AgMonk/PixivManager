@@ -12,10 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 
@@ -25,15 +22,16 @@ import java.util.concurrent.Executor;
 @Slf4j
 @Service
 public class PixivRequestServImpl implements PixivRequestServ {
-    final Executor downloadExecutor, requestExecutor, scanExecutor;
+    final Executor downloadExecutor, requestExecutor, scanExecutor, downloadMainExecutor;
     final DataManager dataManager;
     final PixivUrl pixivUrl;
     final UserInfo userInfo;
 
-    public PixivRequestServImpl(Executor downloadExecutor, Executor requestExecutor, Executor scanExecutor, DataManager dataManager, PixivUrl pixivUrl, UserInfo userInfo) {
+    public PixivRequestServImpl(Executor downloadExecutor, Executor requestExecutor, Executor scanExecutor, Executor downloadMainExecutor, DataManager dataManager, PixivUrl pixivUrl, UserInfo userInfo) {
         this.downloadExecutor = downloadExecutor;
         this.requestExecutor = requestExecutor;
         this.scanExecutor = scanExecutor;
+        this.downloadMainExecutor = downloadMainExecutor;
         this.dataManager = dataManager;
         this.pixivUrl = pixivUrl;
         this.userInfo = userInfo;
@@ -325,15 +323,71 @@ public class PixivRequestServImpl implements PixivRequestServ {
         return idList;
     }
 
+    @Override
+    public List<File> downloadIllustAndAddTags(List<Illustration> illustList, String rootPath) {
+        List<File> outputFiles = new ArrayList<>();
+        int size = illustList.size();
+        log.info("下载 {}个作品", size);
+        CountDownLatch latch = new CountDownLatch(size);
+        for (Illustration ill : illustList) {
+            downloadMainExecutor.execute(() -> {
+                List<File> files = downloadIllustAndAddTags(ill, rootPath);
+                outputFiles.addAll(files);
+                latch.countDown();
+            });
+        }
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        return outputFiles;
+    }
+
+    @Override
+    public List<File> downloadIllustAndAddTags(String[] illustArray, String rootPath) {
+        List<Illustration> detail = getIllustrationDetail(Arrays.asList(illustArray));
+        return downloadIllustAndAddTags(detail, rootPath);
+    }
+
     /**
      * 下载一个作品并添加tag
-     * @param ill       作品
-     * @param rootPath  根目录
-     * @return          下载好的文件（列表）
+     *
+     * @param ill      作品
+     * @param rootPath 根目录
+     * @return 下载好的文件（列表）
      */
-    private List<File> downloadIllustAndAddTags(Illustration ill,String rootPath){
-        /*todo*/
-        return null;
+    private List<File> downloadIllustAndAddTags(Illustration ill, String rootPath) {
+        String questName = ill.getId();
+        List<String> urls = ill.getUrls();
+        List<File> fileList = new ArrayList<>();
+        int size = urls.size();
+        CountDownLatch latch = new CountDownLatch(size);
+
+        dataManager.addDownloading(questName, latch.getCount(), size);
+
+        for (String url : urls) {
+            String filePath = rootPath + "/"
+                    + url.substring(url.lastIndexOf("/") + 1);
+            downloadExecutor.execute(() -> {
+                File download = download(url, filePath);
+                fileList.add(download);
+                latch.countDown();
+                dataManager.addDownloading(questName, latch.getCount(), size);
+            });
+        }
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        addTags(ill);
+
+        return fileList;
     }
 
     /**
@@ -377,7 +431,10 @@ public class PixivRequestServImpl implements PixivRequestServ {
      * @param url 地址
      */
     private File download(String url, String filePath) {
-        return ReqUtil.download(url, filePath);
+        log.debug("开始下载 {} -> {}", url, filePath);
+        File download = ReqUtil.download(url, filePath);
+        log.debug("下载完毕 {} -> {}", url, filePath);
+        return download;
     }
 
     /**

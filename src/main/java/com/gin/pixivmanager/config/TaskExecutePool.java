@@ -40,6 +40,11 @@ public class TaskExecutePool {
     }
 
     @Bean
+    public Executor downloadMainExecutor() {
+        return getExecutor("downMain-", 5, QUEUE, KEEPALIVE);
+    }
+
+    @Bean
     public Executor controllerExecutor() {
         return getExecutor("Ctrl-", 10, QUEUE, KEEPALIVE);
     }

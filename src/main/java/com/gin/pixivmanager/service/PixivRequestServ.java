@@ -58,4 +58,20 @@ public interface PixivRequestServ {
      * @return id列表
      */
     List<String> archive(String[] name);
+
+    /**
+     * 下载多个作品 并添加tag
+     *
+     * @param illustList 作品列表
+     * @return 下载完成的文件
+     */
+    List<File> downloadIllustAndAddTags(List<Illustration> illustList, String rootPath);
+
+    /**
+     * 下载多个作品 并添加tag
+     *
+     * @param illustArray 作品id列表
+     * @return 下载完成的文件
+     */
+    List<File> downloadIllustAndAddTags(String[] illustArray, String rootPath);
 }

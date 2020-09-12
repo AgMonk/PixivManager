@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executor;
 
@@ -66,8 +65,7 @@ public class PixivController {
 
         List<String> idList = pixivRequestServ.getBookmarks(tag, max);
         List<Illustration> detail = pixivRequestServ.getIllustrationDetail(idList);
-        List<File> download = pixivRequestServ.download(detail, userInfo.getRootPath() + "/" + tag);
-        pixivRequestServ.addTags(detail);
+        List<File> download = pixivRequestServ.downloadIllustAndAddTags(detail, userInfo.getRootPath() + "/" + tag);
 
         return download;
     }
@@ -91,12 +89,9 @@ public class PixivController {
 
     @RequestMapping("test")
     public Object test() {
-        List<String> list = new ArrayList<>();
-        list.add("82451546");
-        list.add("82451917");
-        list.add("84269184");
-        List<Illustration> detail = pixivRequestServ.getIllustrationDetail(list);
-        detail.forEach(System.err::println);
+        String[] array = new String[]{"84312013", "84312363"};
+        List<File> files = pixivRequestServ.downloadIllustAndAddTags(array, userInfo.getRootPath() + "/未分類");
+        System.err.println(files);
         return null;
     }
 }

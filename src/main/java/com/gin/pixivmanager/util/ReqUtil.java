@@ -87,11 +87,11 @@ public class ReqUtil {
             log.info("第{}次下载 {}", i, tempName);
             String questName = "(" + i + ")" + tempName;
             try {
-                RequestConfig config =RequestConfig.custom()
-                        .setConnectionRequestTimeout(60*1000)
-                        .setConnectTimeout(60*1000)
-                        .setSocketTimeout(60*1000).build()
-                        ;
+                int connectionRequestTimeout = 5 * 1000;
+                RequestConfig config = RequestConfig.custom()
+                        .setConnectionRequestTimeout(connectionRequestTimeout)
+                        .setConnectTimeout(connectionRequestTimeout)
+                        .setSocketTimeout(connectionRequestTimeout).build();
 
                 CloseableHttpClient client = HttpClients.custom()
                         .setDefaultRequestConfig(config).build();
@@ -129,10 +129,13 @@ public class ReqUtil {
 
                 return file;
             } catch (ConnectionClosedException e) {
-                log.warn("下载失败({}): 连接关闭", i);
+                log.warn("连接关闭({}):  {}", i, url);
+                dataManager.addDownloading(questName, 0, 1);
+            } catch (SocketTimeoutException e) {
+                log.warn("连接超时({}):  {} ", i, url);
                 dataManager.addDownloading(questName, 0, 1);
             } catch (IOException e) {
-                log.warn("下载失败({}):{}", i, response.getStatusLine());
+                log.warn("下载失败({}): {}", i, url);
                 dataManager.addDownloading(questName, 0, 1);
                 e.printStackTrace();
             }
