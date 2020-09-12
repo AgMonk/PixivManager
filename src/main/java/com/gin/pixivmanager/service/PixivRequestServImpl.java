@@ -29,6 +29,10 @@ public class PixivRequestServImpl implements PixivRequestServ {
     final DataManager dataManager;
     final PixivUrl pixivUrl;
     final UserInfo userInfo;
+    /**
+     * 上次更新时间超过该时间的进行联网查询
+     */
+    final static long RANGE_OF_LAST_UPDATE = 30L * 24 * 60 * 60 * 1000;
 
     public PixivRequestServImpl(Executor downloadExecutor, Executor requestExecutor, Executor scanExecutor, Executor downloadMainExecutor, DataManager dataManager, PixivUrl pixivUrl, UserInfo userInfo) {
         this.downloadExecutor = downloadExecutor;
@@ -51,20 +55,31 @@ public class PixivRequestServImpl implements PixivRequestServ {
     @Override
     public List<Illustration> getIllustrationDetail(List<String> idList) {
         List<Illustration> list = dataManager.getIllustrations(idList);
-        if (list.size() < idList.size()) {
-            List<String> lackList = new ArrayList<>();
-            for (String s : idList) {
-                s = getPidFromFileName(s);
-                Map<String, Illustration> map = dataManager.getIllustrationMap();
-                if (!map.containsKey(s)) {
+        List<String> lackList = new ArrayList<>();
+        for (String s : idList) {
+            s = getPidFromFileName(s);
+            Map<String, Illustration> map = dataManager.getIllustrationMap();
+            //缓存中没有详情 或 更新时间过早的加入请求列表
+            if (!map.containsKey(s)) {
+                lackList.add(s);
+            } else {
+                //距离时间过久的或没有的进行请求更新
+                Long lastUpdate = map.get(s).getLastUpdate();
+                long now = System.currentTimeMillis();
+                if (lastUpdate == null || now - lastUpdate > RANGE_OF_LAST_UPDATE) {
                     lackList.add(s);
                 }
             }
-            getIllustrationDetail2List(list, lackList);
-
-            dataManager.addIllustrations(list);
-            dataManager.addTags(list);
         }
+        /**
+         * 向pixiv查询到的作品详情
+         */
+        List<Illustration> detailsFromPixiv = new ArrayList<>();
+        getIllustrationDetail2List(detailsFromPixiv, lackList);
+
+        list.addAll(detailsFromPixiv);
+        dataManager.addIllustrations(detailsFromPixiv);
+        dataManager.addTags(list);
         return list;
     }
 
@@ -85,7 +100,11 @@ public class PixivRequestServImpl implements PixivRequestServ {
         dataManager.addDetails(questName, latch.getCount(), size);
         for (String s : lackList) {
             requestExecutor.execute(() -> {
-                list.add(getIllustrationDetail(s));
+                Illustration ill = getIllustrationDetail(s);
+                //查询成功才加入列表
+                if (ill.getLastUpdate() != null) {
+                    list.add(ill);
+                }
                 latch.countDown();
                 dataManager.addDetails(questName, latch.getCount(), size);
             });
@@ -124,8 +143,8 @@ public class PixivRequestServImpl implements PixivRequestServ {
 
         JSONObject body = JSONObject.parseObject(result).getJSONObject("body");
 
-
         Integer total = body.getInteger("total");
+        log.info("{} 标签下有 {} 个作品", tag, total);
         max = max != null ? max : total;
         total = Math.min(total, max);
 
@@ -454,6 +473,8 @@ public class PixivRequestServImpl implements PixivRequestServ {
     }
 
     /**
+     * 请求一个作品的详情信息
+     *
      * @param id pid
      */
     private Illustration getIllustrationDetail(String id) {

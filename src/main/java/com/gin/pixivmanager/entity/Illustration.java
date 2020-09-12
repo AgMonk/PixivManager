@@ -16,7 +16,7 @@ public class Illustration {
     public final static int ILLUST_TYPE_MANGA = 1;
     public final static int ILLUST_TYPE_GIF = 2;
 
-    Long lastUpdate = System.currentTimeMillis();
+    Long lastUpdate;
     /**
      * 作品pid
      */
@@ -102,6 +102,7 @@ public class Illustration {
         pageCount = body.getInteger("pageCount");
         illustType = body.getInteger("illustType");
         bookmarkData = body.get("bookmarkData") != null ? 1 : 0;
+        lastUpdate = System.currentTimeMillis();
 
         JSONObject urls = body.getJSONObject("urls");
         if (urls == null) {
@@ -187,7 +188,7 @@ public class Illustration {
         StringBuilder builder = new StringBuilder();
 
         builder.append(illustType).append("/");
-        
+
         addBrackets(builder, "userId", userId, "65535");
         addBrackets(builder, "u", clean(userName), "NullName");
         builder.append("/");

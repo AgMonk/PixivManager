@@ -97,6 +97,7 @@ public interface DataManager {
     Map<String, String> getTranslationMap();
 
     /**
+     * 查询作品详情
      * 先从缓存中查找是否有数据 剩余项从数据库中查询
      *
      * @param idList id列表
