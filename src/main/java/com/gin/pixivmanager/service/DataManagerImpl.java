@@ -300,6 +300,7 @@ public class DataManagerImpl implements DataManager {
 
         List<String> lackList = new ArrayList<>();
         for (String s : idList) {
+            s = s.contains("_") ? s.substring(0, s.indexOf("_")) : s;
             Illustration ill = illustrationMap.get(s);
             if (ill == null || ill.getUserId() == null) {
                 lackList.add(s);

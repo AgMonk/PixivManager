@@ -24,6 +24,14 @@ public class NgaPostServImpl implements NgaPostServ {
     final PixivRequestServ pixivRequestServ;
     final DataManager dataManager;
     final Executor serviceExecutor;
+    /**
+     * 审核字符串
+     */
+    static Set<String> reviewKeyword = new HashSet<>();
+
+    static {
+        reviewKeyword.add("巨乳");
+    }
 
     public NgaPostServImpl(UserInfo userInfo, PixivRequestServ pixivRequestServ, DataManager dataManager, Executor serviceExecutor) {
         this.userInfo = userInfo;
@@ -99,7 +107,7 @@ public class NgaPostServImpl implements NgaPostServ {
                 //查询详情
                 List<Illustration> detail = pixivRequestServ.getIllustrationDetail(lackPidList);
                 //下载文件
-                List<File> download = pixivRequestServ.download(detail, tempPath);
+                List<File> download = pixivRequestServ.downloadIllustAndAddTags(detail, tempPath);
                 for (File file : download) {
                     String fileName = file.getName();
                     String pidAndCount = fileName.substring(0, fileName.lastIndexOf('.'));
@@ -174,53 +182,22 @@ public class NgaPostServImpl implements NgaPostServ {
         String tid = userInfo.getNgaTid(t);
         String action = NgaPost.ACTION_REPLY;
         NgaPost ngaPost = NgaPost.create(cookie, fid, tid, action);
-        String wrap = ngaPost.getWrap();
+        String wrap = NgaPost.getWrap();
 
         //准备附件
         Map<String, File> map = prepare4Files(name);
         //上传附件
-        Set<String> attachmentsName = ngaPost.uploadFiles(map);
+        ngaPost.uploadFiles(map);
 
-        dataManager.getIllustrations(Arrays.asList(name));
-        /*todo 载入所有所涉id的详情数据*/
+        List<Illustration> illList = dataManager.getIllustrations(Arrays.asList(name));
 
         StringBuilder sb = new StringBuilder();
 
-        for (String id : name) {
-            StringBuilder attachments = new StringBuilder();
-            for (String aName : attachmentsName) {
-                if (id.equals(aName) || aName.contains(id + "_")) {
-                    attachments.append(ngaPost.getAttachmentCode(aName)).append(wrap);
-                }
-            }
-            Illustration ill = dataManager.getIllustrationMap().get(id);
-            //作者链接
-            String userUrl = "作者:" + NgaPost.getUrlCode(ill.getUserName(), ill.getUserUrl());
-            String title = ill.getTitle();
-            String collapseTitle;
-            String description = ill.getDescription();
-            String link = NgaPost.getUrlCode("ToPixiv", ill.getLink());
-            String pid = id + " " + link;
-
-            StringBuilder content = new StringBuilder();
-            content.append(userUrl).append(" ");
-            content.append(pid).append(wrap);
-            if (title != null && !"".equals(title)) {
-                content.append("标题:").append(title).append(wrap);
-                collapseTitle = title;
-            } else {
-                collapseTitle = id;
-            }
-            if (description != null && !"".equals(description)) {
-                content.append("描述:").append(description).append(wrap);
-            }
-            //附件
-            content.append(attachments);
-
-            String collapse = NgaPost.getCollapse(collapseTitle, content.toString());
-
-            sb.append(collapse);
+        for (Illustration ill : illList) {
+            String card = getIllustrationCard(ill, ngaPost.getAttachmentsMap());
+            sb.append(card);
         }
+
         String quote = NgaPost.getQuote(sb.toString());
         ngaPost.addContent(quote);
         ngaPost.addTitle("Pixiv搬运bot酱");
@@ -236,26 +213,6 @@ public class NgaPostServImpl implements NgaPostServ {
     }
 
     private void test() {
-        String cookie = userInfo.getNgaCookie("左牵黄");
-        String fid = userInfo.getNgaFid("测试版面");
-        String tid = userInfo.getNgaTid("测试楼");
-        String action = NgaPost.ACTION_REPLY;
-
-        NgaPost ngaPost = NgaPost.create(cookie, fid, tid, action);
-
-
-        String img1 = ngaPost.getAttachmentCode("84256106_p0");
-        String img2 = ngaPost.getAttachmentCode("84256700_p0");
-        String collapse = NgaPost.getCollapse("img", img1 + img2);
-        String quote = NgaPost.getQuote(collapse);
-
-        ngaPost.addTitle("测试测试测试")
-                .addContent(quote)
-        ;
-
-
-        String send = ngaPost.send();
-        log.info("发帖成功: {}", send);
     }
 
 
@@ -276,5 +233,69 @@ public class NgaPostServImpl implements NgaPostServ {
             assert outputChannel != null;
             outputChannel.close();
         }
+    }
+
+    /**
+     * 生成一个作品的分享卡片
+     *
+     * @param ill            作品详情
+     * @param attachmentsMap 附件map
+     * @return 卡片字符串
+     */
+    private static String getIllustrationCard(Illustration ill, Map<String, String> attachmentsMap) {
+        StringBuilder sb = new StringBuilder();
+
+        String id = ill.getId();
+        List<String> aNameList = new ArrayList<>();
+        Set<String> keySet = attachmentsMap.keySet();
+        keySet.forEach(s -> {
+            if (s.equals(id) || s.contains(id + "_")) {
+                aNameList.add(s);
+            }
+        });
+        //排序
+        aNameList.sort((o1, o2) -> {
+            if (o1.equals(o2)) {
+                return 0;
+            }
+            if (o1.compareToIgnoreCase(o2) < 0) {
+                return -1;
+            }
+            return 1;
+        });
+
+        String wrap = NgaPost.getWrap();
+        String title = ill.getTitle();
+        //作者
+        sb.append("作者:").append(NgaPost.getUrlCode(ill.getUserName(), ill.getUserUrl())).append(" ");
+        //pid
+        sb.append(ill.getId()).append(" ").append(NgaPost.getUrlCode("ToPixiv", ill.getLink())).append(wrap);
+        //标题
+        if (title == null || "".equals(title)) {
+            sb.append("标题: ").append(title).append(wrap);
+        }
+        //tag
+        sb.append("标签: ").append(review(ill.getTag())).append(wrap);
+        //图片
+        for (String s : aNameList) {
+            String url = attachmentsMap.get(s);
+            String code = NgaPost.getAttachmentCodeFromUrl(url);
+            sb.append(code).append(wrap);
+        }
+
+        return NgaPost.getCollapse(title, sb.toString(), ill.getId());
+    }
+
+    /**
+     * 删除审核字符串
+     *
+     * @param s
+     * @return
+     */
+    private static String review(String s) {
+        for (String s1 : reviewKeyword) {
+            s = s.replace(s1, "");
+        }
+        return s.replace(",,", "");
     }
 }

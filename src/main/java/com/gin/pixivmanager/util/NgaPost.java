@@ -2,15 +2,11 @@ package com.gin.pixivmanager.util;
 
 import com.alibaba.fastjson.JSONObject;
 import lombok.extern.slf4j.Slf4j;
+import net.coobird.thumbnailator.Thumbnails;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-import org.springframework.util.StringUtils;
 
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
-import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.Base64;
+import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -149,7 +145,12 @@ public class NgaPost {
         for (Map.Entry<String, File> entry : map.entrySet()) {
             int finalI = i;
             executor.execute(() -> {
-                uploadFile(finalI, entry.getKey(), entry.getValue());
+                try {
+                    uploadFile(finalI, entry.getKey(), entry.getValue());
+                } catch (IOException e) {
+                    log.info("文件压缩失败 放弃上传 {}", entry.getValue());
+//                    e.printStackTrace();
+                }
                 latch.countDown();
             });
             i++;
@@ -187,7 +188,7 @@ public class NgaPost {
      *
      * @return
      */
-    public String getWrap() {
+    public static String getWrap() {
         return NBSP;
     }
 
@@ -218,8 +219,8 @@ public class NgaPost {
      * @param content 内容
      * @return this
      */
-    public NgaPost addCollapse(String title, String content) {
-        addContent(getCollapse(title, content));
+    public NgaPost addCollapse(String title, String content, String defaultTitle) {
+        addContent(getCollapse(title, content, defaultTitle));
         return this;
     }
 
@@ -231,6 +232,10 @@ public class NgaPost {
      */
     public String getAttachmentCode(String name) {
         String url = attachmentsMap.get(name);
+        return getAttachmentCodeFromUrl(url);
+    }
+
+    public static String getAttachmentCodeFromUrl(String url) {
         if (url.contains("mp4")) {
             return BBS_CODE_TAG_FLASH.replace("{url}", url);
         } else {
@@ -245,12 +250,13 @@ public class NgaPost {
      * @param content 内容
      * @return code
      */
-    public static String getCollapse(String title, String content) {
+    public static String getCollapse(String title, String content, String defaultTitle) {
         String code = BBS_CODE_TAG_COLLAPSE;
-        if (title == null || "".equals(title)) {
-            code = code.replace("={title}", "");
+        String delKorea = delKorea(title);
+        if (title == null || "".equals(delKorea)) {
+            code = code.replace("={title}", defaultTitle);
         } else {
-            code = code.replace("{title}", delKorea(title));
+            code = code.replace("{title}", delKorea);
         }
         code = code.replace("{content}", content);
 
@@ -324,7 +330,7 @@ public class NgaPost {
      * @param file 文件
      * @param name 与上传后的url唯一对应的名称
      */
-    private void uploadFile(int i, String name, File file) {
+    private void uploadFile(int i, String name, File file) throws IOException {
         HashMap<String, String> formData = new HashMap<>();
         formData.put("attachment_file" + i + "_watermark", "");
         formData.put("attachment_file" + i + "_dscp", "image" + i);
@@ -342,20 +348,18 @@ public class NgaPost {
         int k = 1024;
         HashMap<String, File> fileMap = null;
         if (file.length() >= largeLength * k * k) {
-            log.warn("文件过大>12M");
-            /*todo 把文件转换为base64字符串*/
-            return ;
-//            formData.put("attachment_base64_file" + i, encryptToBase64(file.getPath()));
-        } else {
-            if (file.length() >= maxLength * k * k) {
-                formData.put("attachment_file" + i + "_auto_size", "1");
-            } else {
-                formData.put("attachment_file" + i + "_auto_size", "0");
-            }
-            //放入文件
-            fileMap = new HashMap<>(1);
-            fileMap.put("attachment_file" + i, file);
+            log.info("文件过大>12M 进行压缩..");
+            file = zipImage(file, largeLength * k * k);
         }
+        if (file.length() >= maxLength * k * k) {
+            formData.put("attachment_file" + i + "_auto_size", "1");
+        } else {
+            formData.put("attachment_file" + i + "_auto_size", "0");
+        }
+        //放入文件
+        fileMap = new HashMap<>(1);
+        fileMap.put("attachment_file" + i, file);
+
 
         String result = ReqUtil.post(attachUrl, "", null,
                 null, null, null, formData, fileMap,
@@ -434,31 +438,35 @@ public class NgaPost {
     }
 
     /**
-     * 把文件转换为base64
+     * 压缩图片到指定大小
      *
-     * @param imgPath
-     * @return
+     * @param file     图片
+     * @param toLength 指定大小 单位 B
+     * @return 压缩好的图片
+     * @throws IOException 异常
      */
-    public static String encryptToBase64(String imgPath)  {
-        byte[] data = null;
-        // 读取图片字节数组
-        try {
-            InputStream in = new FileInputStream(imgPath);
-            System.out.println("文件大小（字节）="+in.available());
-            data = new byte[in.available()];
-            in.read(data);
-            in.close();
-        } catch (IOException e) {
-            e.printStackTrace();
+    private static File zipImage(File file, long toLength) throws IOException {
+        if (file.length() > toLength) {
+            String path = file.getPath();
+            String filePath = path.substring(0, path.lastIndexOf('.'));
+            String newPath = filePath + "_z.jpg";
+
+            Thumbnails.of(path)
+                    .scale(0.9f)
+                    .outputQuality(0.9f)
+                    .outputFormat("jpg")
+                    .toFile(newPath)
+            ;
+
+            File newFile = new File(newPath);
+            if (newFile.length() > toLength) {
+                return zipImage(newFile, toLength);
+            }
         }
-        // 对字节数组进行Base64编码，得到Base64编码的字符串
-        Base64.Encoder encoder = Base64.getEncoder();
-        String base64Str = encoder.encodeToString(data);
-        return base64Str;
+        return file;
     }
 
-    public static void main(String[] args) throws IOException {
-        String s = encryptToBase64("F:\\[pixiv]\\未分類\\84303763_p0.jpg");
-        System.err.println(s);
+    public Map<String, String> getAttachmentsMap() {
+        return attachmentsMap;
     }
 }
