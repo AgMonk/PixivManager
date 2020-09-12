@@ -402,18 +402,32 @@ public class DataManagerImpl implements DataManager {
     }
 
     @Override
-    public Map<String, String> getFilesPath() {
-        Map<String, String> map = new HashMap<>();
-        for (Map.Entry<String, File> entry : filesMap.entrySet()) {
-            String path = "/pixiv" + entry.getValue().getPath()
+    public  List<Map<String,String>> getFilesPath() {
+        List<Map<String,String>> list = new ArrayList<>();
+        List<String > keyList = new ArrayList<>(filesMap.keySet());
+        keyList.sort((s1, s2) -> {
+            long pid1 = Long.parseLong(s1.contains("_")?s1.substring(0,s1.indexOf("_")):s1);
+            long pid2 = Long.parseLong(s2.contains("_")?s2.substring(0,s2.indexOf("_")):s2);
+            if (pid1!=pid2) {
+                return Math.toIntExact(pid2 - pid1);
+            }else {
+                int count1 = Integer.parseInt(s1.contains("_") ? s1.substring(s1.indexOf("_") + 2) : s1);
+                int count2 = Integer.parseInt(s2.contains("_") ? s2.substring(s2.indexOf("_") + 2) : s2);
+                return count1-count2;
+            }
+        });
+
+        for (String s : keyList) {
+            Map<String,String> map =new HashMap<>();
+            String path = "/pixiv" + filesMap.get(s).getPath()
                     .replace("\\", "/")
                     .replace(userInfo.getRootPath(), "");
-            //只返回图片
-//            if (path.endsWith("jpg") || path.endsWith("png")) {
-            map.put(entry.getKey(), path);
-//            }
+            map.put("name",s);
+            map.put("path",path);
+            list.add(map);
         }
-        return map;
+
+        return list;
     }
 
     @Override

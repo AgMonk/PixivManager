@@ -5,6 +5,7 @@ import com.gin.pixivmanager.service.DataManager;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -44,13 +45,17 @@ public class DataController {
 
 
     @RequestMapping("getFilesPath")
-    public Map<String, String> getFilesPath() {
+    public  List<Map<String,String>> getFilesPath() {
         return dataManager.getFilesPath();
     }
 
     @RequestMapping("delFile")
-    public String delFile(String pid) {
-        return dataManager.delFile(pid);
+    public List<String> delFile(String... name) {
+        List<String> names=new ArrayList<>();
+        for (String s : name) {
+            names.add(dataManager.delFile(s));
+        }
+        return names;
     }
 
 

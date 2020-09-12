@@ -127,7 +127,7 @@ public interface DataManager {
      *
      * @return
      */
-    Map<String, String> getFilesPath();
+    List<Map<String,String>> getFilesPath();
 
     /**
      * 删除文件
