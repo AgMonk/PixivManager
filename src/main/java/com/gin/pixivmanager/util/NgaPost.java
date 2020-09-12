@@ -13,7 +13,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -141,7 +140,7 @@ public class NgaPost {
         getAuthAndAttachUrl();
 
         CountDownLatch latch = new CountDownLatch(map.size());
-        Executor executor = getExecutor();
+        ThreadPoolTaskExecutor executor = getExecutor();
         //一次上传多个文件
         int i = 0;
         for (Map.Entry<String, File> entry : map.entrySet()) {
@@ -164,6 +163,7 @@ public class NgaPost {
             e.printStackTrace();
         }
 
+        executor.shutdown();
         return attachmentsMap.keySet();
     }
 
@@ -393,7 +393,7 @@ public class NgaPost {
      *
      * @return 线程池
      */
-    private Executor getExecutor() {
+    private ThreadPoolTaskExecutor getExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         //核心线程池大小
         executor.setCorePoolSize(5);
@@ -412,6 +412,7 @@ public class NgaPost {
         // 等待所有任务结束后再关闭线程池
         executor.setWaitForTasksToCompleteOnShutdown(true);
         executor.initialize();
+
         return executor;
     }
 
@@ -428,6 +429,10 @@ public class NgaPost {
 
     public StringBuilder getTitleBuilder() {
         return titleBuilder;
+    }
+
+    public Map<String, String> getAttachmentsMap() {
+        return attachmentsMap;
     }
 
     /**
@@ -487,10 +492,6 @@ public class NgaPost {
         }
 
         return file;
-    }
-
-    public Map<String, String> getAttachmentsMap() {
-        return attachmentsMap;
     }
 
     private static void printJson(Object obj) {
