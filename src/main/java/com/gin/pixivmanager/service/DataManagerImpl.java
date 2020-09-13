@@ -432,7 +432,7 @@ public class DataManagerImpl implements DataManager {
                     .replace("\\", "/")
                     .replace(userInfo.getRootPath(), "");
             map.put("name",s);
-            map.put("path", ReqUtil.encode(path,"utf-8"));
+            map.put("path", path);
             list.add(map);
         }
 
