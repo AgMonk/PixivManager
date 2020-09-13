@@ -84,7 +84,7 @@ public class ReqUtil {
             log.info("第{}次下载 {}", i, tempName);
             String questName = "(" + i + ")" + tempName;
             try {
-                int connectionRequestTimeout = 10 * 1000;
+                int connectionRequestTimeout = 15 * 1000;
                 RequestConfig config = RequestConfig.custom()
                         .setConnectionRequestTimeout(connectionRequestTimeout)
                         .setConnectTimeout(connectionRequestTimeout)
