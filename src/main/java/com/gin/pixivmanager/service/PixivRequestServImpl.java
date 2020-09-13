@@ -286,13 +286,8 @@ public class PixivRequestServImpl implements PixivRequestServ {
                 }
             }
             if (destPath.equals(archivePath)) {
-                log.error("无法获取作品详情 归档失败 {}",key);
-                map.remove(key);
-                idList.add(key);
                 destPath+="/fails/"+file.getName();
-                File dest = new File(destPath);
-                file.renameTo(dest);
-                continue;
+                log.error("无法获取作品详情 归档失败 {} 移动到 {}",key,destPath);
             }
             File dest = new File(destPath);
 
