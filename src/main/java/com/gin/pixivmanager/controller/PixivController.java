@@ -12,7 +12,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executor;
 
 /**
@@ -88,11 +90,21 @@ public class PixivController {
         return pixivRequestServ.archive(name);
     }
 
+    @Scheduled(cron = "0 5/20 * * * *")
+    public void autoArchive() {
+        List<Map<String, String>> filesPath = dataManager.getFilesPath();
+        filesPath = filesPath.subList(filesPath.size() - 50, filesPath.size());
+        List<String> nameList = new ArrayList<>();
+        filesPath.forEach(map -> nameList.add(map.get("name")));
+
+        String[] name = new String[50];
+        log.info("自动归档 {} 个作品", name.length);
+        nameList.toArray(name);
+        pixivRequestServ.archive(name);
+    }
+
     @RequestMapping("test")
-    public Object test() {
-        String[] array = new String[]{"84312013", "84312363"};
-        List<File> files = pixivRequestServ.downloadIllustAndAddTags(array, userInfo.getRootPath() + "/未分類");
-        System.err.println(files);
-        return null;
+    public void test() {
+        autoArchive();
     }
 }
