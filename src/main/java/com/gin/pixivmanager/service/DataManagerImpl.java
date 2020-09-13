@@ -3,6 +3,7 @@ package com.gin.pixivmanager.service;
 import com.gin.pixivmanager.dao.DataManagerMapper;
 import com.gin.pixivmanager.entity.Illustration;
 import com.gin.pixivmanager.entity.Tag;
+import com.gin.pixivmanager.util.ReqUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -329,9 +330,13 @@ public class DataManagerImpl implements DataManager {
             s = s.contains("_") ? s.substring(0, s.indexOf("_")) : s;
             Illustration ill = illustrationMap.get(s);
             if (ill == null || ill.getUserId() == null) {
+
                 lackList.add(s);
             } else {
-                list.add(ill);
+                if (!list.contains(ill)) {
+                    log.debug("从缓存中添加详情 {} {}" ,s,ill);
+                    list.add(ill);
+                }
             }
         }
 
@@ -427,7 +432,7 @@ public class DataManagerImpl implements DataManager {
                     .replace("\\", "/")
                     .replace(userInfo.getRootPath(), "");
             map.put("name",s);
-            map.put("path",path);
+            map.put("path", ReqUtil.encode(path,"utf-8"));
             list.add(map);
         }
 
