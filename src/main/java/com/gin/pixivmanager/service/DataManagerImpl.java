@@ -432,7 +432,7 @@ public class DataManagerImpl implements DataManager {
                     .replace("\\", "/")
                     .replace(userInfo.getRootPath(), "");
             map.put("name",s);
-            map.put("path", path);
+            map.put("path", path.replace("[","%5B").replace("]","%5D"));
             list.add(map);
         }
 
