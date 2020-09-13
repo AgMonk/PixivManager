@@ -150,6 +150,10 @@ public class DataManagerImpl implements DataManager {
 
     @Override
     public Integer addIllustrations(List<Illustration> list) {
+        int size = list.size();
+        if (size==0) {
+            return 0;
+        }
         //分段插入的阈值
         int block = 50;
 
@@ -157,17 +161,17 @@ public class DataManagerImpl implements DataManager {
         log.info("删除作品详情 {} 个", delCount);
         Integer addCount = 0;
 
-        if (list.size() <= block) {
+        if (size <= block) {
             //直接插入
             addCount = mapper.addIllustrations(list);
         } else {
             //分段插入
             int i = 0;
             do {
-                List<Illustration> subList = list.subList(i * block, Math.min(list.size(), (i + 1) * block));
+                List<Illustration> subList = list.subList(i * block, Math.min(size, (i + 1) * block));
                 addCount += mapper.addIllustrations(subList);
                 i++;
-            } while ((i + 1) * block < list.size());
+            } while ((i + 1) * block < size);
         }
         log.info("添加作品详情 {} 个", addCount);
 
