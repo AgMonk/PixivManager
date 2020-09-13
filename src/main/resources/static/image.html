@@ -78,9 +78,11 @@
 
 
         <br><br>
+        <button @click="selectAll()">全选</button>
         <button @click="repost()">转发</button>
-        <button @click="archive()">归档</button>        <br>
-
+        <br>
+        <button @click="archive()">归档</button>
+        <br><br><br>
         <button @click="del()">删除</button>
 
     </div>
@@ -131,14 +133,28 @@
             archive() {
                 let url = "pixiv/archive?";
                 post(url, this.param, function (res) {
-                    location.reload();
+                    console.log(res.data);
+                    let name = _this.param.name;
+                    for (let i = 0; i < name.length; i++) {
+                        _this.fileUrls.splice(name[i],1);
+                    }
                 })
+            },
+            selectAll(){
+                this.selected = [];
+                for (let i = 0; i < this.fileUrls.length; i++) {
+                    this.selected[this.selected.length] =i;
+                }
             },
 
             del(){
-                post("data/delFile", {name:this.selected}, function (res) {
-                    location.reload();
+                post("data/delFile",this.param, function (res) {
                     console.log(res.data);
+                    let name = _this.param.name;
+                    for (let i = 0; i < name.length; i++) {
+                        _this.fileUrls.splice(name[i],1);
+                    }
+                    _this.selected = [0];
                 })
             },
             getPath(i){
