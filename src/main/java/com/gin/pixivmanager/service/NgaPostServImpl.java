@@ -31,6 +31,7 @@ public class NgaPostServImpl implements NgaPostServ {
 
     static {
         reviewKeyword.add("巨乳");
+        reviewKeyword.add("屁股");
     }
 
     public NgaPostServImpl(UserInfo userInfo, PixivRequestServ pixivRequestServ, DataManager dataManager, Executor serviceExecutor) {

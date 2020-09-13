@@ -247,6 +247,10 @@ public class PixivRequestServImpl implements PixivRequestServ {
 
     @Override
     public List<String> archive(String[] name) {
+        if (name==null||name.length==0) {
+            return null;
+        }
+        log.info("归档 {}个作品",name.length);
         List<String> idList = new ArrayList<>();
         for (String s : name) {
             String pid = getPidFromFileName(s);
@@ -295,8 +299,9 @@ public class PixivRequestServImpl implements PixivRequestServ {
             if (dest.exists()) {
                 if (dest.length() == file.length()) {
                     map.remove(key);
+                    idList.add(key);
                     if (file.delete()) {
-                        log.info("目标文件已存在 且大小相同 删除原文件");
+                        log.info("目标文件已存在 且大小相同 删除原文件 {}",key);
                     } else {
                         log.warn("目标文件已存在 且大小相同 删除原文件 失败");
                     }
@@ -331,6 +336,8 @@ public class PixivRequestServImpl implements PixivRequestServ {
                 }
             }
         }
+        log.info("归档 {}个作品 完成",idList.size());
+
         return idList;
     }
 

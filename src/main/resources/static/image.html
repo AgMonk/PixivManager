@@ -69,7 +69,7 @@
             <option>少前水楼</option>
         </select><br>
 
-        <select v-model="selected" size="5" multiple="multiple" @change="getNames()">
+        <select v-model="param.name" size="5" multiple="multiple" @change="selectChange($event)">
             <option v-for="(item,i) in fileUrls" :value="i" :id="item.name"
                     @click.prevent.right="addFile(i)">
                 {{item.name}}
@@ -86,7 +86,7 @@
         <button @click="del()">删除</button>
 
     </div>
-    <a :href="getPath(0)"><img :src="getPath(0)" style="width: 100%"></a>
+    <a :href="fileUrls[imgIndex].path"><img :src="fileUrls[imgIndex].path" style="width: 100%"></a>
 </div>
 </body>
 <script>
@@ -94,17 +94,17 @@
         el: "#app",
         data: {
             param: {
-                name: [],
+                //选中的图片下标
+                name: [0],
                 f: "测试版面",
                 t: "测试楼",
             },
-            fileUrls: [{name:1,path:1}],
+            fileUrls: [{name:1,path:""}],
             nga: {},
-            selected: [0],
             pid: "",
             selectedKey: "",
             pidArray: [],
-
+            imgIndex:0,
         },
         methods: {
             getFileUrls() {
@@ -125,48 +125,54 @@
                     return;
                 }
 
-                let url = "nga/repost?" + qs(this.param);
+                let url = "nga/repost?" + qs(this.getParam());
 
                 // console.log(url)
                 window.open(url);
             },
             archive() {
                 let url = "pixiv/archive?";
-                post(url, this.param, function (res) {
+                post(url, this.getParam(), function (res) {
                     console.log(res.data);
-                    let name = _this.param.name;
-                    for (let i = 0; i < name.length; i++) {
-                        _this.fileUrls.splice(name[i],1);
-                    }
+                    _this.delByName(res.data);
                 })
+            },
+            del(){
+                post("data/delFile",this.getParam(), function (res) {
+                    console.log(res.data);
+                    _this.delByName(res.data);
+                })
+            },
+            selectChange(e){
+                this.imgIndex = e.target.value;
+            },
+            replaceIndex2Name(){
+                let name = this.param.name;
+                let names = [];
+                for (let i = 0; i < name.length; i++) {
+                    names[names.length] = this.fileUrls[name[i]].name;
+                }
+                return names;
+            },
+            getParam(){
+                return {name:this.replaceIndex2Name(),
+                f:this.param.f,t:this.param.t}
+            },
+            delByName(names){
+              let urls = this.fileUrls;
+                for (let i = urls.length-1; i >=0; i--) {
+                    if (names.includes(urls[i].name)) {
+                        console.log("移除"+urls[i].name)
+                        urls.splice(i,1);
+                    }
+                }
+                this.imgIndex =this.imgIndex>=urls.length?urls.length-1:this.imgIndex;
             },
             selectAll(){
-                this.selected = [];
-                for (let i = 0; i < this.fileUrls.length; i++) {
-                    this.selected[this.selected.length] =i;
-                }
-            },
-
-            del(){
-                post("data/delFile",this.param, function (res) {
-                    console.log(res.data);
-                    let name = _this.param.name;
-                    for (let i = 0; i < name.length; i++) {
-                        _this.fileUrls.splice(name[i],1);
-                    }
-                    _this.selected = [0];
-                })
-            },
-            getPath(i){
-                return this.fileUrls[this.selected[i]].path;
-            },
-            getNames(){
                 this.param.name = [];
-                for (let i = 0; i < this.selected.length; i++) {
-                    let index = this.selected[i];
-                    this.param.name [this.param.name .length] = this.fileUrls[index].name;
+                for (let i = 0; i < this.fileUrls.length; i++) {
+                    this.param.name.push(i);
                 }
-                console.log(this.param.name);;
             },
         },
         created() {
