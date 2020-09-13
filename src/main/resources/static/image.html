@@ -135,6 +135,7 @@
                 post(url, this.getParam(), function (res) {
                     console.log(res.data);
                     _this.delByName(res.data);
+
                 })
             },
             del(){
@@ -167,6 +168,9 @@
                     }
                 }
                 this.imgIndex =this.imgIndex>=urls.length?urls.length-1:this.imgIndex;
+                if (urls.length < 10) {
+                    location.reload();
+                }
             },
             selectAll(){
                 this.param.name = [];
