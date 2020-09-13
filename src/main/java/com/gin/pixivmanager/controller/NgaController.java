@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Map;
 
 @Slf4j
@@ -27,6 +28,7 @@ public class NgaController {
 
     @RequestMapping("repost")
     public void repost(HttpServletResponse response, String f, String t, String... name) throws IOException {
+        log.info("转发文件 {} {}",name.length,Arrays.asList(name));
         String repost = ngaPostServ.repost(f, t, name);
         response.sendRedirect(repost);
     }

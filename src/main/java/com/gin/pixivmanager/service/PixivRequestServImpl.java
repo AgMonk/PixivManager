@@ -55,18 +55,22 @@ public class PixivRequestServImpl implements PixivRequestServ {
     @Override
     public List<Illustration> getIllustrationDetail(List<String> idList) {
         List<Illustration> list = dataManager.getIllustrations(idList);
+        log.debug("从缓存中获得 {}条数据",list.size());
         List<String> lackList = new ArrayList<>();
+        //缓存中没有详情 或 更新时间过早的加入请求列表
         for (String s : idList) {
             s = getPidFromFileName(s);
             Map<String, Illustration> map = dataManager.getIllustrationMap();
-            //缓存中没有详情 或 更新时间过早的加入请求列表
+            //缓存没有
             if (!map.containsKey(s)) {
+                log.debug("缓存中未查询到详情 {}",s);
                 lackList.add(s);
             } else {
                 //距离时间过久的或没有的进行请求更新
                 Long lastUpdate = map.get(s).getLastUpdate();
                 long now = System.currentTimeMillis();
                 if (lastUpdate == null || now - lastUpdate > RANGE_OF_LAST_UPDATE) {
+                    log.debug("缓存中的详情记录过于久远 {}",s);
                     lackList.add(s);
                 }
             }
@@ -76,6 +80,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
              * 向pixiv查询到的作品详情
              */
             List<Illustration> detailsFromPixiv = getIllustrationDetail2List(lackList);
+            log.debug("向pixiv请求到 {} 条详情",detailsFromPixiv.size());
             list.addAll(detailsFromPixiv);
             dataManager.addIllustrations(detailsFromPixiv);
             dataManager.addTags(detailsFromPixiv);
@@ -247,10 +252,9 @@ public class PixivRequestServImpl implements PixivRequestServ {
 
     @Override
     public List<String> archive(String[] name) {
-        if (name==null||name.length==0) {
+        if (name == null || name.length == 0) {
             return null;
         }
-        log.info("归档 {}个作品",name.length);
         List<String> idList = new ArrayList<>();
         for (String s : name) {
             String pid = getPidFromFileName(s);
@@ -258,7 +262,8 @@ public class PixivRequestServImpl implements PixivRequestServ {
                 idList.add(pid);
             }
         }
-        //获得id的详情信息
+        log.info("归档 {}个文件 来自 {}个作品", name.length,idList.size());
+//获得id的详情信息
         List<Illustration> detail = getIllustrationDetail(idList);
         idList = new ArrayList<>();
         //归档目录
@@ -286,26 +291,18 @@ public class PixivRequestServImpl implements PixivRequestServ {
                 }
             }
             if (destPath.equals(archivePath)) {
-                destPath+="/fails/"+file.getName();
-                log.error("无法获取作品详情 归档失败 {} 移动到 {}",key,destPath);
+                destPath += "/fails/" + file.getName();
+                log.error("无法获取作品详情 归档失败 {} 移动到 {}", key, destPath);
             }
             File dest = new File(destPath);
 
-            File parentFile = dest.getParentFile();
-            if (!parentFile.exists()) {
-                if (parentFile.mkdirs()) {
-                    log.debug("创建文件夹 {}", parentFile.getPath());
-                } else {
-                    log.warn("创建文件夹失败 {}", parentFile.getPath());
-                }
-            }
             //如果目标文件存在
             if (dest.exists()) {
                 if (dest.length() == file.length()) {
                     map.remove(key);
                     idList.add(key);
                     if (file.delete()) {
-                        log.info("目标文件已存在 且大小相同 删除原文件 {}",key);
+                        log.info("目标文件已存在 且大小相同 删除原文件 {}", key);
                     } else {
                         log.warn("目标文件已存在 且大小相同 删除原文件 失败");
                     }
@@ -319,6 +316,14 @@ public class PixivRequestServImpl implements PixivRequestServ {
                     log.info("目标文件已存在 且带大小不同 请自行确认保留 {}", dest.getPath());
                 }
             } else {
+                File parentFile = dest.getParentFile();
+                if (!parentFile.exists()) {
+                    if (parentFile.mkdirs()) {
+                        log.debug("创建文件夹 {}", parentFile.getPath());
+                    } else {
+                        log.warn("创建文件夹失败 {}", parentFile.getPath());
+                    }
+                }
                 if (file.renameTo(dest)) {
                     log.debug("移动文件 {} 到 {}", file.getPath(), destPath);
                     map.remove(key);
@@ -340,7 +345,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
                 }
             }
         }
-        log.info("归档 {}个作品 完成",idList.size());
+        log.info("归档 {}个作品 完成", idList.size());
 
         return idList;
     }

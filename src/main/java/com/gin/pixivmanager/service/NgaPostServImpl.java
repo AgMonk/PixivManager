@@ -183,7 +183,6 @@ public class NgaPostServImpl implements NgaPostServ {
         String tid = userInfo.getNgaTid(t);
         String action = NgaPost.ACTION_REPLY;
         NgaPost ngaPost = NgaPost.create(cookie, fid, tid, action);
-        String wrap = NgaPost.getWrap();
 
         //准备附件
         Map<String, File> map = prepare4Files(name);
@@ -191,6 +190,7 @@ public class NgaPostServImpl implements NgaPostServ {
         ngaPost.uploadFiles(map);
 
         List<Illustration> illList = pixivRequestServ.getIllustrationDetail(Arrays.asList(name));
+        log.info("查询得到作品详情 {}条" ,illList.size());
         StringBuilder sb = new StringBuilder();
 
         for (Illustration ill : illList) {
@@ -216,6 +216,12 @@ public class NgaPostServImpl implements NgaPostServ {
     private static void copyFile(File source, File dest) throws IOException {
         if (source.getPath().equals(dest.getPath())) {
             return;
+        }
+        File parentFile = dest.getParentFile();
+        if (!parentFile.exists()) {
+            if (!parentFile.mkdirs()) {
+                log.error("创建文件夹失败 {}",parentFile.getPath());
+            }
         }
 
         FileChannel inputChannel = null;
