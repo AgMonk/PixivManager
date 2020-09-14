@@ -11,18 +11,17 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-@Slf4j
 /**
  * Nga发帖工具类
  *
  * @author bx002
  */
+@Slf4j
 public class NgaPost {
     final static String NBSP = "\r\n";
     public final static String ACTION_NEW = "new";
@@ -134,9 +133,8 @@ public class NgaPost {
      * 多线程上传文件
      *
      * @param map 标识符 - 文件
-     * @return
      */
-    public Set<String> uploadFiles(Map<String, File> map) {
+    public void uploadFiles(Map<String, File> map) {
         getAuthAndAttachUrl();
 
         CountDownLatch latch = new CountDownLatch(map.size());
@@ -150,7 +148,6 @@ public class NgaPost {
                     uploadFile(finalI, entry.getKey(), entry.getValue());
                 } catch (IOException e) {
                     log.info("文件压缩失败 放弃上传 {}", entry.getValue());
-//                    e.printStackTrace();
                 }
                 latch.countDown();
             });
@@ -164,31 +161,12 @@ public class NgaPost {
         }
 
         executor.shutdown();
-        return attachmentsMap.keySet();
-    }
-
-    /**
-     * 插入附件
-     *
-     * @param name
-     */
-    public NgaPost addAttachment(String name) {
-        addContent(getAttachmentCode(name));
-        return this;
-    }
-
-    /**
-     * 换行
-     */
-    public NgaPost addWrap() {
-        addContent(getWrap());
-        return this;
     }
 
     /**
      * 换行
      *
-     * @return
+     * @return 换行符
      */
     public static String getWrap() {
         return NBSP;
@@ -214,31 +192,10 @@ public class NgaPost {
         return this;
     }
 
-    /**
-     * 添加折叠
-     *
-     * @param title   标题
-     * @param content 内容
-     * @return this
-     */
-    public NgaPost addCollapse(String title, String content, String defaultTitle) {
-        addContent(getCollapse(title, content, defaultTitle));
-        return this;
-    }
-
-    /**
-     * 获得附件的bbscode
-     *
-     * @param name 附件名
-     * @return bbscode
-     */
-    public String getAttachmentCode(String name) {
-        String url = attachmentsMap.get(name);
-        return getAttachmentCodeFromUrl(url);
-    }
-
     public static String getAttachmentCodeFromUrl(String url) {
-        if (url.contains("mp4")) {
+        //动图关键字
+        String mp4 = "mp4";
+        if (url.contains(mp4)) {
             return BBS_CODE_TAG_FLASH.replace("{url}", url);
         } else {
             return BBS_CODE_TAG_IMG.replace("{url}", url);
@@ -254,11 +211,10 @@ public class NgaPost {
      */
     public static String getCollapse(String title, String content, String defaultTitle) {
         String code = BBS_CODE_TAG_COLLAPSE;
-        String delKorea = delKorea(title);
-        if (title == null || "".equals(delKorea)) {
+        if (title == null || "".equals(delKorea(title))) {
             code = code.replace("{title}", defaultTitle);
         } else {
-            code = code.replace("{title}", delKorea);
+            code = code.replace("{title}", delKorea(title));
         }
         code = code.replace("{content}", content);
 
@@ -349,7 +305,7 @@ public class NgaPost {
         //大于10M先行压缩
         int largeLength = 10;
         int k = 1024;
-        HashMap<String, File> fileMap = null;
+        HashMap<String, File> fileMap;
         //压缩
         file = zipImage(file, largeLength * k * k);
 
@@ -424,14 +380,6 @@ public class NgaPost {
         this.action = action;
     }
 
-    public StringBuilder getContentBuilder() {
-        return contentBuilder;
-    }
-
-    public StringBuilder getTitleBuilder() {
-        return titleBuilder;
-    }
-
     public Map<String, String> getAttachmentsMap() {
         return attachmentsMap;
     }
@@ -439,8 +387,8 @@ public class NgaPost {
     /**
      * 删除韩文
      *
-     * @param str
-     * @return
+     * @param str 待检查字符串
+     * @return 删除完毕字符串
      */
     private static String delKorea(String str) {
         StringBuilder unicode = new StringBuilder();

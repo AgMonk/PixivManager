@@ -20,6 +20,8 @@ import java.util.concurrent.Executor;
 @Service
 @Slf4j
 public class NgaPostServImpl implements NgaPostServ {
+    final static String UNDERSCORE = "_";
+
     final UserInfo userInfo;
     final PixivRequestServ pixivRequestServ;
     final DataManager dataManager;
@@ -49,22 +51,14 @@ public class NgaPostServImpl implements NgaPostServ {
      */
     private Map<String, File> prepare4Files(String... name) {
         String tempPath = userInfo.getRootPath() + "/temp/";
-        /**
-         * 缺少的文件名
-         */
+        // 缺少的文件名
         List<String> lackList = new ArrayList<>();
-        /**
-         * 缺少的文件pid
-         */
+        // 缺少的文件pid
         List<String> lackPidList = new ArrayList<>();
-        /**
-         * 现成的文件
-         */
+        // 现成的文件
         Map<String, File> filesMap = dataManager.getFilesMap(name);
-        /**
-         * 需要上传的文件
-         */
-        Map<String, File> uploadMap = new HashMap<>();
+        // 需要上传的文件
+        Map<String, File> uploadMap = new HashMap<>(name.length);
 
         //新线程 复制文件到temp目录
         CountDownLatch latch = new CountDownLatch(2);
@@ -128,51 +122,6 @@ public class NgaPostServImpl implements NgaPostServ {
             e.printStackTrace();
         }
 
-//        /**
-//         * 已准备好的列表
-//         */
-//        Map<String, File> map = new HashMap<>();
-//
-//        for (String id : name) {
-//            boolean b = true;
-//
-//            //从现有文件中查找所需文件
-//            for (Map.Entry<String, File> entry : filesMap.entrySet()) {
-//                String key = entry.getKey();
-//                if (key.equals(id) || key.contains(id + "_")) {
-//                    b = false;
-//                    File source = entry.getValue();
-//                    String fileName = source.getName();
-//                    String suffix = fileName.substring(fileName.lastIndexOf('.'));
-//                    File destFile = new File(tempPath + key + suffix);
-//
-//                    try {
-//                        log.info("发现所需文件 复制到 {}", destFile.getPath());
-//                        copyFile(source, destFile);
-//                        map.put(key, destFile);
-//                    } catch (IOException e) {
-//                        e.printStackTrace();
-//                    }
-//
-//                }
-//            }
-//            //现有文件中没有
-//            if (b) {
-//                lackList.add(id);
-//            }
-//
-//        }
-//        //有缺少的文件
-//        if (lackList.size() > 0) {
-//            log.info("缺少文件  {}个", lackList.size());
-//            List<Illustration> detail = pixivRequestServ.getIllustrationDetail(lackList);
-//            List<File> downloadList = pixivRequestServ.download(detail, tempPath);
-//            for (File file : downloadList) {
-//                String fileName = file.getName();
-//                fileName = fileName.substring(0, fileName.lastIndexOf('.'));
-//                map.put(fileName, file);
-//            }
-//        }
         return uploadMap;
     }
 
@@ -190,7 +139,7 @@ public class NgaPostServImpl implements NgaPostServ {
         ngaPost.uploadFiles(map);
 
         List<Illustration> illList = pixivRequestServ.getIllustrationDetail(Arrays.asList(name));
-        log.info("查询得到作品详情 {}条" ,illList.size());
+        log.info("查询得到作品详情 {}条", illList.size());
         StringBuilder sb = new StringBuilder();
 
         for (Illustration ill : illList) {
@@ -200,16 +149,12 @@ public class NgaPostServImpl implements NgaPostServ {
         }
 
         String quote = NgaPost.getQuote(sb.toString());
-        ngaPost.addContent(quote);
-        ngaPost.addTitle("Pixiv搬运bot酱");
+        ngaPost.addContent(quote).addTitle("Pixiv").addTitle("搬运bot酱");
 
         String send = ngaPost.send();
         log.info("发帖成功: {}", send);
 
         return send;
-    }
-
-    private void test() {
     }
 
 
@@ -220,7 +165,7 @@ public class NgaPostServImpl implements NgaPostServ {
         File parentFile = dest.getParentFile();
         if (!parentFile.exists()) {
             if (!parentFile.mkdirs()) {
-                log.error("创建文件夹失败 {}",parentFile.getPath());
+                log.error("创建文件夹失败 {}", parentFile.getPath());
             }
         }
 
@@ -252,7 +197,7 @@ public class NgaPostServImpl implements NgaPostServ {
         List<String> aNameList = new ArrayList<>();
         Set<String> keySet = attachmentsMap.keySet();
         keySet.forEach(s -> {
-            if (s.equals(id) || s.contains(id + "_")) {
+            if (s.equals(id) || s.contains(id + UNDERSCORE)) {
                 aNameList.add(s);
             }
         });
@@ -292,8 +237,8 @@ public class NgaPostServImpl implements NgaPostServ {
     /**
      * 删除审核字符串
      *
-     * @param s
-     * @return
+     * @param s 字符串
+     * @return 审核完成字符串
      */
     private static String review(String s) {
         for (String s1 : reviewKeyword) {

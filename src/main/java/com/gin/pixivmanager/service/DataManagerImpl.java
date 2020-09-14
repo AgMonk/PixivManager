@@ -3,7 +3,6 @@ package com.gin.pixivmanager.service;
 import com.gin.pixivmanager.dao.DataManagerMapper;
 import com.gin.pixivmanager.entity.Illustration;
 import com.gin.pixivmanager.entity.Tag;
-import com.gin.pixivmanager.util.ReqUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -152,7 +151,7 @@ public class DataManagerImpl implements DataManager {
     @Override
     public Integer addIllustrations(List<Illustration> list) {
         int size = list.size();
-        if (size==0) {
+        if (size == 0) {
             return 0;
         }
         //分段插入的阈值
@@ -264,12 +263,11 @@ public class DataManagerImpl implements DataManager {
     /**
      * 格式化显示进度
      *
-     * @param count
-     * @param size
-     * @return
+     * @param count 计数器count（倒数）
+     * @param size  计数器最大值
+     * @return 进度
      */
     private static String calculateProgress(long count, long size) {
-        int k = 1024;
         count = size - count;
         double percent = Math.floor(1.0 * count / size * 1000) / 10;
 
@@ -282,7 +280,7 @@ public class DataManagerImpl implements DataManager {
      * 格式化大小
      *
      * @param num 大小数值
-     * @return
+     * @return 大小
      */
     private static String formatSize(long num) {
         String s = "" + num;
@@ -334,7 +332,7 @@ public class DataManagerImpl implements DataManager {
                 lackList.add(s);
             } else {
                 if (!list.contains(ill)) {
-                    log.debug("从缓存中添加详情 {} {}" ,s,ill);
+                    log.debug("从缓存中添加详情 {} {}", s, ill);
                     list.add(ill);
                 }
             }
@@ -411,28 +409,28 @@ public class DataManagerImpl implements DataManager {
     }
 
     @Override
-    public  List<Map<String,String>> getFilesPath() {
-        List<Map<String,String>> list = new ArrayList<>();
-        List<String > keyList = new ArrayList<>(filesMap.keySet());
+    public List<Map<String, String>> getFilesPath() {
+        List<Map<String, String>> list = new ArrayList<>();
+        List<String> keyList = new ArrayList<>(filesMap.keySet());
         keyList.sort((s1, s2) -> {
-            long pid1 = Long.parseLong(s1.contains("_")?s1.substring(0,s1.indexOf("_")):s1);
-            long pid2 = Long.parseLong(s2.contains("_")?s2.substring(0,s2.indexOf("_")):s2);
-            if (pid1!=pid2) {
+            long pid1 = Long.parseLong(s1.contains("_") ? s1.substring(0, s1.indexOf("_")) : s1);
+            long pid2 = Long.parseLong(s2.contains("_") ? s2.substring(0, s2.indexOf("_")) : s2);
+            if (pid1 != pid2) {
                 return Math.toIntExact(pid2 - pid1);
-            }else {
+            } else {
                 int count1 = Integer.parseInt(s1.contains("_") ? s1.substring(s1.indexOf("_") + 2) : s1);
                 int count2 = Integer.parseInt(s2.contains("_") ? s2.substring(s2.indexOf("_") + 2) : s2);
-                return count1-count2;
+                return count1 - count2;
             }
         });
 
         for (String s : keyList) {
-            Map<String,String> map =new HashMap<>();
+            Map<String, String> map = new HashMap<>();
             String path = "/pixiv" + filesMap.get(s).getPath()
                     .replace("\\", "/")
                     .replace(userInfo.getRootPath(), "");
-            map.put("name",s);
-            map.put("path", path.replace("[","%5B").replace("]","%5D"));
+            map.put("name", s);
+            map.put("path", path.replace("[", "%5B").replace("]", "%5D"));
             list.add(map);
         }
 

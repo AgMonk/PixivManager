@@ -13,6 +13,11 @@ import java.util.Map;
  * @author bx002
  */
 public interface DataManager {
+    /**
+     * 获取作品map
+     *
+     * @return 作品map
+     */
     Map<String, Illustration> getIllustrationMap();
 
     /**
@@ -22,15 +27,15 @@ public interface DataManager {
      * @param limit   每页条数
      * @param keyword 关键字
      * @param all     是否显示所有tag
-     * @return
+     * @return tag列表
      */
     List<Tag> getTags(Integer page, Integer limit, String keyword, Integer all);
 
     /**
      * 给一个tag设置自定义翻译
      *
-     * @param t
-     * @return
+     * @param t 目标tag
+     * @return 设置成功数量
      */
     Integer addTranslation(Tag t);
 
@@ -58,41 +63,41 @@ public interface DataManager {
     /**
      * 更新文件下载进度
      *
-     * @param questName
-     * @param count
-     * @param size
-     * @return
+     * @param questName 任务名称
+     * @param count     计数器count（倒数）
+     * @param size      计数器最大值
+     * @return 进度
      */
     String addDownloading(String questName, long count, long size);
 
     /**
      * 更新详情获取进度
      *
-     * @param questName
-     * @param count
-     * @param size
-     * @return
+     * @param questName 任务名称
+     * @param count     计数器count（倒数）
+     * @param size      计数器最大值
+     * @return 进度
      */
     String addDetails(String questName, long count, long size);
 
     /**
      * 获取详情进度
      *
-     * @return
+     * @return 进度
      */
     Map<String, String> getDetails();
 
     /**
      * 获取下载进度
      *
-     * @return
+     * @return 进度
      */
     Map<String, String> getDownloading();
 
     /**
      * 获取翻译Map
      *
-     * @return
+     * @return 翻译map
      */
     Map<String, String> getTranslationMap();
 
@@ -105,35 +110,40 @@ public interface DataManager {
      */
     List<Illustration> getIllustrations(List<String> idList);
 
+    /**
+     * 获取总文件map
+     *
+     * @return 文件map
+     */
     Map<String, File> getFilesMap();
 
     /**
      * 获得指定id的文件列表
      *
-     * @param name
-     * @return
+     * @param name 文件名
+     * @return 文件map
      */
     Map<String, File> getFilesMap(String... name);
 
     /**
      * 添加文件列表到 filesMap
      *
-     * @param list
+     * @param list 文件列表
      */
     void addFilesMap(List<File> list);
 
     /**
      * 获取根目录下的所有文件  pid - 文件路径的对应 用以显示图片
      *
-     * @return
+     * @return 获取文件路径
      */
-    List<Map<String,String>> getFilesPath();
+    List<Map<String, String>> getFilesPath();
 
     /**
      * 删除文件
      *
-     * @param name
-     * @return
+     * @param name 文件
+     * @return 删除的文件名
      */
     String delFile(String name);
 }

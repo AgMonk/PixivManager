@@ -12,6 +12,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * 线程池
+ *
+ * @author bx002
  */
 @Configuration
 @EnableAsync
@@ -21,54 +23,52 @@ public class TaskExecutePool {
 
     @Bean
     public Executor requestExecutor() {
-        return getExecutor("Request-", 10, QUEUE, KEEPALIVE);
+        return getExecutor("Request-", 10);
     }
 
     @Bean
     public Executor serviceExecutor() {
-        return getExecutor("Service-", 10, QUEUE, KEEPALIVE);
+        return getExecutor("Service-", 10);
     }
 
     @Bean
     public Executor scanExecutor() {
-        return getExecutor("scan-", 10, QUEUE, KEEPALIVE);
+        return getExecutor("scan-", 10);
     }
 
     @Bean
     public Executor downloadExecutor() {
-        return getExecutor("download-", 5, QUEUE, KEEPALIVE);
+        return getExecutor("download-", 5);
     }
 
     @Bean
     public Executor downloadMainExecutor() {
-        return getExecutor("downMain-", 5, QUEUE, KEEPALIVE);
+        return getExecutor("downMain-", 5);
     }
 
     @Bean
     public Executor controllerExecutor() {
-        return getExecutor("Ctrl-", 10, QUEUE, KEEPALIVE);
+        return getExecutor("Ctrl-", 10);
     }
 
 
     /**
      * 创建线程池
      *
-     * @param name      线程池名称
-     * @param coreSize  核心线程池大小
-     * @param queue     队列容量
-     * @param keepAlive 活跃时间
+     * @param name     线程池名称
+     * @param coreSize 核心线程池大小
      * @return 线程池
      */
-    private Executor getExecutor(String name, Integer coreSize, Integer queue, Integer keepAlive) {
+    private Executor getExecutor(String name, Integer coreSize) {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         //核心线程池大小
         executor.setCorePoolSize(coreSize);
         //最大线程数
         executor.setMaxPoolSize(coreSize);
         //队列容量
-        executor.setQueueCapacity(queue);
+        executor.setQueueCapacity(TaskExecutePool.QUEUE);
         //活跃时间
-        executor.setKeepAliveSeconds(keepAlive);
+        executor.setKeepAliveSeconds(TaskExecutePool.KEEPALIVE);
         //线程名字前缀
         executor.setThreadNamePrefix(name);
 

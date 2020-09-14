@@ -7,12 +7,14 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupp
 
 /**
  * 配置资源路径
+ *
+ * @author bx002
  */
 @Configuration
-public class MyURLPatternConfiguration extends WebMvcConfigurationSupport {
+public class MyUrlPatternConfiguration extends WebMvcConfigurationSupport {
     final UserInfo userInfo;
 
-    public MyURLPatternConfiguration(UserInfo userInfo) {
+    public MyUrlPatternConfiguration(UserInfo userInfo) {
         this.userInfo = userInfo;
     }
 

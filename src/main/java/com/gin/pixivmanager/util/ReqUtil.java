@@ -78,7 +78,7 @@ public class ReqUtil {
         get.addHeader("Referer", url.substring(0, endIndex));
         HEADERS_DEFUALT.forEach(get::addHeader);
 
-        CloseableHttpResponse response = null;
+        CloseableHttpResponse response;
         long start = System.currentTimeMillis();
         for (int i = 1; i <= MAX_TIMES; i++) {
             log.info("第{}次下载 {}", i, tempName);
@@ -104,7 +104,7 @@ public class ReqUtil {
                 ByteArrayOutputStream output = new ByteArrayOutputStream();
                 //缓存大小
                 byte[] buffer = new byte[4096];
-                int r = 0;
+                int r;
                 long totalRead = 0;
                 while ((r = inputStream.read(buffer)) > 0) {
                     output.write(buffer, 0, r);
@@ -115,7 +115,13 @@ public class ReqUtil {
                 }
                 File parentFile = file.getParentFile();
                 if (!parentFile.exists()) {
-                    parentFile.mkdirs();
+                    String parentFilePath = parentFile.getPath();
+                    if (parentFile.mkdirs()) {
+                        log.debug("创建文件夹 {}", parentFilePath);
+                    } else {
+                        log.warn("文件夹创建失败 {}", parentFilePath);
+                        break;
+                    }
                 }
                 FileOutputStream fos = new FileOutputStream(filePath);
                 output.writeTo(fos);
@@ -158,8 +164,7 @@ public class ReqUtil {
                               Map<String, String> formData, Map<String, File> fileMap,
                               Integer maxTimes, String enc) {
 
-        Map<String, String> headers = new HashMap<>();
-        headers.putAll(HEADERS_DEFUALT);
+        Map<String, String> headers = new HashMap<>(HEADERS_DEFUALT);
         headers.put("cookie", cookie);
 
         if (fileMap == null && formData == null) {
@@ -192,8 +197,7 @@ public class ReqUtil {
                              String portName, Map<String, String[]> paramMap,
                              String cookie, Integer timeout,
                              Integer maxTimes, String enc) {
-        Map<String, String> headers = new HashMap<>();
-        headers.putAll(HEADERS_DEFUALT);
+        Map<String, String> headers = new HashMap<>(HEADERS_DEFUALT);
         headers.put("cookie", cookie);
 
         String url = getUrl(urlPrefix, urlSuffix, portName, paramMap, enc);
@@ -294,7 +298,6 @@ public class ReqUtil {
         CloseableHttpClient client = HttpClients.createDefault();
 
         //执行请求
-        lableA:
         while (times < maxTimes) {
             try {
                 times++;
@@ -304,6 +307,7 @@ public class ReqUtil {
                 CloseableHttpResponse response = client.execute(m);
 
                 int statusCode = response.getStatusLine().getStatusCode();
+                String msg;
 
                 switch (statusCode) {
                     case HttpStatus.SC_BAD_GATEWAY:
@@ -312,25 +316,29 @@ public class ReqUtil {
                         Thread.sleep(10 * 1000);
                         break;
                     case HttpStatus.SC_MOVED_TEMPORARILY:
-                        log.info("第{}次请求 连接被重定向({}) {}", times, statusCode, m.getURI());
-                        break lableA;
+                        msg = "连接被重定向";
+                        log.info("第{}次请求 {}({}) {}", msg, times, statusCode, m.getURI());
+                        throw new IOException(msg);
                     case HttpStatus.SC_OK:
                         long end = System.currentTimeMillis();
                         log.debug("第{}次请求 成功 地址：{} 耗时：{}", times, m.getURI(), formatDuration(end - start));
                         result = EntityUtils.toString(response.getEntity(), enc);
                         log.debug(result.substring(0, 20));
-                        break lableA;
+                        return result;
                     case HttpStatus.SC_NOT_FOUND:
-                        log.debug("第{}次请求 失败 地址不存在({}) 地址：{} ", times, statusCode, m.getURI());
-                        break lableA;
+                        msg = "地址不存在";
+                        log.debug("第{}次请求 失败 {}({}) 地址：{} ", msg, times, statusCode, m.getURI());
+                        throw new IOException(msg);
                     case HttpStatus.SC_INTERNAL_SERVER_ERROR:
+                        msg = "服务器错误";
+                        log.debug("第{}次请求 失败 {}({}) 地址：{} ", msg, times, statusCode, m.getURI());
                         result = EntityUtils.toString(response.getEntity(), enc);
-                        log.debug("第{}次请求 失败 服务器错误({}) 地址：{} ", times, statusCode, m.getURI());
                         System.err.println(result);
-                        break lableA;
+                        throw new IOException(msg);
                     default:
-                        log.info("第{}次请求 未定义错误({})", times, statusCode);
-                        break lableA;
+                        msg = "未定义错误";
+                        log.info("第{}次请求 {} 未定义错误({})", msg, times, statusCode);
+                        throw new IOException(msg);
                 }
             } catch (SocketTimeoutException e) {
                 if (maxTimes == times) {
@@ -341,7 +349,8 @@ public class ReqUtil {
                     log.debug(timeoutMsg, times, m.getURI());
                 }
             } catch (IOException e) {
-                log.error("请求失败 地址：{}", m.getURI());
+                log.error("请求失败 地址：{} {}", m.getURI(), e.getMessage());
+                break;
             } catch (InterruptedException ignored) {
             }
         }
@@ -463,7 +472,7 @@ public class ReqUtil {
             char c = str.charAt(i);
             // 韩文转换为unicode
             if (c >= 44032 && c <= 55215) {
-                unicode.append("&#" + Integer.toString(c, 10) + ";");
+                unicode.append("&#").append(Integer.toString(c, 10)).append(";");
             } else {
                 unicode.append(c);
             }

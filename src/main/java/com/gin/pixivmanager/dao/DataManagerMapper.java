@@ -66,9 +66,9 @@ public interface DataManagerMapper {
 
     /**
      * 获取指定id的详情数据
-     * @param idList   id列表
-     * @param time     指定日期
-     * @return      详情
+     *
+     * @param idList id列表
+     * @return 详情
      */
     List<Illustration> getIllustrationsById(List<String> idList);
 }

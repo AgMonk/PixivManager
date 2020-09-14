@@ -1,9 +1,7 @@
 package com.gin.pixivmanager.service;
 
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.gin.pixivmanager.config.PixivUrl;
 import com.gin.pixivmanager.entity.Illustration;
 import com.gin.pixivmanager.entity.Tag;
@@ -55,7 +53,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
     @Override
     public List<Illustration> getIllustrationDetail(List<String> idList) {
         List<Illustration> list = dataManager.getIllustrations(idList);
-        log.debug("从缓存中获得 {}条数据",list.size());
+        log.debug("从缓存中获得 {}条数据", list.size());
         List<String> lackList = new ArrayList<>();
         //缓存中没有详情 或 更新时间过早的加入请求列表
         for (String s : idList) {
@@ -63,24 +61,24 @@ public class PixivRequestServImpl implements PixivRequestServ {
             Map<String, Illustration> map = dataManager.getIllustrationMap();
             //缓存没有
             if (!map.containsKey(s)) {
-                log.debug("缓存中未查询到详情 {}",s);
+                log.debug("缓存中未查询到详情 {}", s);
                 lackList.add(s);
             } else {
                 //距离时间过久的或没有的进行请求更新
                 Long lastUpdate = map.get(s).getLastUpdate();
                 long now = System.currentTimeMillis();
                 if (lastUpdate == null || now - lastUpdate > RANGE_OF_LAST_UPDATE) {
-                    log.debug("缓存中的详情记录过于久远 {}",s);
+                    log.debug("缓存中的详情记录过于久远 {}", s);
                     lackList.add(s);
                 }
             }
         }
         if (lackList.size() > 0) {
-            /**
-             * 向pixiv查询到的作品详情
+            /*
+              向pixiv查询到的作品详情
              */
             List<Illustration> detailsFromPixiv = getIllustrationDetail2List(lackList);
-            log.debug("向pixiv请求到 {} 条详情",detailsFromPixiv.size());
+            log.debug("向pixiv请求到 {} 条详情", detailsFromPixiv.size());
             list.addAll(detailsFromPixiv);
             dataManager.addIllustrations(detailsFromPixiv);
             dataManager.addTags(detailsFromPixiv);
@@ -153,7 +151,6 @@ public class PixivRequestServImpl implements PixivRequestServ {
 
         Integer total = body.getInteger("total");
         log.info("{} 标签下有总计 {} 个作品", tag, total);
-        max = max != null ? max : total;
         total = Math.min(total, max);
 
         JSONArray works = body.getJSONArray("works");
@@ -227,16 +224,19 @@ public class PixivRequestServImpl implements PixivRequestServ {
      */
     @Override
     public void setTag(Tag tag) {
+        String leftBrackets = "(";
+        String leftChineseBrackets = "（";
+
         String url = pixivUrl.getSetTag();
         Map<String, String> formData = new HashMap<>();
         String name = tag.getName();
         String translation = tag.getTranslation().replace(" ", "");
 
-        if (translation.contains("(")) {
-            translation = translation.substring(0, translation.indexOf("("));
+        if (translation.contains(leftBrackets)) {
+            translation = translation.substring(0, translation.indexOf(leftBrackets));
         }
-        if (translation.contains("（")) {
-            translation = translation.substring(0, translation.indexOf("（"));
+        if (translation.contains(leftChineseBrackets)) {
+            translation = translation.substring(0, translation.indexOf(leftChineseBrackets));
         }
 
         formData.put("mode", "mod");
@@ -262,7 +262,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
                 idList.add(pid);
             }
         }
-        log.info("归档 {}个文件 来自 {}个作品", name.length,idList.size());
+        log.info("归档 {}个文件 来自 {}个作品", name.length, idList.size());
 //获得id的详情信息
         List<Illustration> detail = getIllustrationDetail(idList);
         idList = new ArrayList<>();
@@ -332,7 +332,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
                     //如果目录已空 删除目录
                     File parent;
                     parent = file.getParentFile();
-                    while (parent.listFiles().length == 0) {
+                    while (Objects.requireNonNull(parent.listFiles()).length == 0) {
                         if (parent.delete()) {
                             log.debug("删除目录 {}", parent);
                             parent = parent.getParentFile();
@@ -373,12 +373,6 @@ public class PixivRequestServImpl implements PixivRequestServ {
         }
 
         return outputFiles;
-    }
-
-    @Override
-    public List<File> downloadIllustAndAddTags(String[] illustArray, String rootPath) {
-        List<Illustration> detail = getIllustrationDetail(Arrays.asList(illustArray));
-        return downloadIllustAndAddTags(detail, rootPath);
     }
 
     /**
@@ -511,61 +505,9 @@ public class PixivRequestServImpl implements PixivRequestServ {
     }
 
     /**
-     * 生成下载链接和目标文件地址
-     *
-     * @param illList 作品详情列表
-     * @param rootDir 下载根目录
-     * @return map
-     */
-    private Map<String, String> getUrlAndFilePath(List<Illustration> illList, String rootDir) {
-        Map<String, String> map = new HashMap<>();
-        illList.forEach(ill -> map.putAll(getUrlAndFilePath(ill, rootDir)));
-        return map;
-    }
-
-    /**
-     * 生成下载链接和目标文件地址
-     *
-     * @param ill     作品详情
-     * @param rootDir 下载根目录
-     * @return map
-     */
-    private Map<String, String> getUrlAndFilePath(Illustration ill, String rootDir) {
-        Map<String, String> map = new HashMap<>();
-        String urlPrefix = ill.getUrlPrefix();
-        String fileName = ill.getFileName();
-        rootDir += rootDir.endsWith("/") ? "" : "/";
-        urlPrefix += urlPrefix.endsWith("/") ? "" : "/";
-        Integer pageCount = ill.getPageCount();
-
-        String url = urlPrefix + fileName;
-
-        if (ill.getIllustType() == 2) {
-            map.put(url, rootDir + ill.createSimpleName(0));
-        } else {
-            for (Integer i = 0; i < pageCount; i++) {
-                String u = url.replace("_p0", "_p" + i);
-                String n = rootDir + ill.createSimpleName(i);
-                map.put(u, n);
-            }
-        }
-
-        return map;
-    }
-
-    private static void printJson(Object obj) {
-        System.err.println(prettyJson(obj));
-    }
-
-    private static String prettyJson(Object obj) {
-        return JSON.toJSONString(obj, SerializerFeature.PrettyFormat, SerializerFeature.WriteMapNullValue,
-                SerializerFeature.WriteDateUseDateFormat);
-    }
-
-    /**
      * 如有 _ 截断 _
      *
-     * @return
+     * @return 从文件名中获取的pid
      */
     private static String getPidFromFileName(String s) {
         return s.contains("_") ? s.substring(0, s.indexOf("_")) : s;

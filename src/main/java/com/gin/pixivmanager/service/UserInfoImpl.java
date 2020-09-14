@@ -38,26 +38,26 @@ public class UserInfoImpl implements UserInfo {
     String archivePath;
     final static String PIXIV_INFO = "config/pixiv.txt";
     final static String NGA_INFO = "config/nga.txt";
-    final static File pixivFile = new File(PIXIV_INFO);
-    final static File ngaFile = new File(NGA_INFO);
+    final static File PIXIV_FILE = new File(PIXIV_INFO);
+    final static File NGA_FILE = new File(NGA_INFO);
 
-    final static Map<String, String> ngaCookieMap = new HashMap<>();
-    final static Map<String, String> ngaFidMap = new HashMap<>();
-    final static Map<String, String> ngaTidMap = new HashMap<>();
+    final static Map<String, String> NGA_COOKIE_MAP = new HashMap<>();
+    final static Map<String, String> NGA_FID_MAP = new HashMap<>();
+    final static Map<String, String> NGA_TID_MAP = new HashMap<>();
 
     @Override
     public String getNgaCookie(String s) {
-        return ngaCookieMap.get(s);
+        return NGA_COOKIE_MAP.get(s);
     }
 
     @Override
     public String getNgaFid(String s) {
-        return ngaFidMap.get(s);
+        return NGA_FID_MAP.get(s);
     }
 
     @Override
     public String getNgaTid(String s) {
-        return ngaTidMap.get(s);
+        return NGA_TID_MAP.get(s);
     }
 
     @Override
@@ -78,8 +78,7 @@ public class UserInfoImpl implements UserInfo {
 
     @Override
     public String getRootPath() {
-        String s = rootPath.endsWith("/") ? rootPath.substring(0, rootPath.length() - 1) : rootPath;
-        return s;
+        return rootPath.endsWith("/") ? rootPath.substring(0, rootPath.length() - 1) : rootPath;
     }
 
     @Override
@@ -88,16 +87,12 @@ public class UserInfoImpl implements UserInfo {
     }
 
     public UserInfoImpl() {
-        if (!pixivFile.exists()) {
+        if (!PIXIV_FILE.exists()) {
             log.info("配置文件未找到 {}", PIXIV_INFO);
-            try {
-                boolean newFile = pixivFile.createNewFile();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            return;
         }
         try {
-            BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(ngaFile), StandardCharsets.UTF_8));
+            BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(NGA_FILE), StandardCharsets.UTF_8));
             String line;
             while ((line = reader.readLine()) != null) {
                 String[] s;
@@ -105,13 +100,13 @@ public class UserInfoImpl implements UserInfo {
                     s = line.split(":");
 
                     if (line.startsWith("cookie")) {
-                        ngaCookieMap.put(s[1], s[2]);
+                        NGA_COOKIE_MAP.put(s[1], s[2]);
                     }
                     if (line.startsWith("fid")) {
-                        ngaFidMap.put(s[1], s[2]);
+                        NGA_FID_MAP.put(s[1], s[2]);
                     }
                     if (line.startsWith("tid")) {
-                        ngaTidMap.put(s[1], s[2]);
+                        NGA_TID_MAP.put(s[1], s[2]);
                     }
                 }
             }
@@ -121,7 +116,7 @@ public class UserInfoImpl implements UserInfo {
         }
 
         try {
-            BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(pixivFile), StandardCharsets.UTF_8));
+            BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(PIXIV_FILE), StandardCharsets.UTF_8));
             String line;
             while ((line = reader.readLine()) != null) {
                 if (line.startsWith("cookie")) {
@@ -149,10 +144,10 @@ public class UserInfoImpl implements UserInfo {
 
     @Override
     public Map<String, Object> getInfos() {
-        Map<String, Object> map = new HashMap<>();
-        map.put("user", ngaCookieMap.keySet());
-        map.put("fid", ngaFidMap.keySet());
-        map.put("tid", ngaTidMap.keySet());
+        Map<String, Object> map = new HashMap<>(3);
+        map.put("user", NGA_COOKIE_MAP.keySet());
+        map.put("fid", NGA_FID_MAP.keySet());
+        map.put("tid", NGA_TID_MAP.keySet());
         return map;
     }
 

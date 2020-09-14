@@ -50,7 +50,7 @@ public class PixivController {
         log.info("未分类任务加入队列");
 
         synchronized (untaggedLocker) {
-            List<File> list = downloadBookmark("未分類", 10);
+            downloadBookmark("未分類", 10);
         }
     }
 
@@ -68,9 +68,8 @@ public class PixivController {
             return null;
         }
         List<Illustration> detail = pixivRequestServ.getIllustrationDetail(idList);
-        List<File> download = pixivRequestServ.downloadIllustAndAddTags(detail, userInfo.getRootPath() + "/" + tag);
 
-        return download;
+        return pixivRequestServ.downloadIllustAndAddTags(detail, userInfo.getRootPath() + "/" + tag);
     }
 
     @RequestMapping("addTranslation")
@@ -82,15 +81,20 @@ public class PixivController {
     /**
      * 文件归档(重命名)
      *
-     * @param name
-     * @return
+     * @param name 文件名前缀
+     * @return 已归档的文件名
      */
     @RequestMapping("archive")
     public List<String> archive(String... name) {
         return pixivRequestServ.archive(name);
     }
 
+
+    /**
+     * 从旧到新自动归档
+     */
     //    @Scheduled(cron = "0 5/10 * * * *")
+    @RequestMapping("archiveOld")
     public void autoArchive() {
         List<Map<String, String>> filesPath = dataManager.getFilesPath();
         filesPath = filesPath.subList(Math.max(filesPath.size() - 50, 0), filesPath.size());

@@ -40,7 +40,7 @@ public interface PixivRequestServ {
     /**
      * 修改tag(批量)
      *
-     * @param tag
+     * @param tag tag
      */
     void setTag(Tag tag);
 
@@ -61,12 +61,4 @@ public interface PixivRequestServ {
      */
     List<File> downloadIllustAndAddTags(List<Illustration> illustList, String rootPath);
 
-    /**
-     * 下载多个作品 并添加tag
-     *
-     * @param illustArray 作品id列表
-     * @param rootPath    下载根目录
-     * @return 下载完成的文件
-     */
-    List<File> downloadIllustAndAddTags(String[] illustArray, String rootPath);
 }

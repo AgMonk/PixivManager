@@ -6,6 +6,9 @@ import lombok.Data;
 import java.util.Map;
 import java.util.Objects;
 
+/**
+ * @author bx002
+ */
 @Data
 public class Tag {
     Integer id, count = 0;
@@ -31,7 +34,7 @@ public class Tag {
     /**
      * 生成推荐翻译
      *
-     * @param dic
+     * @param dic 字典文件
      */
     public void createRecommendTranslation(Map<String, String> dic) {
         String tempName = name;
@@ -87,11 +90,9 @@ public class Tag {
 
     @Override
     public String toString() {
-        final StringBuffer sb = new StringBuffer("Tag{");
-        sb.append("count=").append(count);
-        sb.append(", name='").append(name).append('\'');
-        sb.append(", translation='").append(translation).append('\'');
-        sb.append('}');
-        return sb.toString();
+        return "Tag{" + "count=" + count +
+                ", name='" + name + '\'' +
+                ", translation='" + translation + '\'' +
+                '}';
     }
 }
