@@ -30,12 +30,6 @@ public interface PixivRequestServ {
      */
     List<String> getBookmarks(String tag, Integer max);
 
-    /**
-     * 批量添加tag
-     *
-     * @param list 详情列表
-     */
-    void addTags(List<Illustration> list);
 
     /**
      * 修改tag(批量)

@@ -5,6 +5,8 @@ import com.alibaba.fastjson.JSONObject;
 import com.gin.pixivmanager.config.PixivUrl;
 import com.gin.pixivmanager.entity.Illustration;
 import com.gin.pixivmanager.entity.Tag;
+import com.gin.pixivmanager.util.PixivPost;
+import com.gin.pixivmanager.util.Progress;
 import com.gin.pixivmanager.util.ReqUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -78,10 +80,12 @@ public class PixivRequestServImpl implements PixivRequestServ {
               向pixiv查询到的作品详情
              */
             List<Illustration> detailsFromPixiv = getIllustrationDetail2List(lackList);
-            log.debug("向pixiv请求到 {} 条详情", detailsFromPixiv.size());
-            list.addAll(detailsFromPixiv);
-            dataManager.addIllustrations(detailsFromPixiv);
-            dataManager.addTags(detailsFromPixiv);
+            if (detailsFromPixiv != null) {
+                log.debug("向pixiv请求到 {} 条详情", detailsFromPixiv.size());
+                list.addAll(detailsFromPixiv);
+                dataManager.addIllustrations(detailsFromPixiv);
+                dataManager.addTags(detailsFromPixiv);
+            }
         }
         return list;
     }
@@ -93,34 +97,16 @@ public class PixivRequestServImpl implements PixivRequestServ {
      * @return 请求到的详情
      */
     private List<Illustration> getIllustrationDetail2List(List<String> lackList) {
-        List<Illustration> list = new ArrayList<>();
-        int size = lackList.size();
-
-        long start = System.currentTimeMillis();
-        String questName = "详情任务-" + start % 10000;
-
-        log.info("查询作品详情 {}", size);
-        CountDownLatch latch = new CountDownLatch(size);
-        dataManager.addDetails(questName, latch.getCount(), size);
-        for (String s : lackList) {
-            requestExecutor.execute(() -> {
-                Illustration ill = getIllustrationDetail(s);
-                //查询成功才加入列表
-                if (ill.getLastUpdate() != null) {
-                    list.add(ill);
-                }
-                latch.countDown();
-                dataManager.addDetails(questName, latch.getCount(), size);
-            });
+        Set<String> pidSet = new HashSet<>(lackList);
+        List<JSONObject> detail = PixivPost.detail(pidSet, null, dataManager.getDetails());
+        List<Illustration> illusts = new ArrayList<>();
+        if (detail == null) {
+            return null;
         }
-
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        for (JSONObject json : detail) {
+            illusts.add(new Illustration(json));
         }
-
-        return list;
+        return illusts;
     }
 
     /**
@@ -182,40 +168,6 @@ public class PixivRequestServImpl implements PixivRequestServ {
 
     }
 
-    /**
-     * 批量添加tag
-     *
-     * @param list 详情列表
-     */
-    @Override
-    public void addTags(List<Illustration> list) {
-        int size = list.size();
-        if (size == 0) {
-            return;
-        }
-
-        long start = System.currentTimeMillis();
-        String questName = "Tag添加任务-" + start % 1000;
-        log.info("{} {}", questName, size);
-        CountDownLatch latch = new CountDownLatch(size);
-
-        for (Illustration ill : list) {
-            requestExecutor.execute(() -> {
-                addTags(ill);
-                latch.countDown();
-                dataManager.addDetails(questName, latch.getCount(), size);
-            });
-        }
-
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        long end = System.currentTimeMillis();
-
-        log.info("为 {} 件作品添加tag 完毕 总耗时 {} 秒", size, (end - start) / 1000);
-    }
 
     /**
      * 修改tag(批量)
@@ -389,7 +341,8 @@ public class PixivRequestServImpl implements PixivRequestServ {
         int size = urls.size();
         CountDownLatch latch = new CountDownLatch(size);
         AtomicBoolean error = new AtomicBoolean(true);
-        dataManager.addDownloading(questName, latch.getCount(), size);
+        Progress.update(questName, latch.getCount(), size, dataManager.getDownloading());
+
 
         for (String url : urls) {
             String filePath = rootPath + "/"
@@ -404,7 +357,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
                     error.set(false);
                 }
                 latch.countDown();
-                dataManager.addDownloading(questName, latch.getCount(), size);
+                Progress.update(questName, latch.getCount(), size, dataManager.getDownloading());
 
             });
         }
@@ -416,45 +369,10 @@ public class PixivRequestServImpl implements PixivRequestServ {
         }
 
         if (error.get()) {
-            addTags(ill);
+            PixivPost.addTags(ill, userInfo.getCookie(), userInfo.getTt());
         }
 
         return fileList;
-    }
-
-    /**
-     * 为作品添加tag
-     *
-     * @param ill 作品
-     */
-    private void addTags(Illustration ill) {
-        String id = ill.getId();
-        String url = pixivUrl.getAddTags() + id;
-        String tt = userInfo.getTt();
-        String cookie = userInfo.getCookie();
-        Map<String, String> dic = dataManager.getTranslationMap();
-        String tag = ill.createSimpleTags(dic).replace(",", " ");
-
-        Map<String, String> formData = new HashMap<>();
-        formData.put("mode", "add");
-        formData.put("type", "illust");
-        formData.put("from_sid", "");
-        formData.put("original_tag", "");
-        formData.put("original_untagged", "0");
-        formData.put("original_p", "1");
-        formData.put("original_rest", "");
-        formData.put("original_order", "");
-        formData.put("comment", "");
-        formData.put("restrict", "0");
-        formData.put("tt", tt);
-        formData.put("id", id);
-        formData.put("tag", tag);
-
-        log.info("{} 添加tag  {}", ill.getLink(), tag);
-
-        ReqUtil.post(url, null, null, null, cookie, 5000, formData, null, 1, null);
-
-
     }
 
     /**
@@ -483,25 +401,6 @@ public class PixivRequestServImpl implements PixivRequestServ {
             list.add(work.getString("id"));
         }
         return list;
-    }
-
-    /**
-     * 请求一个作品的详情信息
-     *
-     * @param id pid
-     */
-    private Illustration getIllustrationDetail(String id) {
-        id = getPidFromFileName(id);
-        Illustration illust = new Illustration();
-        illust.setId(id);
-        String url = pixivUrl.getIllustration().replace("{pid}", id);
-        String s = ReqUtil.get(url, null, null, null);
-        JSONObject result = JSONObject.parseObject(s);
-        if (result != null && !result.getBoolean("error")) {
-            illust = new Illustration(result.getJSONObject("body"));
-        }
-
-        return illust;
     }
 
     /**
