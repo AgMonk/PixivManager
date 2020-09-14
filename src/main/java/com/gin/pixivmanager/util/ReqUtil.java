@@ -82,7 +82,7 @@ public class ReqUtil {
         long start = System.currentTimeMillis();
         for (int i = 1; i <= MAX_TIMES; i++) {
             log.info("第{}次下载 {}", i, tempName);
-            String questName = "(" + i + ")" + tempName;
+            String questName = tempName + "(" + i + ")";
             try {
                 int connectionRequestTimeout = 15 * 1000;
                 RequestConfig config = RequestConfig.custom()
@@ -111,7 +111,9 @@ public class ReqUtil {
                     totalRead += r;
 
                     //下载进度
-                    dataManager.addDownloading(questName, contentLength - totalRead, contentLength);
+//                    dataManager.addDownloading(questName, contentLength - totalRead, contentLength);
+                    Progress.update(questName, contentLength - totalRead, contentLength, dataManager.getDownloading());
+
                 }
                 File parentFile = file.getParentFile();
                 if (!parentFile.exists()) {
@@ -133,22 +135,27 @@ public class ReqUtil {
                 log.info("{} 下载完毕 总耗时 {} 秒 平均速度 {}KB/s", tempName, (end - start) / 1000, contentLength / (end - start));
 
                 //下载成功 清空所有进度
-                for (int j = 1; j <= MAX_TIMES; j++) {
-                    String name = "(" + j + ")" + tempName;
-                    dataManager.addDownloading(name, 0, 1);
-                }
+//                for (int j = 1; j <= MAX_TIMES; j++) {
+//                    String name = "(" + j + ")" + tempName;
+////                    dataManager.addDownloading(name, 0, 1);
+//                    Progress.update(name, 0, 1, dataManager.getDownloading());
+//
+//                }
 
                 return file;
             } catch (ConnectionClosedException e) {
                 log.warn("连接关闭({}):  {}", i, url);
-                dataManager.addDownloading(questName, 0, 1);
+//                dataManager.addDownloading(questName, 0, 1);
             } catch (SocketTimeoutException e) {
                 log.warn("连接超时({}):  {} ", i, url);
-                dataManager.addDownloading(questName, 0, 1);
+//                dataManager.addDownloading(questName, 0, 1);
             } catch (IOException e) {
                 log.warn("下载失败({}): {}", i, url);
-                dataManager.addDownloading(questName, 0, 1);
+//                dataManager.addDownloading(questName, 0, 1);
                 e.printStackTrace();
+            } finally {
+                Progress.update(questName, 0, 1, dataManager.getDownloading());
+
             }
         }
         log.warn("下载失败 {}", url);
@@ -237,8 +244,12 @@ public class ReqUtil {
 
         if (formData != null) {
             formData.forEach((k, v) -> {
-                log.debug("添加Form-Data {} -> {}", k, v);
-                builder.addPart(k, new StringBody(v, contentType));
+                if (v != null) {
+                    if (!"".equals(v)) {
+                        log.debug("添加Form-Data {} -> {}", k, v);
+                    }
+                    builder.addPart(k, new StringBody(v, contentType));
+                }
             });
         }
         if (fileMap != null) {
@@ -310,35 +321,27 @@ public class ReqUtil {
                 String msg;
 
                 switch (statusCode) {
-                    case HttpStatus.SC_BAD_GATEWAY:
-                        log.debug("第{}次请求 失败 服务器错误({})", times, statusCode);
-                        times--;
-                        Thread.sleep(10 * 1000);
-                        break;
-                    case HttpStatus.SC_MOVED_TEMPORARILY:
-                        msg = "连接被重定向";
-                        log.info("第{}次请求 {}({}) {}", msg, times, statusCode, m.getURI());
-                        throw new IOException(msg);
                     case HttpStatus.SC_OK:
                         long end = System.currentTimeMillis();
                         log.debug("第{}次请求 成功 地址：{} 耗时：{}", times, m.getURI(), formatDuration(end - start));
                         result = EntityUtils.toString(response.getEntity(), enc);
                         log.debug(result.substring(0, 20));
                         return result;
-                    case HttpStatus.SC_NOT_FOUND:
-                        msg = "地址不存在";
-                        log.debug("第{}次请求 失败 {}({}) 地址：{} ", msg, times, statusCode, m.getURI());
-                        throw new IOException(msg);
+                    case HttpStatus.SC_BAD_GATEWAY:
+                        log.debug("第{}次请求 失败 服务器错误({})", times, statusCode);
+                        times--;
+                        Thread.sleep(10 * 1000);
+                        break;
                     case HttpStatus.SC_INTERNAL_SERVER_ERROR:
-                        msg = "服务器错误";
-                        log.debug("第{}次请求 失败 {}({}) 地址：{} ", msg, times, statusCode, m.getURI());
                         result = EntityUtils.toString(response.getEntity(), enc);
                         System.err.println(result);
-                        throw new IOException(msg);
+                        throw new IOException(statusCode + " 服务器错误 " + m.getURI());
+                    case HttpStatus.SC_NOT_FOUND:
+                        throw new IOException(statusCode + " 地址不存在 " + m.getURI());
+                    case HttpStatus.SC_MOVED_TEMPORARILY:
+                        throw new IOException(statusCode + " 连接被重定向 " + m.getURI());
                     default:
-                        msg = "未定义错误";
-                        log.info("第{}次请求 {} 未定义错误({})", msg, times, statusCode);
-                        throw new IOException(msg);
+                        throw new IOException(statusCode + " 未定义错误 " + m.getURI());
                 }
             } catch (SocketTimeoutException e) {
                 if (maxTimes == times) {
@@ -349,7 +352,7 @@ public class ReqUtil {
                     log.debug(timeoutMsg, times, m.getURI());
                 }
             } catch (IOException e) {
-                log.error("请求失败 地址：{} {}", m.getURI(), e.getMessage());
+                log.error("第{}次请求失败 {}", times, e.getMessage());
                 break;
             } catch (InterruptedException ignored) {
             }
