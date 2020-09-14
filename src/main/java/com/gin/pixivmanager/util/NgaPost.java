@@ -256,7 +256,7 @@ public class NgaPost {
         String code = BBS_CODE_TAG_COLLAPSE;
         String delKorea = delKorea(title);
         if (title == null || "".equals(delKorea)) {
-            code = code.replace("={title}", defaultTitle);
+            code = code.replace("{title}", defaultTitle);
         } else {
             code = code.replace("{title}", delKorea);
         }
@@ -344,9 +344,10 @@ public class NgaPost {
         formData.put("origin_domain", "bbs.nga.cn");
         formData.put("fid", fid);
         formData.put("__output", "8");
-        //大于4M自动压缩
+        //大于4M选择自动压缩
         int maxLength = 4;
-        int largeLength = 12;
+        //大于10M先行压缩
+        int largeLength = 10;
         int k = 1024;
         HashMap<String, File> fileMap = null;
         //压缩

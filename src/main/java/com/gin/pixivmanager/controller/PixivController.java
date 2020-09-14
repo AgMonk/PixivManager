@@ -90,17 +90,17 @@ public class PixivController {
         return pixivRequestServ.archive(name);
     }
 
-    @Scheduled(cron = "0 5/10 * * * *")
+    //    @Scheduled(cron = "0 5/10 * * * *")
     public void autoArchive() {
         List<Map<String, String>> filesPath = dataManager.getFilesPath();
-        filesPath = filesPath.subList(Math.max(filesPath.size() - 50,0), filesPath.size());
+        filesPath = filesPath.subList(Math.max(filesPath.size() - 50, 0), filesPath.size());
         List<String> nameList = new ArrayList<>();
         filesPath.forEach(map -> nameList.add(map.get("name")));
 
         int size = nameList.size();
         String[] name = new String[size];
         log.info("自动归档 {} 个作品", size);
-        if (size==0) {
+        if (size == 0) {
             return;
         }
         nameList.toArray(name);

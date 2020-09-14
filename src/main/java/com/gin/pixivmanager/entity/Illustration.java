@@ -149,13 +149,14 @@ public class Illustration {
 
     public List<String> getUrls() {
         List<String> list = new ArrayList<>();
+        urlPrefix += urlPrefix.endsWith("/") ? "" : "/";
         if (illustType == ILLUST_TYPE_GIF) {
-            list.add(urlPrefix + "/" + fileName);
+            list.add(urlPrefix + fileName);
         } else {
             for (int i = 0; i < pageCount; i++) {
                 String name = fileName.replace("_p0", "_p" + i);
 //                String name = id + "_p" + i;
-                list.add(urlPrefix + "/" + name);
+                list.add(urlPrefix + name);
             }
         }
         return list;
@@ -307,8 +308,12 @@ public class Illustration {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         Illustration that = (Illustration) o;
         return id.equals(that.id);
     }

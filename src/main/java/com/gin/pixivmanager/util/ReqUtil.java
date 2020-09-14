@@ -323,6 +323,11 @@ public class ReqUtil {
                     case HttpStatus.SC_NOT_FOUND:
                         log.debug("第{}次请求 失败 地址不存在({}) 地址：{} ", times, statusCode, m.getURI());
                         break lableA;
+                    case HttpStatus.SC_INTERNAL_SERVER_ERROR:
+                        result = EntityUtils.toString(response.getEntity(), enc);
+                        log.debug("第{}次请求 失败 服务器错误({}) 地址：{} ", times, statusCode, m.getURI());
+                        System.err.println(result);
+                        break lableA;
                     default:
                         log.info("第{}次请求 未定义错误({})", times, statusCode);
                         break lableA;
