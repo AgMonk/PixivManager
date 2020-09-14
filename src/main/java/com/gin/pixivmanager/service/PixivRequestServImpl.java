@@ -369,7 +369,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
         }
 
         if (error.get()) {
-            PixivPost.addTags(ill, userInfo.getCookie(), userInfo.getTt());
+            PixivPost.addTags(ill.getId(), ill.createSimpleTags(), userInfo.getCookie(), userInfo.getTt());
         }
 
         return fileList;

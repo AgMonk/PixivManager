@@ -3,7 +3,6 @@ package com.gin.pixivmanager.util;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.serializer.SerializerFeature;
-import com.gin.pixivmanager.entity.Illustration;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.*;
@@ -138,12 +137,14 @@ public class PixivPost {
     /**
      * 为一个作品添加tag
      *
-     * @param ill 作品详情
+     * @param pid    pid
+     * @param tag    tag
+     * @param cookie pixiv cookie
+     * @param tt     tt
      */
-    public static void addTags(Illustration ill, String cookie, String tt) {
+    public static void addTags(String pid, String tag, String cookie, String tt) {
         PixivPost post = new PixivPost(URL_TAG_ADD);
-        String tag = ill.createSimpleTags().replace(",", " ");
-        String pid = ill.getId();
+        tag = tag.replace(",", " ");
 
         post.addParamMap("pid", pid)
                 .setCookie(cookie)
@@ -162,10 +163,37 @@ public class PixivPost {
                 .addFormData("restrict", "0")
                 .sendPost()
         ;
-
     }
 
+    /**
+     * 请求收藏作品
+     *
+     * @param cookie cookie
+     * @param uid    uid
+     * @param limit  limit
+     * @param offset offset
+     * @param tag    tag
+     * @return body
+     */
+    public static JSONObject getBookmarks(String cookie, String uid, String limit, String offset, String tag) {
+        PixivPost post = new PixivPost(URL_BOOKMARKS_GET);
 
+        return post.setCookie(cookie)
+                .addParamMap("uid", uid)
+                .addParamMap("limit", limit)
+                .addParamMap("offset", offset)
+                .addParamMap("tag", tag)
+                .sendGet()
+                .getBody("请求收藏 " + uid);
+    }
+
+    /**
+     * 请求收藏作品总数
+     */
+    public static Integer getBookmarkTotal(String cookie, String uid, String tag) {
+        JSONObject body = getBookmarks(cookie, uid, "1", " 0", tag);
+        return body == null ? null : body.getInteger("total");
+    }
 
 
 
@@ -179,7 +207,7 @@ public class PixivPost {
     /**
      * 判断请求是否成功 如果成功返回body json对象
      *
-     * @param msg 自定义消息内容
+     * @param msg 自定义错误消息内容
      */
     private JSONObject getBody(String msg) {
         if (result != null) {
@@ -262,12 +290,11 @@ public class PixivPost {
     /**
      * 替换基础url中的param参数
      */
-    private PixivPost createUrl() {
+    private void createUrl() {
         for (Map.Entry<String, String> entry : paramMap.entrySet()) {
             url = url.replace("{" + entry.getKey() + "}", entry.getValue());
         }
         log.debug("请求地址 {}", url);
-        return this;
     }
 
     /**
