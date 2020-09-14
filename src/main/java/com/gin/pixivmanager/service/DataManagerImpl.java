@@ -112,6 +112,10 @@ public class DataManagerImpl implements DataManager {
             List<Tag> transList = mapper.getTrans();
             transList.forEach(this::addTranslation2Map);
             log.info("自定义翻译数量 {}", translationMap.size());
+
+            //设置翻译字典
+            Illustration.setDic(translationMap);
+
             latch.countDown();
         });
         serviceExecutor.execute(() -> {

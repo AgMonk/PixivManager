@@ -223,7 +223,7 @@ public class NgaPostServImpl implements NgaPostServ {
             sb.append("标题: ").append(title).append(wrap);
         }
         //tag
-        sb.append("标签: ").append(review(ill.createSimpleTags(dataManager.getTranslationMap()))).append(wrap);
+        sb.append("标签: ").append(review(ill.createSimpleTags())).append(wrap);
         //图片
         for (String s : aNameList) {
             String url = attachmentsMap.get(s);

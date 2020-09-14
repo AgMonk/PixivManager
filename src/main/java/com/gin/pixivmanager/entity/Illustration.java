@@ -16,6 +16,8 @@ public class Illustration {
     public final static int ILLUST_TYPE_MANGA = 1;
     public final static int ILLUST_TYPE_GIF = 2;
 
+    static Map<String, String> dic;
+
     Long lastUpdate;
     /**
      * 作品pid
@@ -196,7 +198,7 @@ public class Illustration {
         addBrackets(builder, "bmk", bookmarkCount, 65535);
         addBrackets(builder, "", id + "_p{count}", null);
         addBrackets(builder, "ti", clean(title), null);
-        addBrackets(builder, "tags", clean(createSimpleTags(dic)), null);
+        addBrackets(builder, "tags", clean(createSimpleTags()), null);
 
         //后缀名
         builder.append(fileName.substring(fileName.lastIndexOf('.')));
@@ -208,10 +210,9 @@ public class Illustration {
     /**
      * 生成精简tag
      *
-     * @param dic 字典
      * @return tag字符串
      */
-    public String createSimpleTags(Map<String, String> dic) {
+    public String createSimpleTags() {
         /*
             步骤
             按逗号分隔，翻译一次，删除中英文右括号，把中英文左括号 斜杠 替换为逗号再次分隔 翻译 转为简体
@@ -219,7 +220,7 @@ public class Illustration {
         String[] tagsArray = tag.split(",");
         Set<String> set = new HashSet<>();
         for (String value : tagsArray) {
-            String t = translate(value, dic)
+            String t = translate(value)
                     .replace(")", "")
                     .replace("）", "")
                     .replace("(", ",")
@@ -235,7 +236,7 @@ public class Illustration {
             } else {
                 String[] split = t.split(",");
                 for (String s : split) {
-                    set.add(toSimplified(translate(s, dic)));
+                    set.add(toSimplified(translate(s)));
                 }
             }
         }
@@ -246,7 +247,7 @@ public class Illustration {
         return newTag.substring(0, newTag.length() - 1);
     }
 
-    private static String translate(String tag, Map<String, String> dic) {
+    private static String translate(String tag) {
         String s = dic.get(tag.toLowerCase());
         return s != null ? s : tag;
     }
@@ -321,5 +322,9 @@ public class Illustration {
     @Override
     public int hashCode() {
         return Objects.hash(id);
+    }
+
+    public static void setDic(Map<String, String> dic) {
+        Illustration.dic = dic;
     }
 }
