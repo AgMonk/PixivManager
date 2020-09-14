@@ -67,6 +67,7 @@
         <select v-model="param.t">
             <option>测试楼</option>
             <option>少前水楼</option>
+            <option>RO集中楼</option>
         </select><br>
 
         <select v-model="param.name" size="5" multiple="multiple" @change="selectChange($event)">
@@ -99,12 +100,12 @@
                 f: "测试版面",
                 t: "测试楼",
             },
-            fileUrls: [{name:1,path:""}],
+            fileUrls: [{name: 1, path: ""}],
             nga: {},
             pid: "",
             selectedKey: "",
             pidArray: [],
-            imgIndex:0,
+            imgIndex: 0,
         },
         methods: {
             getFileUrls() {
@@ -138,16 +139,16 @@
 
                 })
             },
-            del(){
-                post("data/delFile",this.getParam(), function (res) {
+            del() {
+                post("data/delFile", this.getParam(), function (res) {
                     console.log(res.data);
                     _this.delByName(res.data);
                 })
             },
-            selectChange(e){
+            selectChange(e) {
                 this.imgIndex = e.target.value;
             },
-            replaceIndex2Name(){
+            replaceIndex2Name() {
                 let name = this.param.name;
                 let names = [];
                 for (let i = 0; i < name.length; i++) {
@@ -155,24 +156,26 @@
                 }
                 return names;
             },
-            getParam(){
-                return {name:this.replaceIndex2Name(),
-                f:this.param.f,t:this.param.t}
+            getParam() {
+                return {
+                    name: this.replaceIndex2Name(),
+                    f: this.param.f, t: this.param.t
+                }
             },
-            delByName(names){
-              let urls = this.fileUrls;
-                for (let i = urls.length-1; i >=0; i--) {
+            delByName(names) {
+                let urls = this.fileUrls;
+                for (let i = urls.length - 1; i >= 0; i--) {
                     if (names.includes(urls[i].name)) {
-                        console.log("移除"+urls[i].name)
-                        urls.splice(i,1);
+                        console.log("移除" + urls[i].name)
+                        urls.splice(i, 1);
                     }
                 }
-                this.imgIndex =this.imgIndex>=urls.length?urls.length-1:this.imgIndex;
+                this.imgIndex = this.imgIndex >= urls.length ? urls.length - 1 : this.imgIndex;
                 if (urls.length < 10) {
                     location.reload();
                 }
             },
-            selectAll(){
+            selectAll() {
                 this.param.name = [];
                 for (let i = 0; i < this.fileUrls.length; i++) {
                     this.param.name.push(i);
