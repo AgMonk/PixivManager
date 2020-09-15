@@ -1,9 +1,9 @@
 package com.gin.pixivmanager.util;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.serializer.SerializerFeature;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.*;
@@ -24,7 +24,7 @@ public class PixivPost {
     /**
      * 获取收藏作品接口 需要cookie
      */
-    final static String URL_BOOKMARKS_GET = "https://www.pixiv.net/ajax/user/{uid}/illusts/bookmarks?limit={limit}&rest=show&lang=zh&tag={tag}&offset={offset}";
+    final static String URL_BOOKMARKS_GET = "https://www.pixiv.net/ajax/user/{uid}/illusts/bookmarks?limit={limit}&rest=show&lang=zh&offset={offset}&tag={tag}";
     /**
      * 给单个作品添加tag接口 需要cookie
      */
@@ -85,50 +85,17 @@ public class PixivPost {
      * @return 如无错误 返回body对象 否则为null
      */
     public static JSONObject detail(String pid) {
-
         PixivPost post = new PixivPost(URL_ILLUST_DETAIL);
 
-        return post.addParamMap("pid", pid)
+        long start = System.currentTimeMillis();
+        log.info("请求作品详情 {}", pid);
+
+        JSONObject body = post.addParamMap("pid", pid)
                 .sendGet()
                 .getBody(pid);
-    }
-
-    /**
-     * 查询作品详情
-     *
-     * @param pidSet   pid集合
-     * @param executor 线程池
-     * @return 详情
-     */
-    public static List<JSONObject> detail(Set<String> pidSet, ThreadPoolTaskExecutor executor, Map<String, String> progressMap) {
-        int size = pidSet.size();
-        if (size == 0) {
-            return null;
-        }
-        log.info("从Pixiv请求 {} 条详情", size);
-        List<JSONObject> detailList = new ArrayList<>();
-        executor = executor != null ? executor : getExecutor(10, "detail");
-        CountDownLatch latch = new CountDownLatch(size);
-        for (String pid : pidSet) {
-            executor.execute(() -> {
-                JSONObject detail = detail(pid);
-                if (detail != null) {
-                    detailList.add(detail);
-                }
-                latch.countDown();
-                //更新进度
-            });
-        }
-
-        try {
-            latch.await(size, TimeUnit.MINUTES);
-            executor.shutdown();
-        } catch (InterruptedException e) {
-            log.warn("请求超时 ({}分钟) 放弃剩余任务", size);
-        }
-
-        log.info("从Pixiv获得 {} 条详情", detailList.size());
-        return detailList;
+        long end = System.currentTimeMillis();
+        log.info("获得作品详情 {} 用时 {} 毫秒", pid, end - start);
+        return body;
     }
 
     public static List<JSONObject> detail(Set<String> pid, ThreadPoolTaskExecutor executor, Progress progress) {
@@ -136,13 +103,7 @@ public class PixivPost {
         for (String s : pid) {
             tasks.add(new detailTask(s, progress));
         }
-        List<JSONObject> detail = executeTasks(tasks,
-                60,
-                executor,
-                "detail",
-                10);
-
-        return detail;
+        return executeTasks(tasks, 60, executor);
     }
 
 
@@ -157,7 +118,7 @@ public class PixivPost {
     public static void addTags(String pid, String tag, String cookie, String tt) {
         PixivPost post = new PixivPost(URL_TAG_ADD);
         tag = tag.replace(",", " ");
-
+        log.info("给作品添加tag {} -> {}", pid, tag);
         post.addParamMap("pid", pid)
                 .setCookie(cookie)
                 .addFormData("tt", tt)
@@ -173,12 +134,14 @@ public class PixivPost {
                 .addFormData("original_order", "")
                 .addFormData("comment", "")
                 .addFormData("restrict", "0")
+                .setMaxTimes(1)
+                .setTimeout(3000)
                 .sendPost()
         ;
     }
 
     /**
-     * 请求收藏作品
+     * 请求收藏中作品
      *
      * @param cookie cookie
      * @param uid    uid
@@ -187,18 +150,75 @@ public class PixivPost {
      * @param tag    tag
      * @return body
      */
-    public static JSONObject getBookmarks(String cookie, String uid, String limit, String offset, String tag) {
+    public static JSONObject getBookmarks(String cookie, String uid, String tag, int limit, int offset) {
+        long start = System.currentTimeMillis();
         PixivPost post = new PixivPost(URL_BOOKMARKS_GET);
-
-        return post.setCookie(cookie)
+        log.info("请求收藏 UID={} 标签={} 第 {} 页", uid, tag, offset / limit + 1);
+        JSONObject body = post.setCookie(cookie)
                 .addParamMap("uid", uid)
-                .addParamMap("limit", limit)
-                .addParamMap("offset", offset)
+                .addParamMap("limit", String.valueOf(limit))
+                .addParamMap("offset", String.valueOf(offset))
                 .addParamMap("tag", tag)
                 .sendGet()
                 .getBody("请求收藏 " + uid);
+        if (body != null) {
+            log.info("获得收藏 UID={} 标签={} 第 {} 页 耗时 {} 毫秒", uid, tag, offset / limit + 1, System.currentTimeMillis() - start);
+        } else {
+            log.warn("请求错误 UID={} 标签={} 第 {} 页", uid, tag, offset / limit + 1);
+        }
+        return body;
     }
 
+    /**
+     * 请求收藏中的作品
+     *
+     * @param cookie cookie
+     * @param uid    uid
+     * @param tag    tag
+     * @param page   页数
+     * @return 作品列表
+     */
+    public static List<JSONObject> getBookmarks(String cookie, String uid, String tag, Integer page, ThreadPoolTaskExecutor executor, Progress progress) {
+        long start = System.currentTimeMillis();
+        page = (page == null || page < 1) ? 1 : page;
+        int offset = 0;
+        int limit = 10;
+        //请求到的数量
+        int total = 0;
+        List<JSONObject> worksList = null;
+        JSONObject body = getBookmarks(cookie, uid, tag, limit, offset);
+        progress.add(1);
+        if (body != null) {
+            total = body.getInteger("total");
+            log.info("{} 标签下有总计 {} 个作品", tag, total);
+            total = Math.min(total, page * limit);
+            log.info("请求 {} 个作品", total);
+            JSONArray works = body.getJSONArray("works");
+            for (int i = 0; i < works.size(); i++) {
+                worksList = worksList != null ? worksList : new ArrayList<>();
+                worksList.add(works.getJSONObject(i));
+            }
+        }
+        offset += limit;
+
+        if (offset < total) {
+            List<Callable<JSONObject>> tasks = new ArrayList<>();
+            while (offset < total) {
+                tasks.add(new bookmarkTask(cookie, uid, tag, limit, offset, progress));
+                offset += limit;
+            }
+            List<JSONObject> otherBodies = executeTasks(tasks, 60, executor);
+            for (JSONObject otherBody : otherBodies) {
+                JSONArray works = otherBody.getJSONArray("works");
+                for (int i = 0; i < works.size(); i++) {
+                    worksList = worksList != null ? worksList : new ArrayList<>();
+                    worksList.add(works.getJSONObject(i));
+                }
+            }
+        }
+        log.info("获取 {} 个作品 耗时 {} 毫秒", total, System.currentTimeMillis() - start);
+        return worksList;
+    }
 
 
 
@@ -398,6 +418,16 @@ public class PixivPost {
 
     }
 
+    public PixivPost setTimeout(Integer timeout) {
+        this.timeout = timeout;
+        return this;
+    }
+
+    public PixivPost setMaxTimes(Integer maxTimes) {
+        this.maxTimes = maxTimes;
+        return this;
+    }
+
     public static void main(String[] args) {
         String[] pid = new String[]{"84385635", "84385614", "84385600"};
         Set<String> pidSet = new HashSet<>(Arrays.asList(pid));
@@ -410,7 +440,6 @@ public class PixivPost {
 /**
  * 详情任务
  */
-@Slf4j
 class detailTask implements Callable<JSONObject> {
     private final String pid;
     private final Progress progress;
@@ -422,14 +451,46 @@ class detailTask implements Callable<JSONObject> {
 
     @Override
     public JSONObject call() throws Exception {
-        long start = System.currentTimeMillis();
-        log.info("请求作品详情 {}", pid);
         JSONObject detail = PixivPost.detail(pid);
-        long end = System.currentTimeMillis();
-        log.info("获得作品详情 {} 用时 {} 毫秒", pid, end - start);
         if (progress != null) {
             progress.add(1);
         }
         return detail;
+    }
+}
+
+/**
+ * 请求收藏中作品任务
+ */
+class bookmarkTask implements Callable<JSONObject> {
+    private final String cookie;
+    private final String uid;
+    private final String tag;
+    private final int limit;
+    private final int offset;
+    private final Progress progress;
+
+    bookmarkTask(String cookie, String uid, String tag, int limit, int offset, Progress progress) {
+        this.cookie = cookie;
+        this.uid = uid;
+        this.tag = tag;
+        this.limit = limit;
+        this.offset = offset;
+        this.progress = progress;
+    }
+
+    /**
+     * Computes a result, or throws an exception if unable to do so.
+     *
+     * @return computed result
+     * @throws Exception if unable to compute a result
+     */
+    @Override
+    public JSONObject call() throws Exception {
+        JSONObject bookmarks = PixivPost.getBookmarks(cookie, uid, tag, limit, offset);
+        if (progress != null) {
+            progress.add(1);
+        }
+        return bookmarks;
     }
 }
