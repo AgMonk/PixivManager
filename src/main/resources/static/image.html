@@ -75,8 +75,9 @@
                     @click.prevent.right="addFile(i)">
                 {{item.name}}
             </option>
-        </select>
-
+        </select><br>
+        <button @click="imgIndex--;param.name =[imgIndex];">上一张</button>
+        <button @click="imgIndex++;param.name =[imgIndex];">下一张</button>
 
         <br><br>
         <button @click="selectAll()">全选</button>

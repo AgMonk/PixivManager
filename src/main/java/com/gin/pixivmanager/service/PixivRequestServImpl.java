@@ -159,7 +159,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
             String pid = getPidFromFileName(s);
             idSet.add(pid);
         }
-        log.info("归档 {}个文件 来自 {}个作品", name.length, idSet.size());
+        log.info("归档 {} 个文件 来自 {} 个作品", name.length, idSet.size());
 //获得id的详情信息
         List<Illustration> detail = getIllustrationDetail(idSet);
         idSet = new HashSet<>();
@@ -242,7 +242,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
                 }
             }
         }
-        log.info("归档 {}个作品 完成", idSet.size());
+        log.info("归档 {} 个文件 完成", idSet.size());
 
         return idSet;
     }
