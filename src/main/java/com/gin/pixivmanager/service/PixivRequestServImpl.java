@@ -6,6 +6,7 @@ import com.gin.pixivmanager.config.PixivUrl;
 import com.gin.pixivmanager.entity.Illustration;
 import com.gin.pixivmanager.entity.Tag;
 import com.gin.pixivmanager.util.PixivPost;
+import com.gin.pixivmanager.util.Progress;
 import com.gin.pixivmanager.util.ReqUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -61,7 +62,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
     public List<Illustration> getIllustrationDetail(List<String> idList) {
         List<Illustration> list = dataManager.getIllustrations(idList);
         log.debug("从缓存中获得 {}条数据", list.size());
-        List<String> lackList = new ArrayList<>();
+        Set<String> lackPidSet = new HashSet<>();
         //缓存中没有详情 或 更新时间过早的加入请求列表
         for (String s : idList) {
             s = getPidFromFileName(s);
@@ -69,22 +70,22 @@ public class PixivRequestServImpl implements PixivRequestServ {
             //缓存没有
             if (!map.containsKey(s)) {
                 log.debug("缓存中未查询到详情 {}", s);
-                lackList.add(s);
+                lackPidSet.add(s);
             } else {
                 //距离时间过久的或没有的进行请求更新
                 Long lastUpdate = map.get(s).getLastUpdate();
                 long now = System.currentTimeMillis();
                 if (lastUpdate == null || now - lastUpdate > RANGE_OF_LAST_UPDATE) {
                     log.debug("缓存中的详情记录过于久远 {}", s);
-                    lackList.add(s);
+                    lackPidSet.add(s);
                 }
             }
         }
-        if (lackList.size() > 0) {
+        if (lackPidSet.size() > 0) {
             /*
               向pixiv查询到的作品详情
              */
-            List<Illustration> detailsFromPixiv = getIllustrationDetail2List(lackList);
+            List<Illustration> detailsFromPixiv = getIllustrationDetail2List(lackPidSet);
             if (detailsFromPixiv != null) {
                 log.debug("向pixiv请求到 {} 条详情", detailsFromPixiv.size());
                 list.addAll(detailsFromPixiv);
@@ -98,12 +99,16 @@ public class PixivRequestServImpl implements PixivRequestServ {
     /**
      * 使用多线程请求多个作品详情
      *
-     * @param lackList 请求详情的id列表
+     * @param pidSet 请求详情的id列表
      * @return 请求到的详情
      */
-    private List<Illustration> getIllustrationDetail2List(List<String> lackList) {
-        Set<String> pidSet = new HashSet<>(lackList);
-        List<JSONObject> detail = PixivPost.detail(pidSet, null, dataManager.getDetails());
+    private List<Illustration> getIllustrationDetail2List(Set<String> pidSet) {
+        //添加进度
+        Progress progress = new Progress(getQuestName("详情任务"), pidSet.size());
+        dataManager.addDetailProgress(progress);
+
+        List<JSONObject> detail = PixivPost.detail(pidSet, null, progress);
+
         List<Illustration> illusts = new ArrayList<>();
         if (detail == null) {
             return null;
@@ -416,4 +421,15 @@ public class PixivRequestServImpl implements PixivRequestServ {
         return s.contains("_") ? s.substring(0, s.indexOf("_")) : s;
 
     }
+
+    /**
+     * 生成唯一任务名称
+     *
+     * @param name 任务名
+     * @return 唯一任务名
+     */
+    private static String getQuestName(String name) {
+        return name + System.currentTimeMillis() % 1000;
+    }
+
 }

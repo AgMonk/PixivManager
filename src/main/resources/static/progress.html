@@ -103,13 +103,25 @@
             },
             downloadUntagged() {
                 get("pixiv/downloadUntagged", null, null)
+            },
+            getDetailsProgress() {
+                get("data/detailsProgress", null, function (res) {
+                    console.log(res.data)
+                })
             }
         },
         created() {
             setInterval(function () {
-                _this.getDownloading()
-                _this.getDetails()
+                // _this.getDownloading()
+                // _this.getDetails()
+                _this.getDetailsProgress()
+
+
             }, 1000);
+
+            setInterval(function () {
+                console.log()
+            }, 20000);
         },
     });
     const _this = app;

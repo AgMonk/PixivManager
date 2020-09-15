@@ -3,7 +3,9 @@ package com.gin.pixivmanager.service;
 import com.gin.pixivmanager.dao.DataManagerMapper;
 import com.gin.pixivmanager.entity.Illustration;
 import com.gin.pixivmanager.entity.Tag;
+import com.gin.pixivmanager.util.Progress;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -34,6 +36,8 @@ public class DataManagerImpl implements DataManager {
      * 查询详情进度
      */
     final private Map<String, String> details = new HashMap<>();
+
+    final private List<Progress> detailProgress = new ArrayList<>();
 
     /**
      * 作品数据
@@ -456,5 +460,23 @@ public class DataManagerImpl implements DataManager {
         return null;
     }
 
+    @Override
+    public void addDetailProgress(Progress progress) {
+        detailProgress.add(progress);
+    }
+
+    @Override
+    public List<Progress> getDetailProgress() {
+        return detailProgress;
+    }
+
+
+    /**
+     * 定时清理进度中完成的任务
+     */
+    @Scheduled(cron = "0/3 * * * * *")
+    public void cleanProgress() {
+        detailProgress.removeIf(Progress::isCompleted);
+    }
 
 }

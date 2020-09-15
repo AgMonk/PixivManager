@@ -5,10 +5,14 @@ package com.gin.pixivmanager.util;
  */
 public class Progress {
     /**
-     * 当前和最大进度
+     * 任务名称
      */
     final String name;
-    long count, size;
+    /**
+     * 当前和最大进度
+     */
+    long count;
+    long size;
 
     public Progress(String name, long count, long size) {
         this.name = name;
@@ -91,5 +95,9 @@ public class Progress {
     @Override
     public String toString() {
         return getProgress() + " " + getProgressInSize() + " " + getProgressInPercent();
+    }
+
+    public String getName() {
+        return name;
     }
 }

@@ -113,6 +113,13 @@ public class PixivController {
 
     @RequestMapping("test")
     public void test() {
-        autoArchive();
+        List<String> pidSet = new ArrayList<>();
+        pidSet.add("84385036");
+        pidSet.add("84387441");
+        pidSet.add("84387352");
+
+        pixivRequestServ.getIllustrationDetail(pidSet);
+
+
     }
 }

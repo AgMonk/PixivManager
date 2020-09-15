@@ -2,6 +2,7 @@ package com.gin.pixivmanager.controller;
 
 import com.gin.pixivmanager.entity.Tag;
 import com.gin.pixivmanager.service.DataManager;
+import com.gin.pixivmanager.util.Progress;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -43,16 +44,20 @@ public class DataController {
         return dataManager.getDetails();
     }
 
+    @RequestMapping("detailsProgress")
+    public List<Progress> getDetailProgress() {
+        return dataManager.getDetailProgress();
+    }
 
     @RequestMapping("getFilesPath")
-    public  List<Map<String,String>> getFilesPath() {
+    public List<Map<String, String>> getFilesPath() {
         List<Map<String, String>> list = dataManager.getFilesPath();
-        return list.subList(0,Math.min(list.size(),50));
+        return list.subList(0, Math.min(list.size(), 50));
     }
 
     @RequestMapping("delFile")
     public List<String> delFile(String... name) {
-        List<String> names=new ArrayList<>();
+        List<String> names = new ArrayList<>();
         for (String s : name) {
             names.add(dataManager.delFile(s));
         }

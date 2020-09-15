@@ -131,8 +131,7 @@ public class PixivPost {
         return detailList;
     }
 
-    public static List<JSONObject> detail(Set<String> pid, ThreadPoolTaskExecutor executor) {
-        Progress progress = new Progress(getQuestName("详情任务"), pid.size());
+    public static List<JSONObject> detail(Set<String> pid, ThreadPoolTaskExecutor executor, Progress progress) {
         List<Callable<JSONObject>> tasks = new ArrayList<>();
         for (String s : pid) {
             tasks.add(new detailTask(s, progress));
@@ -285,15 +284,6 @@ public class PixivPost {
         return this;
     }
 
-    /**
-     * 生成唯一任务名称
-     *
-     * @param name 任务名
-     * @return 唯一任务名
-     */
-    private static String getQuestName(String name) {
-        return name + System.currentTimeMillis() % 1000;
-    }
 
     /**
      * 替换基础url中的param参数
@@ -374,7 +364,7 @@ public class PixivPost {
         }
 
         List<Future<T>> futures = new ArrayList<>();
-        List<T> results = new ArrayList<>();
+        List<T> results = null;
         for (Callable<T> task : tasks) {
             Future<T> future = executor.submit(task);
             futures.add(future);
@@ -383,6 +373,7 @@ public class PixivPost {
         for (Future<T> future : futures) {
             try {
                 T json = future.get(timeoutSeconds, TimeUnit.SECONDS);
+                results = results == null ? new ArrayList<>() : results;
                 results.add(json);
 
             } catch (ExecutionException | TimeoutException e) {
@@ -410,7 +401,6 @@ public class PixivPost {
     public static void main(String[] args) {
         String[] pid = new String[]{"84385635", "84385614", "84385600"};
         Set<String> pidSet = new HashSet<>(Arrays.asList(pid));
-        List<JSONObject> detail = detail(pidSet, null);
 
 
         log.info("执行完毕");
@@ -432,12 +422,13 @@ class detailTask implements Callable<JSONObject> {
 
     @Override
     public JSONObject call() throws Exception {
-        log.debug("请求作品详情 {}", pid);
+        long start = System.currentTimeMillis();
+        log.info("请求作品详情 {}", pid);
         JSONObject detail = PixivPost.detail(pid);
-        log.debug("获得作品详情 {}", pid);
+        long end = System.currentTimeMillis();
+        log.info("获得作品详情 {} 用时 {} 毫秒", pid, end - start);
         if (progress != null) {
             progress.add(1);
-            log.info(progress.toString());
         }
         return detail;
     }

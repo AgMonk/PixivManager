@@ -2,6 +2,7 @@ package com.gin.pixivmanager.service;
 
 import com.gin.pixivmanager.entity.Illustration;
 import com.gin.pixivmanager.entity.Tag;
+import com.gin.pixivmanager.util.Progress;
 
 import java.io.File;
 import java.util.List;
@@ -146,4 +147,18 @@ public interface DataManager {
      * @return 删除的文件名
      */
     String delFile(String name);
+
+    /**
+     * 更新详情进度
+     *
+     * @param progress
+     */
+    void addDetailProgress(Progress progress);
+
+    /**
+     * 获得详情进度
+     *
+     * @return
+     */
+    List<Progress> getDetailProgress();
 }
