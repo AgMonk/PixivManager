@@ -357,11 +357,13 @@ class DownloadFilesTask implements Callable<List<File>> {
 }
 
 /**
- * 作品下载 并 添加tag任务
+ * 文件下载
  */
 @Slf4j
 class DownloadFileTask implements Callable<File> {
+    //进度对象 传入之前 被存储在另一个对象中来显示一系列任务的总进度
     private final Progress progress;
+    //下载根目录
     private final String rootPath;
     private final String url;
 
@@ -377,8 +379,10 @@ class DownloadFileTask implements Callable<File> {
         log.debug("开始下载 {} -> {}", url, filePath);
         File download = null;
         try {
+            //下载文件(这是我自己包装的方法)
             download = ReqUtil.download(url, filePath);
             log.debug("下载完毕 {} -> {}", url, filePath);
+            //下载完成 进度 +1
             progress.add(1);
         } catch (IOException e) {
             log.debug("下载失败 {} ", e.getMessage());

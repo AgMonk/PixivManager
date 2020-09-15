@@ -63,19 +63,27 @@
     <br><br>
     <table class="customers">
         <tr>
-            <th>名称</th>
+            <th>主任务</th>
             <th>进度</th>
             <th>%</th>
         </tr>
-        <tr v-for="(value,key) in details">
-            <td>{{key}}</td>
-            <td>{{value.substr(0, value.indexOf(" "))}}</td>
-            <td>{{value.substr(value.indexOf(" ") + 1)}}</td>
+        <tr v-for="(item,i) in progress.main">
+            <td>{{item.name}}</td>
+            <td>{{item.progressInSize}}</td>
+            <td>{{item.progressInPercent}}</td>
         </tr>
-        <tr v-for="(value,key) in pro">
-            <td>{{key}}</td>
-            <td>{{value.substr(0, value.indexOf(" "))}}</td>
-            <td>{{value.substr(value.indexOf(" ") + 1)}}</td>
+
+    </table>
+    <table class="customers">
+        <tr>
+            <th>下载任务</th>
+            <th>进度</th>
+            <th>%</th>
+        </tr>
+        <tr v-for="(item,i) in progress.downloading">
+            <td>{{item.name}}</td>
+            <td>{{item.progressInSize}}</td>
+            <td>{{item.progressInPercent}}</td>
         </tr>
 
     </table>
@@ -87,6 +95,10 @@
         data: {
             pro: {},
             details: {},
+            progress: {
+                details: [],
+                downloading: [],
+            },
         },
         methods: {
             getDownloading() {
@@ -104,9 +116,9 @@
             downloadUntagged() {
                 get("pixiv/downloadUntagged", null, null)
             },
-            getDetailsProgress() {
-                get("data/detailsProgress", null, function (res) {
-                    console.log(res.data)
+            getProgress() {
+                get("data/getProgress", null, function (res) {
+                    _this.progress = res.data;
                 })
             }
         },
@@ -114,14 +126,14 @@
             setInterval(function () {
                 // _this.getDownloading()
                 // _this.getDetails()
-                _this.getDetailsProgress()
+                _this.getProgress()
 
 
             }, 1000);
 
-            setInterval(function () {
-                console.log()
-            }, 20000);
+            // setInterval(function () {
+            //     console.clear()
+            // }, 20000);
         },
     });
     const _this = app;

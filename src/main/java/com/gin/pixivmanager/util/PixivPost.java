@@ -376,7 +376,6 @@ public class PixivPost {
      * @return 结果列表
      */
     public static <T> List<T> executeTasks(Collection<Callable<T>> tasks, Integer timeoutSeconds, ThreadPoolTaskExecutor executor, String taskName, Integer defaultSize) {
-        //是否使用自己的线程池
         boolean b = executor == null;
         if (b) {
             log.info("使用自身线程池");
@@ -384,7 +383,8 @@ public class PixivPost {
         }
 
         List<Future<T>> futures = new ArrayList<>();
-        List<T> results = null;
+        List<T> resultList = null;
+        //把任务提交到线程池 并保存future对象
         for (Callable<T> task : tasks) {
             Future<T> future = executor.submit(task);
             futures.add(future);
@@ -392,21 +392,26 @@ public class PixivPost {
 
         for (Future<T> future : futures) {
             try {
-                T json = future.get(timeoutSeconds, TimeUnit.SECONDS);
-                results = results == null ? new ArrayList<>() : results;
-                results.add(json);
+                //获取future对象的执行结果（阻塞）
+                T result = future.get(timeoutSeconds, TimeUnit.SECONDS);
+                resultList = resultList == null ? new ArrayList<>() : resultList;
+                //把执行结果放入List
+                resultList.add(result);
 
             } catch (ExecutionException | TimeoutException e) {
+                // 执行失败或超时时取消任务
                 future.cancel(true);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
+        //任务执行完毕 且 已取消未完成任务
 
+        //使用自身创建的线程池时关闭线程池
         if (b) {
             executor.shutdown();
         }
-        return results;
+        return resultList;
     }
 
     private static <T> List<T> executeTasks(Collection<Callable<T>> tasks, Integer timeoutSeconds, ThreadPoolTaskExecutor executor) {

@@ -6,12 +6,12 @@ import com.gin.pixivmanager.entity.Tag;
 import com.gin.pixivmanager.util.Progress;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executor;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -57,11 +57,11 @@ public class DataManagerImpl implements DataManager {
      */
     private Map<String, File> filesMap;
 
-    final private Executor serviceExecutor;
+    final private ThreadPoolTaskExecutor serviceExecutor;
     final private DataManagerMapper mapper;
     final private UserInfo userInfo;
 
-    public DataManagerImpl(Executor serviceExecutor, DataManagerMapper dataManagerMapper, UserInfo userInfo) {
+    public DataManagerImpl(ThreadPoolTaskExecutor serviceExecutor, DataManagerMapper dataManagerMapper, UserInfo userInfo) {
         this.serviceExecutor = serviceExecutor;
         this.mapper = dataManagerMapper;
         this.userInfo = userInfo;
@@ -165,7 +165,9 @@ public class DataManagerImpl implements DataManager {
         int block = 50;
 
         Integer delCount = mapper.delIllustrations(list);
-        log.info("删除作品详情 {} 个", delCount);
+        if (delCount > 0) {
+            log.info("删除作品详情 {} 个", delCount);
+        }
         Integer addCount = 0;
 
         if (size <= block) {

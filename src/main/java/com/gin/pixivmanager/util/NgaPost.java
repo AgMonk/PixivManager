@@ -1,8 +1,6 @@
 package com.gin.pixivmanager.util;
 
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.alibaba.fastjson.serializer.SerializerFeature;
 import lombok.extern.slf4j.Slf4j;
 import net.coobird.thumbnailator.Thumbnails;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -15,6 +13,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static com.gin.pixivmanager.util.JsonUtil.printJson;
 
 /**
  * Nga发帖工具类
@@ -443,12 +443,5 @@ public class NgaPost {
         return file;
     }
 
-    private static void printJson(Object obj) {
-        System.err.println(prettyJson(obj));
-    }
 
-    private static String prettyJson(Object obj) {
-        return JSON.toJSONString(obj, SerializerFeature.PrettyFormat, SerializerFeature.WriteMapNullValue,
-                SerializerFeature.WriteDateUseDateFormat);
-    }
 }
