@@ -6,16 +6,15 @@ import com.gin.pixivmanager.config.PixivUrl;
 import com.gin.pixivmanager.entity.Illustration;
 import com.gin.pixivmanager.entity.Tag;
 import com.gin.pixivmanager.util.PixivPost;
-import com.gin.pixivmanager.util.Progress;
 import com.gin.pixivmanager.util.ReqUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -25,7 +24,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Slf4j
 @Service
 public class PixivRequestServImpl implements PixivRequestServ {
-    final Executor downloadExecutor, requestExecutor, scanExecutor, downloadMainExecutor;
+    final ThreadPoolTaskExecutor downloadExecutor, requestExecutor, scanExecutor, downloadMainExecutor;
     final DataManager dataManager;
     final PixivUrl pixivUrl;
     final UserInfo userInfo;
@@ -34,7 +33,13 @@ public class PixivRequestServImpl implements PixivRequestServ {
      */
     final static long RANGE_OF_LAST_UPDATE = 30L * 24 * 60 * 60 * 1000;
 
-    public PixivRequestServImpl(Executor downloadExecutor, Executor requestExecutor, Executor scanExecutor, Executor downloadMainExecutor, DataManager dataManager, PixivUrl pixivUrl, UserInfo userInfo) {
+    public PixivRequestServImpl(ThreadPoolTaskExecutor downloadExecutor,
+                                ThreadPoolTaskExecutor requestExecutor,
+                                ThreadPoolTaskExecutor scanExecutor,
+                                ThreadPoolTaskExecutor downloadMainExecutor,
+                                DataManager dataManager,
+                                PixivUrl pixivUrl,
+                                UserInfo userInfo) {
         this.downloadExecutor = downloadExecutor;
         this.requestExecutor = requestExecutor;
         this.scanExecutor = scanExecutor;
@@ -341,7 +346,6 @@ public class PixivRequestServImpl implements PixivRequestServ {
         int size = urls.size();
         CountDownLatch latch = new CountDownLatch(size);
         AtomicBoolean error = new AtomicBoolean(true);
-        Progress.update(questName, latch.getCount(), size, dataManager.getDownloading());
 
 
         for (String url : urls) {
@@ -357,9 +361,9 @@ public class PixivRequestServImpl implements PixivRequestServ {
                     error.set(false);
                 }
                 latch.countDown();
-                Progress.update(questName, latch.getCount(), size, dataManager.getDownloading());
 
             });
+
         }
 
         try {

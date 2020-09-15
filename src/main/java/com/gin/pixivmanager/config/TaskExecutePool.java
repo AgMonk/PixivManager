@@ -7,7 +7,6 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
-import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
 
 /**
@@ -22,32 +21,32 @@ public class TaskExecutePool {
     final static Integer KEEPALIVE = 300;
 
     @Bean
-    public Executor requestExecutor() {
+    public ThreadPoolTaskExecutor requestExecutor() {
         return getExecutor("Request-", 10);
     }
 
     @Bean
-    public Executor serviceExecutor() {
+    public ThreadPoolTaskExecutor serviceExecutor() {
         return getExecutor("Service-", 10);
     }
 
     @Bean
-    public Executor scanExecutor() {
+    public ThreadPoolTaskExecutor scanExecutor() {
         return getExecutor("scan-", 10);
     }
 
     @Bean
-    public Executor downloadExecutor() {
+    public ThreadPoolTaskExecutor downloadExecutor() {
         return getExecutor("download-", 5);
     }
 
     @Bean
-    public Executor downloadMainExecutor() {
+    public ThreadPoolTaskExecutor downloadMainExecutor() {
         return getExecutor("downMain-", 5);
     }
 
     @Bean
-    public Executor controllerExecutor() {
+    public ThreadPoolTaskExecutor controllerExecutor() {
         return getExecutor("Ctrl-", 10);
     }
 
@@ -59,7 +58,7 @@ public class TaskExecutePool {
      * @param coreSize 核心线程池大小
      * @return 线程池
      */
-    private Executor getExecutor(String name, Integer coreSize) {
+    private ThreadPoolTaskExecutor getExecutor(String name, Integer coreSize) {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         //核心线程池大小
         executor.setCorePoolSize(coreSize);

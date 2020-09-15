@@ -112,7 +112,6 @@ public class ReqUtil {
 
                     //下载进度
 //                    dataManager.addDownloading(questName, contentLength - totalRead, contentLength);
-                    Progress.update(questName, contentLength - totalRead, contentLength, dataManager.getDownloading());
 
                 }
                 File parentFile = file.getParentFile();
@@ -154,7 +153,6 @@ public class ReqUtil {
 //                dataManager.addDownloading(questName, 0, 1);
                 e.printStackTrace();
             } finally {
-                Progress.update(questName, 0, 1, dataManager.getDownloading());
 
             }
         }

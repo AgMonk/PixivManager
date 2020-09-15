@@ -1,27 +1,45 @@
 package com.gin.pixivmanager.util;
 
-import java.util.Map;
-
 /**
  * 更新进度工具
  */
 public class Progress {
+    /**
+     * 当前和最大进度
+     */
+    final String name;
+    long count, size;
 
+    public Progress(String name, long count, long size) {
+        this.name = name;
+        this.count = count;
+        this.size = size;
+    }
+
+    public Progress(String name, long size) {
+        this(name, 0, size);
+    }
 
     /**
-     * 更新进度
+     * 进度是否完成
+     *
+     * @return 任务是否完成
      */
-    public static void update(String questName, long count, long size, Map<String, String> progressMap) {
-        if (progressMap == null) {
-            return;
-        }
-        String v = calculateProgress(count, size);
-        if (count == 0L) {
-            progressMap.remove(questName);
-        } else {
-            progressMap.put(questName, v);
-        }
+    public boolean isCompleted() {
+        return count == size;
     }
+
+    /**
+     * 增加当前进度
+     *
+     * @param num 增加进度
+     * @return 当前进度
+     */
+    public long add(long num) {
+        this.count += num;
+        return this.count;
+    }
+
 
     /**
      * 格式化输出大小
@@ -29,7 +47,7 @@ public class Progress {
      * @param num 文件大小(B)
      * @return 字符串
      */
-    static private String formatSize(long num) {
+    private static String inSize(long num) {
         String s = "" + num;
         int k = 1024;
         if (num > k * k) {
@@ -42,20 +60,36 @@ public class Progress {
         return s;
     }
 
+
     /**
-     * 计算进度
+     * 绝对值进度
      *
-     * @param count 计数器当前值
-     * @param size  计数器最大值
-     * @return 进度
+     * @return 绝对值进度
      */
-    private static String calculateProgress(long count, long size) {
-        count = size - count;
-        double percent = Math.floor(1.0 * count / size * 1000) / 10;
-
-        String s = formatSize(count) + "/" + formatSize(size);
-
-        return s + " " + percent;
+    public String getProgress() {
+        return count + "/" + size;
     }
 
+    /**
+     * 文件大小进度
+     *
+     * @return 文件大小进度
+     */
+    public String getProgressInSize() {
+        return inSize(count) + "/" + inSize(size);
+    }
+
+    /**
+     * 百分比进度
+     *
+     * @return 百分比进度
+     */
+    public String getProgressInPercent() {
+        return String.valueOf(Math.floor(1.0 * count / size * 1000) / 10);
+    }
+
+    @Override
+    public String toString() {
+        return getProgress() + " " + getProgressInSize() + " " + getProgressInPercent();
+    }
 }

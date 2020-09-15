@@ -3,12 +3,11 @@ package com.gin.pixivmanager.util;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.serializer.SerializerFeature;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.*;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 /**
  * Pixiv请求工具类
@@ -106,7 +105,6 @@ public class PixivPost {
         if (size == 0) {
             return null;
         }
-        String questName = getQuestName("详情任务");
         log.info("从Pixiv请求 {} 条详情", size);
         List<JSONObject> detailList = new ArrayList<>();
         executor = executor != null ? executor : getExecutor(10, "detail");
@@ -119,7 +117,6 @@ public class PixivPost {
                 }
                 latch.countDown();
                 //更新进度
-                Progress.update(questName, latch.getCount(), size, progressMap);
             });
         }
 
@@ -133,6 +130,22 @@ public class PixivPost {
         log.info("从Pixiv获得 {} 条详情", detailList.size());
         return detailList;
     }
+
+    public static List<JSONObject> detail(Set<String> pid, ThreadPoolTaskExecutor executor) {
+        Progress progress = new Progress(getQuestName("详情任务"), pid.size());
+        List<Callable<JSONObject>> tasks = new ArrayList<>();
+        for (String s : pid) {
+            tasks.add(new detailTask(s, progress));
+        }
+        List<JSONObject> detail = executeTasks(tasks,
+                60,
+                executor,
+                "detail",
+                10);
+
+        return detail;
+    }
+
 
     /**
      * 为一个作品添加tag
@@ -187,13 +200,8 @@ public class PixivPost {
                 .getBody("请求收藏 " + uid);
     }
 
-    /**
-     * 请求收藏作品总数
-     */
-    public static Integer getBookmarkTotal(String cookie, String uid, String tag) {
-        JSONObject body = getBookmarks(cookie, uid, "1", " 0", tag);
-        return body == null ? null : body.getInteger("total");
-    }
+
+
 
 
 
@@ -336,9 +344,6 @@ public class PixivPost {
                 SerializerFeature.WriteDateUseDateFormat);
     }
 
-    public static void main(String[] args) {
-    }
-
     public PixivPost setCookie(String cookie) {
         this.cookie = cookie;
         return this;
@@ -346,5 +351,94 @@ public class PixivPost {
 
     public String getResult() {
         return result;
+    }
+
+
+    /**
+     * 执行多个任务
+     *
+     * @param tasks          任务集合
+     * @param timeoutSeconds 单个任务的超时时间(秒)
+     * @param executor       指定线程池 否则使用自带线程池
+     * @param taskName       自带线程池名称
+     * @param defaultSize    自带线程池size
+     * @param <T>            返回类型
+     * @return 结果列表
+     */
+    private static <T> List<T> executeTasks(Collection<Callable<T>> tasks, Integer timeoutSeconds, ThreadPoolTaskExecutor executor, String taskName, Integer defaultSize) {
+        //是否使用自己的线程池
+        boolean b = executor == null;
+        if (b) {
+            log.info("使用自身线程池");
+            executor = getExecutor(defaultSize, taskName);
+        }
+
+        List<Future<T>> futures = new ArrayList<>();
+        List<T> results = new ArrayList<>();
+        for (Callable<T> task : tasks) {
+            Future<T> future = executor.submit(task);
+            futures.add(future);
+        }
+
+        for (Future<T> future : futures) {
+            try {
+                T json = future.get(timeoutSeconds, TimeUnit.SECONDS);
+                results.add(json);
+
+            } catch (ExecutionException | TimeoutException e) {
+                future.cancel(true);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+        if (b) {
+            executor.shutdown();
+        }
+        return results;
+    }
+
+    private static <T> List<T> executeTasks(Collection<Callable<T>> tasks, Integer timeoutSeconds, ThreadPoolTaskExecutor executor) {
+        return executeTasks(tasks, timeoutSeconds, executor, null, null);
+    }
+
+    private static <T> List<T> executeTasks(Collection<Callable<T>> tasks, Integer timeoutSeconds, String taskName, Integer defaultSize) {
+        return executeTasks(tasks, timeoutSeconds, null, taskName, defaultSize);
+
+    }
+
+    public static void main(String[] args) {
+        String[] pid = new String[]{"84385635", "84385614", "84385600"};
+        Set<String> pidSet = new HashSet<>(Arrays.asList(pid));
+        List<JSONObject> detail = detail(pidSet, null);
+
+
+        log.info("执行完毕");
+    }
+}
+
+/**
+ * 详情任务
+ */
+@Slf4j
+class detailTask implements Callable<JSONObject> {
+    private final String pid;
+    private final Progress progress;
+
+    public detailTask(String pid, Progress progress) {
+        this.pid = pid;
+        this.progress = progress;
+    }
+
+    @Override
+    public JSONObject call() throws Exception {
+        log.debug("请求作品详情 {}", pid);
+        JSONObject detail = PixivPost.detail(pid);
+        log.debug("获得作品详情 {}", pid);
+        if (progress != null) {
+            progress.add(1);
+            log.info(progress.toString());
+        }
+        return detail;
     }
 }
