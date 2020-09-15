@@ -289,7 +289,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
         CountDownLatch latch = new CountDownLatch(size);
         AtomicBoolean error = new AtomicBoolean(true);
         Progress progress = new Progress(questName, size);
-        dataManager.addDownloadingProgress(progress);
+        dataManager.addMainProgress(progress);
 
         for (String url : urls) {
             String filePath = rootPath + "/"

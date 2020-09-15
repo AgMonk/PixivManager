@@ -34,6 +34,13 @@ public class Progress {
     }
 
     /**
+     * 使任务完成
+     */
+    public void complete() {
+        count = size;
+    }
+
+    /**
      * 增加当前进度
      *
      * @param num 增加进度
@@ -100,4 +107,6 @@ public class Progress {
     public String getName() {
         return name;
     }
+
+
 }

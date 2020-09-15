@@ -44,10 +44,6 @@ public class DataController {
         return dataManager.getDetails();
     }
 
-    @RequestMapping("detailsProgress")
-    public List<Progress> getDetailProgress() {
-        return dataManager.getDetailProgress();
-    }
 
     @RequestMapping("getFilesPath")
     public List<Map<String, String>> getFilesPath() {
@@ -62,6 +58,11 @@ public class DataController {
             names.add(dataManager.delFile(s));
         }
         return names;
+    }
+
+    @RequestMapping("getProgress")
+    public Map<String, List<Progress>> getProgress() {
+        return dataManager.getProgress();
     }
 
 

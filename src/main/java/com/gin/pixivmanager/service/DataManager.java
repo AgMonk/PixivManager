@@ -7,6 +7,7 @@ import com.gin.pixivmanager.util.Progress;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 数据管理对象
@@ -62,26 +63,6 @@ public interface DataManager {
     Integer addTags(List<Illustration> list);
 
     /**
-     * 更新文件下载进度
-     *
-     * @param questName 任务名称
-     * @param count     计数器count（倒数）
-     * @param size      计数器最大值
-     * @return 进度
-     */
-    String addDownloading(String questName, long count, long size);
-
-    /**
-     * 更新详情获取进度
-     *
-     * @param questName 任务名称
-     * @param count     计数器count（倒数）
-     * @param size      计数器最大值
-     * @return 进度
-     */
-    String addDetails(String questName, long count, long size);
-
-    /**
      * 获取详情进度
      *
      * @return 进度
@@ -106,10 +87,10 @@ public interface DataManager {
      * 查询作品详情
      * 先从缓存中查找是否有数据 剩余项从数据库中查询
      *
-     * @param idList id列表
+     * @param idSet id列表
      * @return 作品详情
      */
-    List<Illustration> getIllustrations(List<String> idList);
+    List<Illustration> getIllustrations(Set<String> idSet);
 
     /**
      * 获取总文件map
@@ -149,16 +130,23 @@ public interface DataManager {
     String delFile(String name);
 
     /**
-     * 更新详情进度
+     * 添加详情进度
      *
-     * @param progress
+     * @param progress 详情进度
      */
-    void addDetailProgress(Progress progress);
+    void addMainProgress(Progress progress);
 
     /**
-     * 获得详情进度
+     * 添加下载进度
      *
-     * @return
+     * @param progress 下载进度
      */
-    List<Progress> getDetailProgress();
+    void addDownloadingProgress(Progress progress);
+
+    /**
+     * 获取各个任务进度
+     *
+     * @return 任务进度
+     */
+    Map<String, List<Progress>> getProgress();
 }

@@ -37,7 +37,8 @@ public class DataManagerImpl implements DataManager {
      */
     final private Map<String, String> details = new HashMap<>();
 
-    final private List<Progress> detailProgress = new ArrayList<>();
+    final private List<Progress> mainProgress = new ArrayList<>();
+    final private List<Progress> downloadingProgress = new ArrayList<>();
 
     /**
      * 作品数据
@@ -55,7 +56,6 @@ public class DataManagerImpl implements DataManager {
      * 文件列表
      */
     private Map<String, File> filesMap;
-
 
     final private Executor serviceExecutor;
     final private DataManagerMapper mapper;
@@ -95,7 +95,6 @@ public class DataManagerImpl implements DataManager {
 
         return subList;
     }
-
 
     /**
      * 数据初始化
@@ -229,91 +228,9 @@ public class DataManagerImpl implements DataManager {
         return downloading;
     }
 
-    private void countTags() {
-        List<Illustration> illList = new ArrayList<>(illustrationMap.values());
-        for (Illustration ill : illList) {
-            List<Tag> tagList = ill.getTagList();
-            for (Tag tag : tagList) {
-                String tagName = tag.getName();
-                Tag t = tagMap.get(tagName);
-                t = t != null ? t : tag;
-                t.addCount();
-                tagMap.put(tagName, t);
-            }
-        }
-
-    }
-
     @Override
     public Map<String, String> getDetails() {
         return details;
-    }
-
-    @Override
-    public String addDownloading(String questName, long count, long size) {
-        return addProgress(questName, count, size, downloading);
-    }
-
-    @Override
-    public String addDetails(String questName, long count, long size) {
-        return addProgress(questName, count, size, details);
-    }
-
-    private String addProgress(String questName, long count, long size, Map<String, String> downloading) {
-        String v = calculateProgress(count, size);
-        String COMPLETED = "100.0";
-        if (v.endsWith(COMPLETED)) {
-            return downloading.remove(questName);
-        }
-        return downloading.put(questName, v);
-    }
-
-    /**
-     * 格式化显示进度
-     *
-     * @param count 计数器count（倒数）
-     * @param size  计数器最大值
-     * @return 进度
-     */
-    private static String calculateProgress(long count, long size) {
-        count = size - count;
-        double percent = Math.floor(1.0 * count / size * 1000) / 10;
-
-        String s = formatSize(count) + "/" + formatSize(size);
-
-        return s + " " + percent;
-    }
-
-    /**
-     * 格式化大小
-     *
-     * @param num 大小数值
-     * @return 大小
-     */
-    private static String formatSize(long num) {
-        String s = "" + num;
-        int k = 1024;
-        if (num > k * k) {
-            double v = Math.floor(num * 100.0 / k / k) / 100;
-            s = v + "M";
-        } else if (num > 10 * k) {
-            double v = Math.floor(num * 10.0 / k) / 10;
-            s = v + "K";
-        }
-        return s;
-    }
-
-    private void addTag2Map(Tag t) {
-
-        tagMap.put(t.getName(), t);
-    }
-
-    private void addIllustration2Map(Illustration i) {
-        illustrationMap.put(i.getId(), i);
-    }
-
-    private String addTranslation2Map(Tag t) {
-        return translationMap.put(t.getName(), t.getTranslation());
     }
 
     @Override
@@ -324,15 +241,15 @@ public class DataManagerImpl implements DataManager {
     /**
      * 先从缓存中查找是否有数据 剩余项从数据库中查询
      *
-     * @param idList id列表
+     * @param idSet id列表
      * @return 作品详情
      */
     @Override
-    public List<Illustration> getIllustrations(List<String> idList) {
+    public List<Illustration> getIllustrations(Set<String> idSet) {
         List<Illustration> list = new ArrayList<>();
 
         List<String> lackList = new ArrayList<>();
-        for (String s : idList) {
+        for (String s : idSet) {
             s = s.contains("_") ? s.substring(0, s.indexOf("_")) : s;
             Illustration ill = illustrationMap.get(s);
             if (ill == null || ill.getUserId() == null) {
@@ -354,27 +271,6 @@ public class DataManagerImpl implements DataManager {
         }
 
         return list;
-    }
-
-    /**
-     * 遍历目录下的所有文件
-     *
-     * @param file 根目录
-     * @param list 用以存储的文件列表
-     */
-    private static void listFiles(File file, List<File> list) {
-        File[] fs = file.listFiles();
-        if (fs == null || fs.length == 0) {
-            return;
-        }
-        for (File f : fs) {
-            if (f.isDirectory()) {
-                listFiles(f, list);
-            }
-            if (f.isFile()) {
-                list.add(f);
-            }
-        }
     }
 
     @Override
@@ -461,13 +357,23 @@ public class DataManagerImpl implements DataManager {
     }
 
     @Override
-    public void addDetailProgress(Progress progress) {
-        detailProgress.add(progress);
+    public void addMainProgress(Progress progress) {
+        mainProgress.add(progress);
     }
 
     @Override
-    public List<Progress> getDetailProgress() {
-        return detailProgress;
+    public void addDownloadingProgress(Progress progress) {
+        downloadingProgress.add(progress);
+    }
+
+    @Override
+    public Map<String, List<Progress>> getProgress() {
+        HashMap<String, List<Progress>> map = new HashMap<>();
+
+        map.put("main", mainProgress);
+        map.put("downloading", downloadingProgress);
+
+        return map;
     }
 
 
@@ -476,7 +382,58 @@ public class DataManagerImpl implements DataManager {
      */
     @Scheduled(cron = "0/3 * * * * *")
     public void cleanProgress() {
-        detailProgress.removeIf(Progress::isCompleted);
+
+        mainProgress.removeIf(Progress::isCompleted);
+        downloadingProgress.removeIf(Progress::isCompleted);
     }
 
+
+    private void countTags() {
+        List<Illustration> illList = new ArrayList<>(illustrationMap.values());
+        for (Illustration ill : illList) {
+            List<Tag> tagList = ill.getTagList();
+            for (Tag tag : tagList) {
+                String tagName = tag.getName();
+                Tag t = tagMap.get(tagName);
+                t = t != null ? t : tag;
+                t.addCount();
+                tagMap.put(tagName, t);
+            }
+        }
+
+    }
+
+    private void addTag2Map(Tag t) {
+
+        tagMap.put(t.getName(), t);
+    }
+
+    private void addIllustration2Map(Illustration i) {
+        illustrationMap.put(i.getId(), i);
+    }
+
+    private String addTranslation2Map(Tag t) {
+        return translationMap.put(t.getName(), t.getTranslation());
+    }
+
+    /**
+     * 遍历目录下的所有文件
+     *
+     * @param file 根目录
+     * @param list 用以存储的文件列表
+     */
+    private static void listFiles(File file, List<File> list) {
+        File[] fs = file.listFiles();
+        if (fs == null || fs.length == 0) {
+            return;
+        }
+        for (File f : fs) {
+            if (f.isDirectory()) {
+                listFiles(f, list);
+            }
+            if (f.isFile()) {
+                list.add(f);
+            }
+        }
+    }
 }

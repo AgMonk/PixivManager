@@ -71,6 +71,7 @@ public class ReqUtil {
 
         DataManager dataManager = SpringContextUtil.getBean(DataManager.class);
 
+
         int endIndex = url.indexOf("/", url.indexOf("//") + 2);
         String tempName = url.substring(url.lastIndexOf('/') + 1);
         HttpGet get = new HttpGet(url);
@@ -83,6 +84,7 @@ public class ReqUtil {
         for (int i = 1; i <= MAX_TIMES; i++) {
             log.info("第{}次下载 {}", i, tempName);
             String questName = tempName + "(" + i + ")";
+            Progress progress = null;
             try {
                 int connectionRequestTimeout = 15 * 1000;
                 RequestConfig config = RequestConfig.custom()
@@ -95,9 +97,14 @@ public class ReqUtil {
                 response = client.execute(get);
                 HttpEntity entity = response.getEntity();
                 long contentLength = entity.getContentLength();
+                //下载进度
+                progress = new Progress(questName, contentLength);
+                dataManager.addDownloadingProgress(progress);
+
                 if (file.exists() && file.length() == contentLength) {
                     //文件已存在且大小相同
                     log.info("文件已存在且大小相同 跳过 {}", file);
+                    progress.complete();
                     return file;
                 }
                 InputStream inputStream = entity.getContent();
@@ -109,10 +116,7 @@ public class ReqUtil {
                 while ((r = inputStream.read(buffer)) > 0) {
                     output.write(buffer, 0, r);
                     totalRead += r;
-
-                    //下载进度
-//                    dataManager.addDownloading(questName, contentLength - totalRead, contentLength);
-
+                    progress.add(r);
                 }
                 File parentFile = file.getParentFile();
                 if (!parentFile.exists()) {
@@ -153,7 +157,9 @@ public class ReqUtil {
 //                dataManager.addDownloading(questName, 0, 1);
                 e.printStackTrace();
             } finally {
-
+                if (progress != null) {
+                    progress.complete();
+                }
             }
         }
         log.warn("下载失败 {}", url);
