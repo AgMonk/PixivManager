@@ -8,6 +8,7 @@ import com.gin.pixivmanager.service.UserInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -15,7 +16,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Executor;
+import java.util.Set;
 
 /**
  * pixiv接口
@@ -29,15 +30,15 @@ public class PixivController {
     final DataManager dataManager;
     final PixivRequestServ pixivRequestServ;
     final UserInfo userInfo;
-    final Executor controllerExecutor;
+    final ThreadPoolTaskExecutor scanExecutor;
 
     final String untaggedLocker = "";
 
-    public PixivController(DataManager dataManager, PixivRequestServ pixivRequestServ, UserInfo userInfo, Executor controllerExecutor) {
+    public PixivController(DataManager dataManager, PixivRequestServ pixivRequestServ, UserInfo userInfo, ThreadPoolTaskExecutor scanExecutor) {
         this.dataManager = dataManager;
         this.pixivRequestServ = pixivRequestServ;
         this.userInfo = userInfo;
-        this.controllerExecutor = controllerExecutor;
+        this.scanExecutor = scanExecutor;
     }
 
     /**
@@ -50,7 +51,7 @@ public class PixivController {
         log.info("未分类任务加入队列");
 
         synchronized (untaggedLocker) {
-            downloadBookmark("未分類", 10);
+            downloadBookmark("未分類", 1);
         }
     }
 
@@ -60,14 +61,14 @@ public class PixivController {
      * @return 文件列表
      */
     @RequestMapping("downloadBookmark")
-    public List<File> downloadBookmark(String tag, Integer max) {
+    public List<File> downloadBookmark(String tag, Integer page) {
         tag = tag != null ? tag : "未分類";
 
-        List<String> idList = pixivRequestServ.getBookmarks(tag, max);
-        if (idList.size() == 0) {
+        Set<String> idSet = pixivRequestServ.getBookmarks(tag, page);
+        if (idSet.size() == 0) {
             return null;
         }
-        List<Illustration> detail = pixivRequestServ.getIllustrationDetail(idList);
+        List<Illustration> detail = pixivRequestServ.getIllustrationDetail(idSet);
 
         return pixivRequestServ.downloadIllustAndAddTags(detail, userInfo.getRootPath() + "/" + tag);
     }
@@ -85,7 +86,7 @@ public class PixivController {
      * @return 已归档的文件名
      */
     @RequestMapping("archive")
-    public List<String> archive(String... name) {
+    public Set<String> archive(String... name) {
         return pixivRequestServ.archive(name);
     }
 
@@ -112,14 +113,7 @@ public class PixivController {
     }
 
     @RequestMapping("test")
-    public void test() {
-        List<String> pidSet = new ArrayList<>();
-        pidSet.add("84385036");
-        pidSet.add("84387441");
-        pidSet.add("84387352");
-
-        pixivRequestServ.getIllustrationDetail(pidSet);
-
-
+    public Object test() {
+        return null;
     }
 }

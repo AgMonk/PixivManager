@@ -1,6 +1,5 @@
 package com.gin.pixivmanager.service;
 
-import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.gin.pixivmanager.config.PixivUrl;
 import com.gin.pixivmanager.entity.Illustration;
@@ -55,16 +54,16 @@ public class PixivRequestServImpl implements PixivRequestServ {
     /**
      * 请求一个列表中的pid详情
      *
-     * @param idList pid
+     * @param idSet pid
      * @return 作品详情
      */
     @Override
-    public List<Illustration> getIllustrationDetail(List<String> idList) {
-        List<Illustration> list = dataManager.getIllustrations(idList);
+    public List<Illustration> getIllustrationDetail(Set<String> idSet) {
+        List<Illustration> list = dataManager.getIllustrations(idSet);
         log.debug("从缓存中获得 {}条数据", list.size());
         Set<String> lackPidSet = new HashSet<>();
         //缓存中没有详情 或 更新时间过早的加入请求列表
-        for (String s : idList) {
+        for (String s : idSet) {
             s = getPidFromFileName(s);
             Map<String, Illustration> map = dataManager.getIllustrationMap();
             //缓存没有
@@ -85,7 +84,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
             /*
               向pixiv查询到的作品详情
              */
-            List<Illustration> detailsFromPixiv = getIllustrationDetail2List(lackPidSet);
+            List<Illustration> detailsFromPixiv = getIllustrationFromPixiv(lackPidSet);
             if (detailsFromPixiv != null) {
                 log.debug("向pixiv请求到 {} 条详情", detailsFromPixiv.size());
                 list.addAll(detailsFromPixiv);
@@ -97,85 +96,25 @@ public class PixivRequestServImpl implements PixivRequestServ {
     }
 
     /**
-     * 使用多线程请求多个作品详情
-     *
-     * @param pidSet 请求详情的id列表
-     * @return 请求到的详情
-     */
-    private List<Illustration> getIllustrationDetail2List(Set<String> pidSet) {
-        //添加进度
-        Progress progress = new Progress(getQuestName("详情任务"), pidSet.size());
-        dataManager.addDetailProgress(progress);
-
-        List<JSONObject> detail = PixivPost.detail(pidSet, null, progress);
-
-        List<Illustration> illusts = new ArrayList<>();
-        if (detail == null) {
-            return null;
-        }
-        for (JSONObject json : detail) {
-            illusts.add(new Illustration(json));
-        }
-        return illusts;
-    }
-
-    /**
      * 获取收藏的作品id
      *
-     * @param tag 需要有的tag
-     * @param max 最大获取数量
+     * @param tag  需要有的tag
+     * @param page 最大获取数量
      * @return 收藏的作品id
      */
     @Override
-    public List<String> getBookmarks(String tag, Integer max) {
-        long start = System.currentTimeMillis();
-        log.info("获取收藏作品id tag:{}", tag);
-
-        int offset = 0, limit = Math.min(10, max);
-
-        List<String> idList = new ArrayList<>();
-        String uid = userInfo.getUid();
-        String rawUrl = pixivUrl.getBookmarks()
-                .replace("{uid}", uid)
-                .replace("{tag}", tag)
-                .replace("{limit}", String.valueOf(limit));
-
-
-        String result = ReqUtil.get(rawUrl + offset, null, null, null, userInfo.getCookie(), null, null, null);
-
-        JSONObject body = JSONObject.parseObject(result).getJSONObject("body");
-
-        Integer total = body.getInteger("total");
-        log.info("{} 标签下有总计 {} 个作品", tag, total);
-        total = Math.min(total, max);
-
-        JSONArray works = body.getJSONArray("works");
-        for (int i = 0; i < works.size(); i++) {
-            JSONObject work = works.getJSONObject(i);
-            idList.add(work.getString("id"));
-        }
-
-        if (total > limit) {
-            int pages = total / limit + (total % limit != 0 ? 1 : 0);
-            CountDownLatch latch = new CountDownLatch(pages - 1);
-            for (int i = 1; i < pages; i++) {
-                String url = rawUrl + i * limit;
-                scanExecutor.execute(() -> {
-                    idList.addAll(getBookmark(url));
-                    latch.countDown();
-                });
-            }
-
-            try {
-                latch.await();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+    public Set<String> getBookmarks(String tag, Integer page) {
+        Set<String> idSet = new HashSet<>();
+        Progress progress = new Progress(getQuestName("扫描收藏"), page);
+        dataManager.addMainProgress(progress);
+        List<JSONObject> bookmarks = PixivPost.getBookmarks(userInfo.getCookie(), userInfo.getUid(), tag, page, scanExecutor, progress);
+        progress.complete();
+        if (bookmarks != null) {
+            for (JSONObject bookmark : bookmarks) {
+                idSet.add(bookmark.getString("id"));
             }
         }
-        long end = System.currentTimeMillis();
-        log.info("{} 标签获取完毕 总计数量 {}个 耗时{}秒", tag, total, (end - start) / 1000);
-        return idList;
-
+        return idSet;
     }
 
 
@@ -213,21 +152,19 @@ public class PixivRequestServImpl implements PixivRequestServ {
     }
 
     @Override
-    public List<String> archive(String[] name) {
+    public Set<String> archive(String[] name) {
         if (name == null || name.length == 0) {
             return null;
         }
-        List<String> idList = new ArrayList<>();
+        Set<String> idSet = new HashSet<>();
         for (String s : name) {
             String pid = getPidFromFileName(s);
-            if (!idList.contains(pid)) {
-                idList.add(pid);
-            }
+            idSet.add(pid);
         }
-        log.info("归档 {}个文件 来自 {}个作品", name.length, idList.size());
+        log.info("归档 {}个文件 来自 {}个作品", name.length, idSet.size());
 //获得id的详情信息
-        List<Illustration> detail = getIllustrationDetail(idList);
-        idList = new ArrayList<>();
+        List<Illustration> detail = getIllustrationDetail(idSet);
+        idSet = new HashSet<>();
         //归档目录
         String archivePath = userInfo.getArchivePath();
         //获得文件列表
@@ -262,7 +199,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
             if (dest.exists()) {
                 if (dest.length() == file.length()) {
                     map.remove(key);
-                    idList.add(key);
+                    idSet.add(key);
                     if (file.delete()) {
                         log.info("目标文件已存在 且大小相同 删除原文件 {}", key);
                     } else {
@@ -289,7 +226,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
                 if (file.renameTo(dest)) {
                     log.debug("移动文件 {} 到 {}", file.getPath(), destPath);
                     map.remove(key);
-                    idList.add(key);
+                    idSet.add(key);
 
                     //如果目录已空 删除目录
                     File parent;
@@ -307,9 +244,9 @@ public class PixivRequestServImpl implements PixivRequestServ {
                 }
             }
         }
-        log.info("归档 {}个作品 完成", idList.size());
+        log.info("归档 {}个作品 完成", idSet.size());
 
-        return idList;
+        return idSet;
     }
 
     @Override
@@ -351,7 +288,8 @@ public class PixivRequestServImpl implements PixivRequestServ {
         int size = urls.size();
         CountDownLatch latch = new CountDownLatch(size);
         AtomicBoolean error = new AtomicBoolean(true);
-
+        Progress progress = new Progress(questName, size);
+        dataManager.addDownloadingProgress(progress);
 
         for (String url : urls) {
             String filePath = rootPath + "/"
@@ -366,7 +304,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
                     error.set(false);
                 }
                 latch.countDown();
-
+                progress.add(1);
             });
 
         }
@@ -397,22 +335,6 @@ public class PixivRequestServImpl implements PixivRequestServ {
     }
 
     /**
-     * 请求收藏中的作品ID
-     *
-     * @param url url
-     */
-    private List<String> getBookmark(String url) {
-        List<String> list = new ArrayList<>();
-        String result = ReqUtil.get(url, null, null, null, userInfo.getCookie(), null, null, null);
-        JSONArray works = JSONObject.parseObject(result).getJSONObject("body").getJSONArray("works");
-        for (int i = 0; i < works.size(); i++) {
-            JSONObject work = works.getJSONObject(i);
-            list.add(work.getString("id"));
-        }
-        return list;
-    }
-
-    /**
      * 如有 _ 截断 _
      *
      * @return 从文件名中获取的pid
@@ -432,4 +354,27 @@ public class PixivRequestServImpl implements PixivRequestServ {
         return name + System.currentTimeMillis() % 1000;
     }
 
+
+    /**
+     * 使用多线程请求多个作品详情
+     *
+     * @param pidSet 请求详情的id列表
+     * @return 请求到的详情
+     */
+    private List<Illustration> getIllustrationFromPixiv(Set<String> pidSet) {
+        //添加进度
+        Progress progress = new Progress(getQuestName("详情任务"), pidSet.size());
+        dataManager.addMainProgress(progress);
+
+        List<JSONObject> detail = PixivPost.detail(pidSet, requestExecutor, progress);
+
+        List<Illustration> illusts = new ArrayList<>();
+        if (detail == null) {
+            return null;
+        }
+        for (JSONObject json : detail) {
+            illusts.add(new Illustration(json));
+        }
+        return illusts;
+    }
 }

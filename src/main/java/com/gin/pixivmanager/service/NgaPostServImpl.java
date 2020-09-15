@@ -54,7 +54,7 @@ public class NgaPostServImpl implements NgaPostServ {
         // 缺少的文件名
         List<String> lackList = new ArrayList<>();
         // 缺少的文件pid
-        List<String> lackPidList = new ArrayList<>();
+        Set<String> lackPidSet = new HashSet<>();
         // 现成的文件
         Map<String, File> filesMap = dataManager.getFilesMap(name);
         // 需要上传的文件
@@ -90,17 +90,15 @@ public class NgaPostServImpl implements NgaPostServ {
             if (!filesMap.containsKey(s)) {
                 String pid = s.substring(0, s.indexOf('_'));
                 lackList.add(s);
-                if (!lackPidList.contains(pid)) {
-                    lackPidList.add(pid);
-                }
+                lackPidSet.add(pid);
             }
         }
 
         //有缺少文件
         serviceExecutor.execute(() -> {
-            if (lackPidList.size() > 0) {
+            if (lackPidSet.size() > 0) {
                 //查询详情
-                List<Illustration> detail = pixivRequestServ.getIllustrationDetail(lackPidList);
+                List<Illustration> detail = pixivRequestServ.getIllustrationDetail(lackPidSet);
                 //下载文件
                 List<File> download = pixivRequestServ.downloadIllustAndAddTags(detail, tempPath);
                 for (File file : download) {
@@ -138,7 +136,7 @@ public class NgaPostServImpl implements NgaPostServ {
         //上传附件
         ngaPost.uploadFiles(map);
 
-        List<Illustration> illList = pixivRequestServ.getIllustrationDetail(Arrays.asList(name));
+        List<Illustration> illList = pixivRequestServ.getIllustrationDetail(new HashSet<>(Arrays.asList(name)));
         log.info("查询得到作品详情 {}条", illList.size());
         StringBuilder sb = new StringBuilder();
 
