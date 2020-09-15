@@ -375,7 +375,7 @@ public class PixivPost {
      * @param <T>            返回类型
      * @return 结果列表
      */
-    private static <T> List<T> executeTasks(Collection<Callable<T>> tasks, Integer timeoutSeconds, ThreadPoolTaskExecutor executor, String taskName, Integer defaultSize) {
+    public static <T> List<T> executeTasks(Collection<Callable<T>> tasks, Integer timeoutSeconds, ThreadPoolTaskExecutor executor, String taskName, Integer defaultSize) {
         //是否使用自己的线程池
         boolean b = executor == null;
         if (b) {

@@ -14,9 +14,7 @@ import org.springframework.stereotype.Service;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.Callable;
 
 /**
  * @author bx002
@@ -251,87 +249,23 @@ public class PixivRequestServImpl implements PixivRequestServ {
 
     @Override
     public List<File> downloadIllustAndAddTags(List<Illustration> illustList, String rootPath) {
-        List<File> outputFiles = new ArrayList<>();
         int size = illustList.size();
-        log.info("下载 {}个作品", size);
-        CountDownLatch latch = new CountDownLatch(size);
+        log.info("请求下载 {}个作品", size);
 
+        List<Callable<List<File>>> tasks = new ArrayList<>();
         for (Illustration ill : illustList) {
-            downloadMainExecutor.execute(() -> {
-                List<File> files = downloadIllustAndAddTags(ill, rootPath);
-                outputFiles.addAll(files);
-                dataManager.addFilesMap(files);
-                latch.countDown();
-            });
+            tasks.add(new DownloadFilesTask(ill, rootPath, dataManager, downloadExecutor, userInfo.getCookie(), userInfo.getTt()));
         }
 
-        try {
-            latch.await(9, TimeUnit.MINUTES);
-        } catch (InterruptedException e) {
-            log.warn("当前任务已持续9分钟 放弃剩余任务");
+        List<List<File>> list = PixivPost.executeTasks(tasks, 590, downloadMainExecutor, "dMain", 5);
+
+        List<File> files = new ArrayList<>();
+        for (List<File> fileList : list) {
+            files.addAll(fileList);
         }
+        log.info("下载完成 {} 个作品 总计 {} 个文件", list.size(), files.size());
 
-        return outputFiles;
-    }
-
-    /**
-     * 下载一个作品并添加tag
-     *
-     * @param ill      作品
-     * @param rootPath 根目录
-     * @return 下载好的文件（列表）
-     */
-    private List<File> downloadIllustAndAddTags(Illustration ill, String rootPath) {
-        String questName = ill.getId();
-        List<String> urls = ill.getUrls();
-        List<File> fileList = new ArrayList<>();
-        int size = urls.size();
-        CountDownLatch latch = new CountDownLatch(size);
-        AtomicBoolean error = new AtomicBoolean(true);
-        Progress progress = new Progress(questName, size);
-        dataManager.addMainProgress(progress);
-
-        for (String url : urls) {
-            String filePath = rootPath + "/"
-                    + url.substring(url.lastIndexOf("/") + 1);
-            downloadExecutor.execute(() -> {
-                try {
-                    File download = download(url, filePath);
-                    fileList.add(download);
-                } catch (IOException e) {
-                    //如果出错则不添加tag
-                    log.error(e.getMessage());
-                    error.set(false);
-                }
-                latch.countDown();
-                progress.add(1);
-            });
-
-        }
-
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        if (error.get()) {
-            PixivPost.addTags(ill.getId(), ill.createSimpleTags(), userInfo.getCookie(), userInfo.getTt());
-        }
-
-        return fileList;
-    }
-
-    /**
-     * 下载文件
-     *
-     * @param url 地址
-     */
-    private File download(String url, String filePath) throws IOException {
-        log.debug("开始下载 {} -> {}", url, filePath);
-        File download = ReqUtil.download(url, filePath);
-        log.debug("下载完毕 {} -> {}", url, filePath);
-        return download;
+        return files;
     }
 
     /**
@@ -376,5 +310,79 @@ public class PixivRequestServImpl implements PixivRequestServ {
             illusts.add(new Illustration(json));
         }
         return illusts;
+    }
+}
+
+/**
+ * 下载多个作品 并 添加tag任务
+ */
+@Slf4j
+class DownloadFilesTask implements Callable<List<File>> {
+    private final Illustration ill;
+    private final String rootPath;
+    private final DataManager dataManager;
+    private final ThreadPoolTaskExecutor executor;
+    private final String cookie;
+    private final String tt;
+
+    public DownloadFilesTask(Illustration ill, String rootPath, DataManager dataManager, ThreadPoolTaskExecutor executor, String cookie, String tt) {
+        this.ill = ill;
+        this.rootPath = rootPath;
+        this.dataManager = dataManager;
+        this.executor = executor;
+        this.cookie = cookie;
+        this.tt = tt;
+    }
+
+    @Override
+    public List<File> call() throws Exception {
+        String questName = ill.getId();
+        List<String> urls = ill.getUrls();
+        int size = urls.size();
+
+        Progress progress = new Progress(questName, size);
+        dataManager.addMainProgress(progress);
+        List<Callable<File>> tasks = new ArrayList<>();
+        for (String url : urls) {
+            tasks.add(new DownloadFileTask(url, rootPath, progress));
+        }
+        List<File> files = PixivPost.executeTasks(tasks, 300, executor, "download", 5);
+
+        //下载到的文件数量与url数量相同 则添加tag
+        if (files.size() == size) {
+            PixivPost.addTags(ill.getId(), ill.createSimpleTags(), cookie, tt);
+        }
+        return files;
+    }
+}
+
+/**
+ * 作品下载 并 添加tag任务
+ */
+@Slf4j
+class DownloadFileTask implements Callable<File> {
+    private final Progress progress;
+    private final String rootPath;
+    private final String url;
+
+    public DownloadFileTask(String url, String rootPath, Progress progress) {
+        this.progress = progress;
+        this.rootPath = rootPath;
+        this.url = url;
+    }
+
+    @Override
+    public File call() throws Exception {
+        String filePath = rootPath + "/" + url.substring(url.lastIndexOf("/") + 1);
+        log.debug("开始下载 {} -> {}", url, filePath);
+        File download = null;
+        try {
+            download = ReqUtil.download(url, filePath);
+            log.debug("下载完毕 {} -> {}", url, filePath);
+            progress.add(1);
+        } catch (IOException e) {
+            log.debug("下载失败 {} ", e.getMessage());
+        }
+        return download;
     }
 }
