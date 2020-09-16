@@ -309,20 +309,20 @@ public class Illustration {
 
     @Override
     public String toString() {
-        return "Illustration{" + "\nlastUpdate=" + lastUpdate +
-                ", \nid='" + id + '\'' +
-                ", \nuserId='" + userId + '\'' +
-                ", \ntitle='" + title + '\'' +
-                ", \nuserName='" + userName + '\'' +
-                ", \ndescription='" + description + '\'' +
-                ", \ntag='" + tag + '\'' +
-                ", \ntagTranslated='" + tagTranslated + '\'' +
-                ", \nurlPrefix='" + urlPrefix + '\'' +
-                ", \nfileName='" + fileName + '\'' +
-                ", \npageCount=" + pageCount +
-                ", \nillustType=" + illustType +
-                ", \nbookmarkCount=" + bookmarkCount +
-                ", \nbookmarkData=" + bookmarkData +
+        return "Illustration{" + "lastUpdate=" + lastUpdate +
+                ", id='" + id + '\'' +
+                ", userId='" + userId + '\'' +
+                ", title='" + title + '\'' +
+                ", userName='" + userName + '\'' +
+                ", description='" + description + '\'' +
+                ", tag='" + tag + '\'' +
+                ", tagTranslated='" + tagTranslated + '\'' +
+                ", urlPrefix='" + urlPrefix + '\'' +
+                ", fileName='" + fileName + '\'' +
+                ", pageCount=" + pageCount +
+                ", illustType=" + illustType +
+                ", bookmarkCount=" + bookmarkCount +
+                ", bookmarkData=" + bookmarkData +
                 '}';
     }
 

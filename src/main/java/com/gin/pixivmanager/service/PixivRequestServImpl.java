@@ -308,7 +308,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
 }
 
 /**
- * 下载多个作品 并 添加tag任务
+ * 下载单个作品的多个文件 并 添加tag任务
  */
 @Slf4j
 class DownloadFilesTask implements Callable<List<File>> {
@@ -344,6 +344,7 @@ class DownloadFilesTask implements Callable<List<File>> {
 
         //下载到的文件数量与url数量相同 则添加tag
         if (files.size() == size) {
+            /*todo*/
             PixivPost.addTags(ill.getId(), ill.createSimpleTags(), cookie, tt);
         }
         return files;
