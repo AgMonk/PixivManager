@@ -356,7 +356,7 @@ public class ReqUtil {
                     log.debug(timeoutMsg, times, m.getURI());
                 }
             } catch (IOException e) {
-                log.error("第{}次请求失败 {}", times, e.getMessage());
+                log.warn("第{}次请求失败 {}", times, e.getMessage());
                 break;
             } catch (InterruptedException ignored) {
             }

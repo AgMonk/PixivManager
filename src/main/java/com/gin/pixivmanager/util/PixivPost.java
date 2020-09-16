@@ -1,9 +1,7 @@
 package com.gin.pixivmanager.util;
 
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.alibaba.fastjson.serializer.SerializerFeature;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.*;
@@ -34,7 +32,7 @@ public class PixivPost {
      */
     final static String URL_TAG_SET = "https://www.pixiv.net/bookmark_tag_setting.php";
     /**
-     * 搜索作品接口
+     * 搜索作品接口(cookie可选)
      */
     final static String URL_ILLUST_SEARCH = "https://www.pixiv.net/ajax/search/artworks/{keyword}";
     /**
@@ -85,12 +83,11 @@ public class PixivPost {
      * @return 如无错误 返回body对象 否则为null
      */
     public static JSONObject detail(String pid) {
-        PixivPost post = new PixivPost(URL_ILLUST_DETAIL);
 
         long start = System.currentTimeMillis();
         log.info("请求作品详情 {}", pid);
 
-        JSONObject body = post.addParamMap("pid", pid)
+        JSONObject body = create(URL_ILLUST_DETAIL).addParamMap("pid", pid)
                 .sendGet()
                 .getBody(pid);
         long end = System.currentTimeMillis();
@@ -106,7 +103,6 @@ public class PixivPost {
         return executeTasks(tasks, 60, executor);
     }
 
-
     /**
      * 为一个作品添加tag
      *
@@ -116,10 +112,9 @@ public class PixivPost {
      * @param tt     tt
      */
     public static void addTags(String pid, String tag, String cookie, String tt) {
-        PixivPost post = new PixivPost(URL_TAG_ADD);
         tag = tag.replace(",", " ");
         log.info("给作品添加tag {} -> {}", pid, tag);
-        post.addParamMap("pid", pid)
+        create(URL_TAG_ADD).addParamMap("pid", pid)
                 .setCookie(cookie)
                 .addFormData("tt", tt)
                 .addFormData("id", pid)
@@ -152,9 +147,8 @@ public class PixivPost {
      */
     public static JSONObject getBookmarks(String cookie, String uid, String tag, int limit, int offset) {
         long start = System.currentTimeMillis();
-        PixivPost post = new PixivPost(URL_BOOKMARKS_GET);
         log.info("请求收藏 UID={} 标签={} 第 {} 页", uid, tag, offset / limit + 1);
-        JSONObject body = post.setCookie(cookie)
+        JSONObject body = create(URL_BOOKMARKS_GET).setCookie(cookie)
                 .addParamMap("uid", uid)
                 .addParamMap("limit", String.valueOf(limit))
                 .addParamMap("offset", String.valueOf(offset))
@@ -220,7 +214,25 @@ public class PixivPost {
         return worksList;
     }
 
-
+    /**
+     * 批量修改tag名称
+     *
+     * @param oldName 原tag名
+     * @param newName 新tag名
+     * @param tt      tt
+     */
+    public static void setTag(String cookie, String oldName, String newName, String tt) {
+        log.info("修改Tag {} -> {}", oldName, newName);
+        create(URL_TAG_SET)
+                .addFormData("mode", "mod")
+                .addFormData("tag", oldName)
+                .addFormData("new_tag", newName)
+                .addFormData("tt", tt)
+                .setMaxTimes(1)
+                .setTimeout(3000)
+                .setCookie(cookie)
+                .sendPost();
+    }
 
 
 
@@ -278,6 +290,10 @@ public class PixivPost {
         return executor;
     }
 
+    private static PixivPost create(String rawUrl) {
+        return new PixivPost(rawUrl);
+    }
+
     private PixivPost(String rawUrl) {
         this.url = rawUrl;
     }
@@ -309,6 +325,9 @@ public class PixivPost {
      * 替换基础url中的param参数
      */
     private void createUrl() {
+        if (paramMap == null) {
+            return;
+        }
         for (Map.Entry<String, String> entry : paramMap.entrySet()) {
             url = url.replace("{" + entry.getKey() + "}", entry.getValue());
         }
@@ -323,7 +342,7 @@ public class PixivPost {
      * @return this
      */
     private PixivPost addParamMap(String k, String v) {
-        paramMap = paramMap != null ? paramMap : new HashMap<>();
+        paramMap = paramMap != null ? paramMap : new HashMap<>(5);
         log.debug("参数 {} -> {}", k, v);
         paramMap.put(k, v);
         return this;
@@ -337,7 +356,7 @@ public class PixivPost {
      * @return this
      */
     private PixivPost addFormData(String k, String v) {
-        formData = formData != null ? formData : new HashMap<>();
+        formData = formData != null ? formData : new HashMap<>(5);
         if (v != null && !"".equals(v)) {
             log.debug("formData {} -> {}", k, v);
         }
@@ -345,14 +364,6 @@ public class PixivPost {
         return this;
     }
 
-    private static void printJson(Object obj) {
-        System.err.println(prettyJson(obj));
-    }
-
-    private static String prettyJson(Object obj) {
-        return JSON.toJSONString(obj, SerializerFeature.PrettyFormat, SerializerFeature.WriteMapNullValue,
-                SerializerFeature.WriteDateUseDateFormat);
-    }
 
     public PixivPost setCookie(String cookie) {
         this.cookie = cookie;

@@ -126,9 +126,6 @@ public class PixivRequestServImpl implements PixivRequestServ {
         String leftBrackets = "(";
         String leftChineseBrackets = "（";
 
-        String url = pixivUrl.getSetTag();
-        Map<String, String> formData = new HashMap<>();
-        String name = tag.getName();
         String translation = tag.getTranslation().replace(" ", "");
 
         if (translation.contains(leftBrackets)) {
@@ -137,15 +134,12 @@ public class PixivRequestServImpl implements PixivRequestServ {
         if (translation.contains(leftChineseBrackets)) {
             translation = translation.substring(0, translation.indexOf(leftChineseBrackets));
         }
+        tag.setTranslation(translation);
 
-        formData.put("mode", "mod");
-        formData.put("tag", name);
-        formData.put("new_tag", translation);
-        formData.put("tt", userInfo.getTt());
+        requestExecutor.execute(() -> {
+            PixivPost.setTag(userInfo.getCookie(), tag.getName(), tag.getTranslation(), userInfo.getTt());
+        });
 
-        log.info("修改tag {} -> {}", name, translation);
-
-        scanExecutor.execute(() -> ReqUtil.post(url, null, null, null, userInfo.getCookie(), 5000, formData, null, 1, "utf-8"));
 
     }
 
