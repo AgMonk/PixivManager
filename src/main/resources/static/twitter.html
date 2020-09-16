@@ -21,14 +21,15 @@
         }
     </style>
 </head>
-<body>
+<body><a href="index.html">主页</a><br><br>
+
 <div id="app">
     <!--上传文件-->
     <form id="upload-form" action="data/uploadTwitter" method="post" enctype="multipart/form-data">
-        <input type="text" name="title" placeholder="标题">　　　
-        <input type="text" name="tags" placeholder="tags">　　　
+        <input type="text" name="title" placeholder="标题" autocomplete="off">　　　
+        <input type="text" name="tags" placeholder="tags" autocomplete="off">　　　
         <br/>
-        <input type="file" id="upload" name="file"/>
+        <input type="file" id="upload" name="file" multiple="multiple"/>
         　　　<input type="submit" value="上传"/>
     </form>
 

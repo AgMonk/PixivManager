@@ -77,10 +77,12 @@ public class DataController {
     }
 
     @RequestMapping("uploadTwitter")
-    public void uploadTwitter(HttpServletResponse response, MultipartFile file, String title, String tags) {
-        dataManager.uploadTwitter(file, title, tags);
+    public void uploadTwitter(HttpServletResponse response, MultipartFile[] file, String title, String tags) {
+        for (MultipartFile f : file) {
+            dataManager.uploadTwitter(f, title, tags);
+        }
         try {
-            response.sendRedirect("twitter.html");
+            response.sendRedirect("/twitter.html");
         } catch (IOException e) {
             e.printStackTrace();
         }

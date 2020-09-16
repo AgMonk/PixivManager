@@ -165,33 +165,47 @@ public class NgaPostServImpl implements NgaPostServ {
      * @param sb      sb
      */
     private void appendTwitterCard(NgaPost ngaPost, StringBuilder sb, String[] name) {
-        log.info("添加推特分享卡 {} 个", name.length);
-        ngaPost.addTitle("Twitter").addTitle("搬运bot酱");
+        Set<String> idSet = new HashSet<>();
         for (String s : name) {
-            String fileName = dataManager.getFilesMap().get(s).getName();
-            log.info("文件名 {}", fileName);
-            String title = "";
-            Matcher titleMatcher = PATTERN_TWITTER_TITLE.matcher(fileName);
-            if (titleMatcher.find()) {
-                title = titleMatcher.group().replace("[title_", "").replace("]", "");
+            idSet.add(s.substring(0, s.indexOf("p")));
+        }
+        log.info("添加推特分享卡 {} 个", idSet.size());
+        ngaPost.addTitle("Twitter").addTitle("搬运bot酱");
+
+        for (String id : idSet) {
+            StringBuilder cardBuilder = new StringBuilder();
+            String sourceUrl = "https://twitter.com/i/web/status/" + id;
+            String wrap = NgaPost.getWrap();
+            String urlCode = NgaPost.getUrlCode("来源", sourceUrl);
+            String title = null;
+            String tags = null;
+
+            cardBuilder.append(urlCode).append(wrap);
+
+            for (String s : name) {
+                if (s.startsWith(id)) {
+                    String fileName = dataManager.getFilesMap().get(s).getName();
+                    Matcher titleMatcher = PATTERN_TWITTER_TITLE.matcher(fileName);
+                    if (titleMatcher.find() && title == null) {
+                        title = titleMatcher.group().replace("[title_", "").replace("]", "");
+                    }
+
+                    Matcher tagMatcher = PATTERN_TWITTER_TAGS.matcher(fileName);
+                    if (tagMatcher.find() && tags == null) {
+                        tags = tagMatcher.group().replace("[tags_", "").replace("]", "");
+                        tags = "标签: " + tags;
+                        cardBuilder.append(tags).append(wrap);
+                    }
+                    cardBuilder.append(ngaPost.getAttachmentsCode(s)).append(wrap);
+                }
             }
-
-            String tags = "";
-            Matcher tagMatcher = PATTERN_TWITTER_TAGS.matcher(fileName);
-            if (tagMatcher.find()) {
-                tags = tagMatcher.group().replace("[tags_", "").replace("]", "");
-                tags = "标签: " + tags + NgaPost.getWrap();
-            }
-
-            String attachmentsCode = ngaPost.getAttachmentsCode(s);
-
-            String sourceUrl = "https://twitter.com/i/web/status/" + s;
-            String urlCode = NgaPost.getUrlCode("来源", sourceUrl) + NgaPost.getWrap();
-
-            String collapse = NgaPost.getCollapse(title, urlCode + tags + attachmentsCode, "推特搬运" + name);
+            String collapse = NgaPost.getCollapse(title, cardBuilder.toString(), "推特搬运" + id);
 
             sb.append(collapse);
+
         }
+
+
     }
 
     /**

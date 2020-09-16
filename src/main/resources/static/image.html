@@ -57,7 +57,8 @@
         }
     </style>
 </head>
-<body>
+<body><a href="index.html">主页</a><br><br>
+
 <div id="app">
     <div style="position: fixed">
         <select v-model="param.f">
@@ -89,8 +90,8 @@
         <button @click="del()">删除</button>
 
     </div>
-    <a :href="fileUrls[imgIndex].path"><img :src="fileUrls[imgIndex].path" style="width: 100%"></a>
-    <a v-show="false" :href="fileUrls[imgIndex+1].path"><img :src="fileUrls[imgIndex+1].path" style="width: 100%"></a>
+    <a :href="getFilePath(imgIndex)"><img :src="getFilePath(imgIndex)" style="width: 100%"></a>
+    <a v-show="false" :href="getFilePath(imgIndex+1)"><img :src="getFilePath(imgIndex+1)" style="width: 100%"></a>
 </div>
 </body>
 <script>
@@ -171,6 +172,14 @@
                 return {
                     name: this.replaceIndex2Name(),
                     f: this.param.f, t: this.param.t
+                }
+            },
+            getFilePath(i) {
+                let fileUrl = this.fileUrls[i];
+                if (fileUrl != null) {
+                    return fileUrl.path;
+                } else {
+                    return "";
                 }
             },
             delByName(names) {

@@ -32,7 +32,7 @@ public class DataManagerImpl implements DataManager {
     /**
      * 推特命名正则
      */
-    final static Pattern PATTERN_TWITTER_ID = Pattern.compile("\\[\\d+\\]");
+    final static Pattern PATTERN_TWITTER_ID = Pattern.compile("\\[\\d+\\]\\[p_\\d+\\]");
 
 
     /**
@@ -331,6 +331,8 @@ public class DataManagerImpl implements DataManager {
         List<Map<String, String>> list = new ArrayList<>();
         List<String> keyList = new ArrayList<>(filesMap.keySet());
         keyList.sort((s1, s2) -> {
+            s1 = s1.replace("p", "");
+            s2 = s2.replace("p", "");
             if (s1.length() > s2.length()) {
                 return -1;
             }
@@ -342,8 +344,8 @@ public class DataManagerImpl implements DataManager {
             } else if (pid1 < pid2) {
                 return 1;
             } else {
-                long count1 = Long.parseLong(s1.contains("_") ? s1.substring(s1.indexOf("_") + 2) : s1);
-                long count2 = Long.parseLong(s2.contains("_") ? s2.substring(s2.indexOf("_") + 2) : s2);
+                long count1 = Long.parseLong(s1.contains("_") ? s1.substring(s1.indexOf("_") + 1) : s1);
+                long count2 = Long.parseLong(s2.contains("_") ? s2.substring(s2.indexOf("_") + 1) : s2);
                 if (count1 > count2) {
                     return 1;
                 } else {
@@ -404,12 +406,14 @@ public class DataManagerImpl implements DataManager {
     public void uploadTwitter(MultipartFile file, String title, String tags) {
         String fileName = file.getOriginalFilename();
         assert fileName != null;
+        String count = fileName.contains("_") ? fileName.substring(fileName.indexOf("_") + 1, fileName.indexOf(".")) : "0";
         String suffix = fileName.substring(fileName.indexOf('.'));
-        String id = fileName.substring(0, fileName.indexOf("."));
+        String id = fileName.contains("_") ? fileName.substring(0, fileName.indexOf("_")) : fileName.substring(0, fileName.indexOf("."));
 
         StringBuilder fileNameBuilder = new StringBuilder();
         fileNameBuilder
                 .append("[").append(id).append("]")
+                .append("[p_").append(count).append("]")
                 .append("[title_").append(title).append("]")
                 .append("[tags_").append(tags).append("]")
                 .append(suffix)
@@ -427,7 +431,7 @@ public class DataManagerImpl implements DataManager {
 
             log.info("添加推特图片 {} {}", id, destFile);
 
-            filesMap.put(id, destFile);
+            filesMap.put(id + "p_" + count, destFile);
 
         } catch (IOException e) {
             e.printStackTrace();
