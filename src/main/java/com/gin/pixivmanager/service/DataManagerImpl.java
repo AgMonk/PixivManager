@@ -384,6 +384,7 @@ public class DataManagerImpl implements DataManager {
 
     @Override
     public void addMainProgress(Progress progress) {
+        log.info("添加主任务 {}", progress.getName());
         mainProgress.add(progress);
     }
 
@@ -395,7 +396,8 @@ public class DataManagerImpl implements DataManager {
     @Override
     public Map<String, List<Progress>> getProgress() {
         HashMap<String, List<Progress>> map = new HashMap<>();
-
+        Collections.sort(mainProgress);
+        Collections.sort(downloadingProgress);
         map.put("main", mainProgress);
         map.put("downloading", downloadingProgress);
 

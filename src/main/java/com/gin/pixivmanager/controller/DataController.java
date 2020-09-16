@@ -58,8 +58,9 @@ public class DataController {
      * 移动文件到归档文件夹，不改名
      */
     @RequestMapping("move")
-    public void moveFile(String... name) {
+    public String[] moveFile(String... name) {
         dataManager.moveFile(name);
+        return name;
     }
 
     @RequestMapping("delFile")

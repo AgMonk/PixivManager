@@ -3,7 +3,7 @@ package com.gin.pixivmanager.util;
 /**
  * 更新进度工具
  */
-public class Progress {
+public class Progress implements Comparable<Progress> {
     /**
      * 任务名称
      */
@@ -109,4 +109,8 @@ public class Progress {
     }
 
 
+    @Override
+    public int compareTo(Progress o) {
+        return this.name.compareTo(o.getName());
+    }
 }
