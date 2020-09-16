@@ -73,7 +73,6 @@ public class ReqUtil {
 
 
         int endIndex = url.indexOf("/", url.indexOf("//") + 2);
-        String tempName = url.substring(url.lastIndexOf('/') + 1);
         HttpGet get = new HttpGet(url);
         //伪造Referer
         get.addHeader("Referer", url.substring(0, endIndex));
@@ -82,8 +81,6 @@ public class ReqUtil {
         CloseableHttpResponse response;
         long start = System.currentTimeMillis();
         for (int i = 1; i <= MAX_TIMES; i++) {
-            log.info("第{}次下载 {}", i, tempName);
-            String questName = tempName + "(" + i + ")";
             Progress progress = null;
             try {
                 int connectionRequestTimeout = 15 * 1000;
@@ -95,9 +92,24 @@ public class ReqUtil {
                 CloseableHttpClient client = HttpClients.custom()
                         .setDefaultRequestConfig(config).build();
                 response = client.execute(get);
+                int statusCode = response.getStatusLine().getStatusCode();
+                if (statusCode == 404) {
+                    log.info("404错误 文件未找到 尝试更换后缀");
+                    if (url.contains(".jpg")) {
+                        url = url.replace(".jpg", ".png");
+                    } else if (url.contains(".png")) {
+                        url = url.replace(".png", ".jpg");
+                    }
+                    get = new HttpGet(url);
+                    response = client.execute(get);
+                }
                 HttpEntity entity = response.getEntity();
                 long contentLength = entity.getContentLength();
+
                 //下载进度
+                String tempName = url.substring(url.lastIndexOf('/') + 1);
+                log.info("第{}次下载 {}", i, tempName);
+                String questName = tempName + "(" + i + ")";
                 progress = new Progress(questName, contentLength);
                 dataManager.addDownloadingProgress(progress);
 
@@ -112,10 +124,8 @@ public class ReqUtil {
                 //缓存大小
                 byte[] buffer = new byte[4096];
                 int r;
-                long totalRead = 0;
                 while ((r = inputStream.read(buffer)) > 0) {
                     output.write(buffer, 0, r);
-                    totalRead += r;
                     progress.add(r);
                 }
                 File parentFile = file.getParentFile();

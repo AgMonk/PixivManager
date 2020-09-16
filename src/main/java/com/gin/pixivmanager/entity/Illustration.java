@@ -107,20 +107,32 @@ public class Illustration {
         lastUpdate = System.currentTimeMillis();
 
         JSONObject urls = body.getJSONObject("urls");
-        if (urls == null) {
-            return;
-        }
+        if (urls != null) {
+            String original = urls.getString("original");
+            int indexOf = original.lastIndexOf("/");
+            fileName = original.substring(indexOf + 1);
+            urlPrefix = original.substring(0, indexOf + 1);
+            //如果是动图
+            if (illustType == ILLUST_TYPE_GIF) {
+                urlPrefix = urlPrefix.replace("img-original", "img-zip-ugoira");
+                fileName = fileName.replace("ugoira0.jpg", "ugoira1920x1080.zip");
+            }
+        } else {
+            String url = body.getString("url");
+            String s = url.substring(url.indexOf("/img/"), url.lastIndexOf("/"));
+            urlPrefix = "https://i.pximg.net/";
+            fileName = id;
 
-        String original = urls.getString("original");
-        int indexOf = original.lastIndexOf("/");
-        fileName = original.substring(indexOf + 1);
-        urlPrefix = original.substring(0, indexOf + 1);
-        //如果是动图
-        if (illustType == ILLUST_TYPE_GIF) {
-            urlPrefix = urlPrefix.replace("img-original", "img-zip-ugoira");
-            fileName = fileName.replace("ugoira0.jpg", "ugoira1920x1080.zip");
-        }
+            if (illustType == ILLUST_TYPE_GIF) {
+                urlPrefix += "img-zip-ugoira";
+                fileName += "_ugoira1920x1080.zip";
+            } else {
+                urlPrefix += "img-original";
+                fileName += "_p0.jpg";
+            }
+            urlPrefix += s;
 
+        }
         try {
             //解析tag
             StringBuilder tagBuilder = new StringBuilder();
@@ -136,7 +148,14 @@ public class Illustration {
             }
             tag = tagBuilder.toString();
             tagTranslated = translationBuilder.toString();
-        } catch (Exception ignored) {
+        } catch (ClassCastException e) {
+            //cast错误 说明是简短tags
+            JSONArray tagsArray = body.getJSONArray("tags");
+            StringBuilder tagBuilder = new StringBuilder();
+            for (int i = 0; i < tagsArray.size(); i++) {
+                tagBuilder.append(tagsArray.getString(i)).append(",");
+            }
+            tag = tagBuilder.toString();
         }
 
         //截断用户名中的垃圾信息
@@ -290,20 +309,20 @@ public class Illustration {
 
     @Override
     public String toString() {
-        return "Illustration{" + "lastUpdate=" + lastUpdate +
-                ", id='" + id + '\'' +
-                ", userId='" + userId + '\'' +
-                ", title='" + title + '\'' +
-                ", userName='" + userName + '\'' +
-                ", description='" + description + '\'' +
-                ", tag='" + tag + '\'' +
-                ", tagTranslated='" + tagTranslated + '\'' +
-                ", urlPrefix='" + urlPrefix + '\'' +
-                ", fileName='" + fileName + '\'' +
-                ", pageCount=" + pageCount +
-                ", illustType=" + illustType +
-                ", bookmarkCount=" + bookmarkCount +
-                ", bookmarkData=" + bookmarkData +
+        return "Illustration{" + "\nlastUpdate=" + lastUpdate +
+                ", \nid='" + id + '\'' +
+                ", \nuserId='" + userId + '\'' +
+                ", \ntitle='" + title + '\'' +
+                ", \nuserName='" + userName + '\'' +
+                ", \ndescription='" + description + '\'' +
+                ", \ntag='" + tag + '\'' +
+                ", \ntagTranslated='" + tagTranslated + '\'' +
+                ", \nurlPrefix='" + urlPrefix + '\'' +
+                ", \nfileName='" + fileName + '\'' +
+                ", \npageCount=" + pageCount +
+                ", \nillustType=" + illustType +
+                ", \nbookmarkCount=" + bookmarkCount +
+                ", \nbookmarkData=" + bookmarkData +
                 '}';
     }
 

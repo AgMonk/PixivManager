@@ -34,7 +34,7 @@ public class PixivPost {
     /**
      * 搜索作品接口(cookie可选)
      */
-    final static String URL_ILLUST_SEARCH = "https://www.pixiv.net/ajax/search/artworks/{keyword}";
+    final static String URL_ILLUST_SEARCH = "https://www.pixiv.net/ajax/search/artworks/{keyword}?p={p}&s_mode={s_mode}&mode={mode}";
     /**
      * 搜索用户作品接口
      */
@@ -100,7 +100,7 @@ public class PixivPost {
         for (String s : pid) {
             tasks.add(new detailTask(s, progress));
         }
-        return executeTasks(tasks, 60, executor);
+        return executeTasks(tasks, 60, executor, "detail", 2);
     }
 
     /**
@@ -201,7 +201,7 @@ public class PixivPost {
                 tasks.add(new bookmarkTask(cookie, uid, tag, limit, offset, progress));
                 offset += limit;
             }
-            List<JSONObject> otherBodies = executeTasks(tasks, 60, executor);
+            List<JSONObject> otherBodies = executeTasks(tasks, 60, executor, "bookmark", 2);
             for (JSONObject otherBody : otherBodies) {
                 JSONArray works = otherBody.getJSONArray("works");
                 for (int i = 0; i < works.size(); i++) {
@@ -234,7 +234,42 @@ public class PixivPost {
                 .sendPost();
     }
 
+    /**
+     * 搜索作品
+     *
+     * @param cookie      cookie(可选 不提供时不能搜索R-18作品)
+     * @param keyword     关键字
+     * @param p           页数(每页固定上限60个)
+     * @param searchTitle true = 搜索标题 false =搜 索tag
+     * @param mode        模式 可取值： all safe r18
+     * @return 搜索结果
+     */
+    public static JSONArray search(String cookie, String keyword, Integer p, boolean searchTitle, String mode) {
+        List<String> availableMode = new ArrayList<>(Arrays.asList("all", "safe", "r18"));
+        if (mode == null || !availableMode.contains(mode)) {
+            mode = "all";
+        }
 
+        p = p == null || p < 0 ? 1 : p;
+        log.info("搜索{} 关键字: {}", searchTitle ? "标题" : "标签", keyword);
+        JSONObject body = create(URL_ILLUST_SEARCH)
+                .addParamMap("keyword", ReqUtil.encode(keyword, "utf-8"))
+                .addParamMap("s_mode", searchTitle ? "s_tc" : "s_tag")
+                .addParamMap("mode", mode)
+                .addParamMap("p", String.valueOf(p))
+                .setCookie(cookie)
+                .sendGet()
+                .getBody("搜索");
+        if (body != null) {
+            JSONObject illustManga = body.getJSONObject("illustManga");
+            Integer total = illustManga.getInteger("total");
+            JSONArray data = illustManga.getJSONArray("data");
+            log.info("搜索{} 关键字: {} 获得结果 {} 个 总计结果 {} 个", searchTitle ? "标题" : "标签", keyword, data.size(), total);
+            return data;
+        }
+
+        return null;
+    }
 
 
 
@@ -348,6 +383,7 @@ public class PixivPost {
         return this;
     }
 
+
     /**
      * 添加 formData数据
      *
@@ -423,15 +459,6 @@ public class PixivPost {
         return resultList;
     }
 
-    private static <T> List<T> executeTasks(Collection<Callable<T>> tasks, Integer timeoutSeconds, ThreadPoolTaskExecutor executor) {
-        return executeTasks(tasks, timeoutSeconds, executor, null, null);
-    }
-
-    private static <T> List<T> executeTasks(Collection<Callable<T>> tasks, Integer timeoutSeconds, String taskName, Integer defaultSize) {
-        return executeTasks(tasks, timeoutSeconds, null, taskName, defaultSize);
-
-    }
-
     public PixivPost setTimeout(Integer timeout) {
         this.timeout = timeout;
         return this;
@@ -443,8 +470,6 @@ public class PixivPost {
     }
 
     public static void main(String[] args) {
-        String[] pid = new String[]{"84385635", "84385614", "84385600"};
-        Set<String> pidSet = new HashSet<>(Arrays.asList(pid));
 
 
         log.info("执行完毕");

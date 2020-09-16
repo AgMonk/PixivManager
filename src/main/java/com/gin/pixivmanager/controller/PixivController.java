@@ -5,6 +5,7 @@ import com.gin.pixivmanager.entity.Tag;
 import com.gin.pixivmanager.service.DataManager;
 import com.gin.pixivmanager.service.PixivRequestServ;
 import com.gin.pixivmanager.service.UserInfo;
+import com.gin.pixivmanager.util.PixivPost;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -114,6 +115,11 @@ public class PixivController {
 
     @RequestMapping("test")
     public Object test() {
+        String keyword = "(春田 or スプリングフィールド) -創一 -おっさんずラブ";
+        PixivPost.search(userInfo.getCookie(), keyword, 1, false, "all");
+        
+
+        log.info("测试完毕");
         return null;
     }
 }
