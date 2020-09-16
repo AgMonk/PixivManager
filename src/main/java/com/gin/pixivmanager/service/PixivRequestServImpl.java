@@ -210,7 +210,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
                         String suffix = path.substring(path.lastIndexOf("."));
                         dest = new File(newPath + "_bak" + suffix);
                     } while (dest.exists());
-                    log.info("目标文件已存在 且带大小不同 请自行确认保留 {}", dest.getPath());
+                    log.info("目标文件已存在 且大小不同 请自行确认保留 {}", dest.getPath());
                 }
             } else {
                 File parentFile = dest.getParentFile();

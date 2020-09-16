@@ -13,6 +13,8 @@ import java.nio.channels.FileChannel;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * @author bx002
@@ -30,6 +32,9 @@ public class NgaPostServImpl implements NgaPostServ {
      * 审核字符串
      */
     static Set<String> reviewKeyword = new HashSet<>();
+
+    final static Pattern PATTERN_TWITTER_TITLE = Pattern.compile("\\[title_.+?\\]");
+    final static Pattern PATTERN_TWITTER_TAGS = Pattern.compile("\\[tags_.+?\\]");
 
     static {
         reviewKeyword.add("巨乳");
@@ -136,23 +141,76 @@ public class NgaPostServImpl implements NgaPostServ {
         //上传附件
         ngaPost.uploadFiles(map);
 
-        List<Illustration> illList = pixivRequestServ.getIllustrationDetail(new HashSet<>(Arrays.asList(name)));
-        log.info("查询得到作品详情 {}条", illList.size());
         StringBuilder sb = new StringBuilder();
 
-        for (Illustration ill : illList) {
-            log.info("添加卡片 {}", ill.getId());
-            String card = getIllustrationCard(ill, ngaPost.getAttachmentsMap());
-            sb.append(card);
+        if (name[0].contains("_p")) {
+            appendPixivCard(ngaPost, sb, name);
+        } else {
+            appendTwitterCard(ngaPost, sb, name);
         }
 
         String quote = NgaPost.getQuote(sb.toString());
-        ngaPost.addContent(quote).addTitle("Pixiv").addTitle("搬运bot酱");
+        ngaPost.addContent(quote);
 
         String send = ngaPost.send();
         log.info("发帖成功: {}", send);
 
         return send;
+    }
+
+    /**
+     * 添加推特卡片
+     *
+     * @param ngaPost 发帖对象
+     * @param sb      sb
+     */
+    private void appendTwitterCard(NgaPost ngaPost, StringBuilder sb, String[] name) {
+        log.info("添加推特分享卡 {} 个", name.length);
+        ngaPost.addTitle("Twitter").addTitle("搬运bot酱");
+        for (String s : name) {
+            String fileName = dataManager.getFilesMap().get(s).getName();
+            log.info("文件名 {}", fileName);
+            String title = "";
+            Matcher titleMatcher = PATTERN_TWITTER_TITLE.matcher(fileName);
+            if (titleMatcher.find()) {
+                title = titleMatcher.group().replace("[title_", "").replace("]", "");
+            }
+
+            String tags = "";
+            Matcher tagMatcher = PATTERN_TWITTER_TAGS.matcher(fileName);
+            if (tagMatcher.find()) {
+                tags = tagMatcher.group().replace("[tags_", "").replace("]", "");
+                tags = "标签: " + tags + NgaPost.getWrap();
+            }
+
+            String attachmentsCode = ngaPost.getAttachmentsCode(s);
+
+            String sourceUrl = "https://twitter.com/i/web/status/" + s;
+            String urlCode = NgaPost.getUrlCode("来源", sourceUrl) + NgaPost.getWrap();
+
+            String collapse = NgaPost.getCollapse(title, urlCode + tags + attachmentsCode, "推特搬运" + name);
+
+            sb.append(collapse);
+        }
+    }
+
+    /**
+     * 插入Pixiv作品卡片
+     *
+     * @param ngaPost 发帖对象
+     * @param sb      stringBuilder
+     * @param name    文件名数组
+     */
+    private void appendPixivCard(NgaPost ngaPost, StringBuilder sb, String[] name) {
+        List<Illustration> illList = pixivRequestServ.getIllustrationDetail(new HashSet<>(Arrays.asList(name)));
+        log.info("查询得到作品详情 {}条", illList.size());
+
+        ngaPost.addTitle("Pixiv").addTitle("搬运bot酱");
+        for (Illustration ill : illList) {
+            log.info("添加卡片 {}", ill.getId());
+            String card = getIllustrationCard(ill, ngaPost.getAttachmentsMap());
+            sb.append(card);
+        }
     }
 
 

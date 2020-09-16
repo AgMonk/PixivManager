@@ -3,6 +3,7 @@ package com.gin.pixivmanager.service;
 import com.gin.pixivmanager.entity.Illustration;
 import com.gin.pixivmanager.entity.Tag;
 import com.gin.pixivmanager.util.Progress;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.util.List;
@@ -149,4 +150,20 @@ public interface DataManager {
      * @return 任务进度
      */
     Map<String, List<Progress>> getProgress();
+
+    /**
+     * 上传推特图片
+     *
+     * @param file  文件
+     * @param title 标题
+     * @param tags  tags
+     */
+    void uploadTwitter(MultipartFile file, String title, String tags);
+
+    /**
+     * 移动文件到归档文件夹
+     *
+     * @param name 文件名
+     */
+    void moveFile(String[] name);
 }

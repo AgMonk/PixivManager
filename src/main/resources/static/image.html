@@ -84,11 +84,13 @@
         <button @click="repost()">转发</button>
         <br>
         <button @click="archive()">归档</button>
+        <button @click="move()">移动</button>
         <br><br><br>
         <button @click="del()">删除</button>
 
     </div>
     <a :href="fileUrls[imgIndex].path"><img :src="fileUrls[imgIndex].path" style="width: 100%"></a>
+    <a v-show="false" :href="fileUrls[imgIndex+1].path"><img :src="fileUrls[imgIndex+1].path" style="width: 100%"></a>
 </div>
 </body>
 <script>
@@ -134,6 +136,14 @@
             },
             archive() {
                 let url = "pixiv/archive?";
+                post(url, this.getParam(), function (res) {
+                    console.log(res.data);
+                    _this.delByName(res.data);
+
+                })
+            },
+            move() {
+                let url = "data/move?";
                 post(url, this.getParam(), function (res) {
                     console.log(res.data);
                     _this.delByName(res.data);

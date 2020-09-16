@@ -5,7 +5,10 @@ import com.gin.pixivmanager.service.DataManager;
 import com.gin.pixivmanager.util.Progress;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +54,14 @@ public class DataController {
         return list.subList(0, Math.min(list.size(), 50));
     }
 
+    /**
+     * 移动文件到归档文件夹，不改名
+     */
+    @RequestMapping("move")
+    public void moveFile(String... name) {
+        dataManager.moveFile(name);
+    }
+
     @RequestMapping("delFile")
     public List<String> delFile(String... name) {
         List<String> names = new ArrayList<>();
@@ -65,6 +76,15 @@ public class DataController {
         return dataManager.getProgress();
     }
 
+    @RequestMapping("uploadTwitter")
+    public void uploadTwitter(HttpServletResponse response, MultipartFile file, String title, String tags) {
+        dataManager.uploadTwitter(file, title, tags);
+        try {
+            response.sendRedirect("twitter.html");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     @RequestMapping("test")
     public Object test() {

@@ -3,13 +3,16 @@ package com.gin.pixivmanager.service;
 import com.gin.pixivmanager.dao.DataManagerMapper;
 import com.gin.pixivmanager.entity.Illustration;
 import com.gin.pixivmanager.entity.Tag;
+import com.gin.pixivmanager.util.FilesUtil;
 import com.gin.pixivmanager.util.Progress;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.regex.Matcher;
@@ -26,6 +29,10 @@ public class DataManagerImpl implements DataManager {
      * 动图文件名正则
      */
     final static Pattern PATTERN_UGOIRA = Pattern.compile("\\d+_ugoira\\d+");
+    /**
+     * 推特命名正则
+     */
+    final static Pattern PATTERN_TWITTER_ID = Pattern.compile("\\[\\d+\\]");
 
 
     /**
@@ -301,12 +308,17 @@ public class DataManagerImpl implements DataManager {
             String key = null;
             Matcher matcherIllust = PATTERN_ILLUST.matcher(name);
             Matcher matcherUgoira = PATTERN_UGOIRA.matcher(name);
+            Matcher matcherTwitter = PATTERN_TWITTER_ID.matcher(name);
             if (matcherIllust.find()) {
                 key = matcherIllust.group();
             }
             if (matcherUgoira.find()) {
                 String group = matcherUgoira.group();
                 key = group.substring(0, group.indexOf("_"));
+            }
+            if (matcherTwitter.find()) {
+                String group = matcherTwitter.group();
+                key = group.replace("[", "").replace("]", "");
             }
             if (key != null) {
                 filesMap.put(key, file);
@@ -319,14 +331,24 @@ public class DataManagerImpl implements DataManager {
         List<Map<String, String>> list = new ArrayList<>();
         List<String> keyList = new ArrayList<>(filesMap.keySet());
         keyList.sort((s1, s2) -> {
+            if (s1.length() > s2.length()) {
+                return -1;
+            }
             long pid1 = Long.parseLong(s1.contains("_") ? s1.substring(0, s1.indexOf("_")) : s1);
             long pid2 = Long.parseLong(s2.contains("_") ? s2.substring(0, s2.indexOf("_")) : s2);
-            if (pid1 != pid2) {
-                return Math.toIntExact(pid2 - pid1);
+
+            if (pid1 > pid2) {
+                return -1;
+            } else if (pid1 < pid2) {
+                return 1;
             } else {
-                int count1 = Integer.parseInt(s1.contains("_") ? s1.substring(s1.indexOf("_") + 2) : s1);
-                int count2 = Integer.parseInt(s2.contains("_") ? s2.substring(s2.indexOf("_") + 2) : s2);
-                return count1 - count2;
+                long count1 = Long.parseLong(s1.contains("_") ? s1.substring(s1.indexOf("_") + 2) : s1);
+                long count2 = Long.parseLong(s2.contains("_") ? s2.substring(s2.indexOf("_") + 2) : s2);
+                if (count1 > count2) {
+                    return 1;
+                } else {
+                    return -1;
+                }
             }
         });
 
@@ -376,6 +398,55 @@ public class DataManagerImpl implements DataManager {
         map.put("downloading", downloadingProgress);
 
         return map;
+    }
+
+    @Override
+    public void uploadTwitter(MultipartFile file, String title, String tags) {
+        String fileName = file.getOriginalFilename();
+        assert fileName != null;
+        String suffix = fileName.substring(fileName.indexOf('.'));
+        String id = fileName.substring(0, fileName.indexOf("."));
+
+        StringBuilder fileNameBuilder = new StringBuilder();
+        fileNameBuilder
+                .append("[").append(id).append("]")
+                .append("[title_").append(title).append("]")
+                .append("[tags_").append(tags).append("]")
+                .append(suffix)
+        ;
+
+        File destFile = new File(userInfo.getRootPath() + "/twitter/" + fileNameBuilder.toString());
+        File parentFile = destFile.getParentFile();
+        if (!parentFile.exists()) {
+            if (!parentFile.mkdirs()) {
+                log.error("创建文件夹失败 {}", parentFile.getPath());
+            }
+        }
+        try {
+            file.transferTo(destFile);
+
+            log.info("添加推特图片 {} {}", id, destFile);
+
+            filesMap.put(id, destFile);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void moveFile(String[] name) {
+        for (String s : name) {
+            File file = getFilesMap().get(s);
+            String sourcePath = file.getPath().replace("\\", "/");
+            String destPath = sourcePath.replace(userInfo.getRootPath(), userInfo.getArchivePath());
+            File destFile = new File(destPath);
+            FilesUtil.mkParentDir(destFile);
+            if (file.renameTo(destFile)) {
+                log.info("移动文件 {} -> {}", file.getPath(), destFile.getPath());
+                getFilesMap().remove(s);
+            }
+        }
     }
 
 

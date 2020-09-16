@@ -398,11 +398,9 @@ public class PixivPost {
                 //把执行结果放入List
                 resultList.add(result);
 
-            } catch (ExecutionException | TimeoutException e) {
+            } catch (ExecutionException | TimeoutException | InterruptedException e) {
                 // 执行失败或超时时取消任务
                 future.cancel(true);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
             }
         }
         //任务执行完毕 且 已取消未完成任务

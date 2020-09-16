@@ -384,6 +384,10 @@ public class NgaPost {
         return attachmentsMap;
     }
 
+    public String getAttachmentsCode(String name) {
+        return getAttachmentCodeFromUrl(attachmentsMap.get(name));
+    }
+
     /**
      * 删除韩文
      *
