@@ -39,6 +39,7 @@ public class NgaPostServImpl implements NgaPostServ {
     static {
         reviewKeyword.add("巨乳");
         reviewKeyword.add("屁股");
+        reviewKeyword.add(",.+?裤袜");
     }
 
     public NgaPostServImpl(UserInfo userInfo, PixivRequestServ pixivRequestServ, DataManager dataManager, Executor serviceExecutor) {
@@ -105,7 +106,7 @@ public class NgaPostServImpl implements NgaPostServ {
                 //查询详情
                 List<Illustration> detail = pixivRequestServ.getIllustrationDetail(lackPidSet, false);
                 //下载文件
-                List<File> download = pixivRequestServ.downloadIllustAndAddTags(detail, tempPath);
+                List<File> download = pixivRequestServ.downloadIllust(detail, tempPath);
                 for (File file : download) {
                     String fileName = file.getName();
                     String pidAndCount = fileName.substring(0, fileName.lastIndexOf('.'));
@@ -312,7 +313,7 @@ public class NgaPostServImpl implements NgaPostServ {
      */
     private static String review(String s) {
         for (String s1 : reviewKeyword) {
-            s = s.replace(s1, "");
+            s = s.replaceAll(s1, "");
         }
         return s.replace(",,", "");
     }

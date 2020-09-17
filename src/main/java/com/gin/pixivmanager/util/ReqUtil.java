@@ -65,6 +65,7 @@ public class ReqUtil {
      * @return File
      */
     public static File download(String url, String filePath) throws IOException {
+        CloseableHttpClient client = getCloseableHttpClient();
         //创建目录
         File file = new File(filePath);
 
@@ -73,7 +74,8 @@ public class ReqUtil {
 
 
         int endIndex = url.indexOf("/", url.indexOf("//") + 2);
-        HttpGet get = new HttpGet(url);
+        HttpGet get;
+        get = new HttpGet(url);
         //伪造Referer
         get.addHeader("Referer", url.substring(0, endIndex));
         HEADERS_DEFUALT.forEach(get::addHeader);
@@ -83,29 +85,20 @@ public class ReqUtil {
         for (int i = 1; i <= MAX_TIMES; i++) {
             Progress progress = null;
             try {
-                int connectionRequestTimeout = 15 * 1000;
-                RequestConfig config = RequestConfig.custom()
-                        .setConnectionRequestTimeout(connectionRequestTimeout)
-                        .setConnectTimeout(connectionRequestTimeout)
-                        .setSocketTimeout(connectionRequestTimeout).build();
-
-                CloseableHttpClient client = HttpClients.custom()
-                        .setDefaultRequestConfig(config).build();
                 response = client.execute(get);
                 int statusCode = response.getStatusLine().getStatusCode();
                 if (statusCode == 404) {
-                    log.info("404错误 文件未找到 尝试更换后缀");
-                    if (url.contains(".jpg")) {
-                        url = url.replace(".jpg", ".png");
-                    } else if (url.contains(".png")) {
-                        url = url.replace(".png", ".jpg");
-                    }
-                    get = new HttpGet(url);
-                    response = client.execute(get);
+                    throw new IOException("404错误 请检查URL");
                 }
                 HttpEntity entity = response.getEntity();
                 long contentLength = entity.getContentLength();
 
+
+                if (file.exists() && file.length() == contentLength) {
+                    //文件已存在且大小相同
+                    log.info("文件已存在且大小相同 跳过 {}", file);
+                    return file;
+                }
                 //下载进度
                 String tempName = url.substring(url.lastIndexOf('/') + 1);
                 log.info("第{}次下载 {}", i, tempName);
@@ -113,12 +106,6 @@ public class ReqUtil {
                 progress = new Progress(questName, contentLength);
                 dataManager.addDownloadingProgress(progress);
 
-                if (file.exists() && file.length() == contentLength) {
-                    //文件已存在且大小相同
-                    log.info("文件已存在且大小相同 跳过 {}", file);
-                    progress.complete();
-                    return file;
-                }
                 InputStream inputStream = entity.getContent();
                 ByteArrayOutputStream output = new ByteArrayOutputStream();
                 //缓存大小
@@ -147,25 +134,12 @@ public class ReqUtil {
                 long end = System.currentTimeMillis();
                 log.info("{} 下载完毕 总耗时 {} 秒 平均速度 {}KB/s", tempName, (end - start) / 1000, contentLength / (end - start));
 
-                //下载成功 清空所有进度
-//                for (int j = 1; j <= MAX_TIMES; j++) {
-//                    String name = "(" + j + ")" + tempName;
-////                    dataManager.addDownloading(name, 0, 1);
-//                    Progress.update(name, 0, 1, dataManager.getDownloading());
-//
-//                }
 
                 return file;
             } catch (ConnectionClosedException e) {
                 log.warn("连接关闭({}):  {}", i, url);
-//                dataManager.addDownloading(questName, 0, 1);
             } catch (SocketTimeoutException e) {
                 log.warn("连接超时({}):  {} ", i, url);
-//                dataManager.addDownloading(questName, 0, 1);
-            } catch (IOException e) {
-                log.warn("下载失败({}): {}", i, url);
-//                dataManager.addDownloading(questName, 0, 1);
-                e.printStackTrace();
             } finally {
                 if (progress != null) {
                     progress.complete();
@@ -174,6 +148,18 @@ public class ReqUtil {
         }
         log.warn("下载失败 {}", url);
         throw new IOException("下载失败 超出最大次数 " + MAX_TIMES);
+    }
+
+    private static CloseableHttpClient getCloseableHttpClient() {
+        int connectionRequestTimeout = 30 * 1000;
+        RequestConfig config = RequestConfig.custom()
+                .setConnectionRequestTimeout(connectionRequestTimeout)
+                .setConnectTimeout(connectionRequestTimeout)
+                .setSocketTimeout(connectionRequestTimeout).build();
+
+        CloseableHttpClient client = HttpClients.custom()
+                .setDefaultRequestConfig(config).build();
+        return client;
     }
 
     /**

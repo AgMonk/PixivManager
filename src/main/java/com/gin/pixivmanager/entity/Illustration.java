@@ -97,7 +97,7 @@ public class Illustration {
         userId = body.getString("userId");
         userName = body.getString("userName");
         title = body.getString("title");
-        description = body.getString("");
+        description = body.getString("description");
         description = description != null ? description.substring(0, Math.min(4000, description.length())) : null;
 
         bookmarkCount = body.getInteger("bookmarkCount");

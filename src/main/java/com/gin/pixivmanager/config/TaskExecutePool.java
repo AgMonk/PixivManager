@@ -37,7 +37,7 @@ public class TaskExecutePool {
 
     @Bean
     public ThreadPoolTaskExecutor downloadExecutor() {
-        return getExecutor("download-", 5);
+        return getExecutor("download-", 7);
     }
 
     @Bean

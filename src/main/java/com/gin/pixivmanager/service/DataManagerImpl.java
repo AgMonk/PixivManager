@@ -470,13 +470,15 @@ public class DataManagerImpl implements DataManager {
     private void countTags() {
         List<Illustration> illList = new ArrayList<>(illustrationMap.values());
         for (Illustration ill : illList) {
-            List<Tag> tagList = ill.getTagList();
-            for (Tag tag : tagList) {
-                String tagName = tag.getName();
-                Tag t = tagMap.get(tagName);
-                t = t != null ? t : tag;
-                t.addCount();
-                tagMap.put(tagName, t);
+            if (ill.getTagTranslated() != null) {
+                List<Tag> tagList = ill.getTagList();
+                for (Tag tag : tagList) {
+                    String tagName = tag.getName();
+                    Tag t = tagMap.get(tagName);
+                    t = t != null ? t : tag;
+                    t.addCount();
+                    tagMap.put(tagName, t);
+                }
             }
         }
 

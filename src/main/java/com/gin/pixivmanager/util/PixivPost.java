@@ -86,7 +86,7 @@ public class PixivPost {
     public static JSONObject detail(String pid, String cookie) {
 
         long start = System.currentTimeMillis();
-        log.info("请求作品详情 {}", pid);
+        log.info("请求作品详情{} {}", cookie == null ? "" : "(cookie)", pid);
 
         JSONObject body = create(URL_ILLUST_DETAIL).addParamMap("pid", pid)
                 .setCookie(cookie)
@@ -118,18 +118,18 @@ public class PixivPost {
      * 为一个作品添加tag
      *
      * @param pid    pid
-     * @param tag    tag
+     * @param tags   tags
      * @param cookie pixiv cookie
      * @param tt     tt
      */
-    public static void addTags(String pid, String cookie, String tt, String tag) {
-        tag = tag.replace(",", " ");
-        log.info("给作品添加tag {} -> {}", pid, tag);
+    public static void addTags(String pid, String cookie, String tt, String tags) {
+        tags = tags.replace(",", " ");
+        log.info("给作品添加tag {} -> {}", pid, tags);
         create(URL_TAG_ADD).addParamMap("pid", pid)
                 .setCookie(cookie)
                 .addFormData("tt", tt)
                 .addFormData("id", pid)
-                .addFormData("tag", tag)
+                .addFormData("tags", tags)
                 .addFormData("mode", "add")
                 .addFormData("type", "illust")
                 .addFormData("from_sid", "")
@@ -248,14 +248,14 @@ public class PixivPost {
     /**
      * 搜索作品
      *
-     * @param cookie      cookie(可选 不提供时不能搜索R-18作品)
      * @param keyword     关键字
      * @param p           页数(每页固定上限60个)
+     * @param cookie      cookie(可选 不提供时不能搜索R-18作品)
      * @param searchTitle true = 搜索标题 false =搜 索tag
      * @param mode        模式 可取值： all safe r18
      * @return 搜索结果
      */
-    public static JSONArray search(String cookie, String keyword, Integer p, boolean searchTitle, String mode) {
+    public static JSONArray search(String keyword, Integer p, String cookie, boolean searchTitle, String mode) {
         List<String> availableMode = new ArrayList<>(Arrays.asList("all", "safe", "r18"));
         if (mode == null || !availableMode.contains(mode)) {
             mode = "all";
@@ -477,16 +477,16 @@ public class PixivPost {
      * @param tasks          任务集合
      * @param timeoutSeconds 单个任务的超时时间(秒)
      * @param executor       指定线程池 否则使用自带线程池
-     * @param taskName       自带线程池名称
+     * @param executorName   自带线程池名称
      * @param defaultSize    自带线程池size
      * @param <T>            返回类型
      * @return 结果列表
      */
-    public static <T> List<T> executeTasks(Collection<Callable<T>> tasks, Integer timeoutSeconds, ThreadPoolTaskExecutor executor, String taskName, Integer defaultSize) {
+    public static <T> List<T> executeTasks(Collection<Callable<T>> tasks, Integer timeoutSeconds, ThreadPoolTaskExecutor executor, String executorName, Integer defaultSize) {
         boolean b = executor == null;
         if (b) {
             log.info("使用自创线程池执行任务");
-            executor = getExecutor(defaultSize, taskName);
+            executor = getExecutor(defaultSize, executorName);
         }
 
         List<Future<T>> futures = new ArrayList<>();
