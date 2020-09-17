@@ -113,16 +113,7 @@ public class PixivController {
 
     @RequestMapping("test")
     public Object test() {
-        Map<String, Integer> keywordAndPage = new HashMap<>();
-
-        for (String s : userInfo.getKeywordList()) {
-            keywordAndPage.put(s, 1);
-        }
-
-        pixivRequestServ.downloadSearch(keywordAndPage, false);
-
-
-        log.info("测试完毕");
+        autoDownloadSearch();
         return null;
     }
 

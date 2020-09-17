@@ -274,7 +274,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
             tasks.add(new DownloadFilesTask(ill, rootPath, dataManager, downloadExecutor, userInfo.getCookie(), userInfo.getTt()));
         }
 
-        List<List<File>> list = PixivPost.executeTasks(tasks, 590, downloadMainExecutor, "dMain", 5);
+        List<List<File>> list = PixivPost.executeTasks(tasks, 1800, downloadMainExecutor, "dMain", 5);
 
         List<File> files = new ArrayList<>();
         for (List<File> fileList : list) {
