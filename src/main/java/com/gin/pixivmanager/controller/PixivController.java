@@ -1,12 +1,10 @@
 package com.gin.pixivmanager.controller;
 
-import com.alibaba.fastjson.JSONArray;
 import com.gin.pixivmanager.entity.Illustration;
 import com.gin.pixivmanager.entity.Tag;
 import com.gin.pixivmanager.service.DataManager;
 import com.gin.pixivmanager.service.PixivRequestServ;
 import com.gin.pixivmanager.service.UserInfo;
-import com.gin.pixivmanager.util.PixivPost;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -15,7 +13,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.File;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * pixiv接口
@@ -67,7 +68,7 @@ public class PixivController {
         if (idSet.size() == 0) {
             return null;
         }
-        List<Illustration> detail = pixivRequestServ.getIllustrationDetail(idSet);
+        List<Illustration> detail = pixivRequestServ.getIllustrationDetail(idSet, false);
 
         return pixivRequestServ.downloadIllustAndAddTags(detail, userInfo.getRootPath() + "/" + tag);
     }
@@ -113,22 +114,25 @@ public class PixivController {
 
     @RequestMapping("test")
     public Object test() {
-        /*todo 定时搜索指定关键字 过滤掉其中已有数据的*/
-        String keyword = "(春田 or スプリングフィールド) -創一 -おっさんずラブ -牧";
-        JSONArray resultArray = PixivPost.search(userInfo.getCookie(), keyword, 1, false, "all");
-        Set<Illustration> illustSet = new HashSet<>();
-        if (resultArray != null) {
-            for (int i = 0; i < resultArray.size(); i++) {
-                illustSet.add(new Illustration(resultArray.getJSONObject(i)));
-            }
-        }
-        //移除已收藏作品
-        illustSet.removeIf(ill -> ill.getBookmarkData() == 1 || dataManager.getIllustrationMap().containsKey(ill.getId()));
-        log.info("搜索到新作品 {}个", illustSet.size());
+//        /*todo 定时搜索指定关键字 过滤掉其中已有数据的*/
+//        String keyword = "(春田 or スプリングフィールド) -創一 -おっさんずラブ -牧";
+//        JSONArray resultArray = PixivPost.search(userInfo.getCookie(), keyword, 1, false, "all");
+//        Set<Illustration> illustSet = new HashSet<>();
+//        if (resultArray != null) {
+//            for (int i = 0; i < resultArray.size(); i++) {
+//                illustSet.add(new Illustration(resultArray.getJSONObject(i)));
+//            }
+//        }
+//        //移除已收藏作品
+//        illustSet.removeIf(ill -> ill.getBookmarkData() == 1 || dataManager.getIllustrationMap().containsKey(ill.getId()));
+//        log.info("搜索到新作品 {}个", illustSet.size());
+//
+//        for (Illustration illustration : illustSet) {
+//            System.err.println(illustration);
+//        }
+//
+        archive("97895465");
 
-        for (Illustration illustration : illustSet) {
-            System.err.println(illustration);
-        }
 
         log.info("测试完毕");
         return null;

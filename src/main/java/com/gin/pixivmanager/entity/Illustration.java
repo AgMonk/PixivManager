@@ -158,6 +158,15 @@ public class Illustration {
             tag = tagBuilder.toString();
         }
 
+        subUserName();
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
+        subUserName();
+    }
+
+    private void subUserName() {
         //截断用户名中的垃圾信息
         for (String trash : USERNAME_TRASH) {
             userName = userName.contains(trash) ? userName.substring(0, userName.indexOf(trash)) : userName;

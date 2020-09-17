@@ -52,11 +52,12 @@ public class PixivRequestServImpl implements PixivRequestServ {
     /**
      * 请求一个列表中的pid详情
      *
-     * @param idSet pid
+     * @param useCookie 是否使用cookie查询
+     * @param idSet     pid
      * @return 作品详情
      */
     @Override
-    public List<Illustration> getIllustrationDetail(Set<String> idSet) {
+    public List<Illustration> getIllustrationDetail(Set<String> idSet, boolean useCookie) {
         List<Illustration> list = dataManager.getIllustrations(idSet);
         log.debug("从缓存中获得 {}条数据", list.size());
         Set<String> lackPidSet = new HashSet<>();
@@ -82,12 +83,26 @@ public class PixivRequestServImpl implements PixivRequestServ {
             /*
               向pixiv查询到的作品详情
              */
-            List<Illustration> detailsFromPixiv = getIllustrationFromPixiv(lackPidSet);
+            List<Illustration> detailsFromPixiv = getIllustrationFromPixiv(lackPidSet, useCookie);
             if (detailsFromPixiv != null) {
                 log.debug("向pixiv请求到 {} 条详情", detailsFromPixiv.size());
                 list.addAll(detailsFromPixiv);
                 dataManager.addIllustrations(detailsFromPixiv);
                 dataManager.addTags(detailsFromPixiv);
+
+                //删除已收藏的作品
+                detailsFromPixiv.removeIf(ill -> ill.getBookmarkData() == 1);
+                if (useCookie && detailsFromPixiv.size() > 0) {
+                    requestExecutor.execute(() -> {
+                        //把剩余作品添加收藏并添加tag
+                        Progress progress = new Progress(getQuestName("收藏作品"), detailsFromPixiv.size());
+                        Map<String, String> pidAndTags = new HashMap<>();
+                        for (Illustration ill : detailsFromPixiv) {
+                            pidAndTags.put(ill.getId(), ill.createSimpleTags());
+                        }
+                        PixivPost.bmk(pidAndTags, userInfo.getCookie(), userInfo.getTt(), null, progress);
+                    });
+                }
             }
         }
         return list;
@@ -105,7 +120,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
         Set<String> idSet = new HashSet<>();
         Progress progress = new Progress(getQuestName("扫描收藏"), page);
         dataManager.addMainProgress(progress);
-        List<JSONObject> bookmarks = PixivPost.getBookmarks(userInfo.getCookie(), userInfo.getUid(), tag, page, scanExecutor, progress);
+        List<JSONObject> bookmarks = PixivPost.getBookmarks(userInfo.getUid(), userInfo.getCookie(), tag, page, scanExecutor, progress);
         progress.complete();
         if (bookmarks != null) {
             for (JSONObject bookmark : bookmarks) {
@@ -137,7 +152,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
         tag.setTranslation(translation);
 
         requestExecutor.execute(() -> {
-            PixivPost.setTag(userInfo.getCookie(), tag.getName(), tag.getTranslation(), userInfo.getTt());
+            PixivPost.setTag(userInfo.getCookie(), userInfo.getTt(), tag.getName(), tag.getTranslation());
         });
 
 
@@ -154,8 +169,8 @@ public class PixivRequestServImpl implements PixivRequestServ {
             idSet.add(pid);
         }
         log.info("归档 {} 个文件 来自 {} 个作品", name.length, idSet.size());
-//获得id的详情信息
-        List<Illustration> detail = getIllustrationDetail(idSet);
+        //获得id的详情信息 使用cookie查询
+        List<Illustration> detail = getIllustrationDetail(idSet, true);
         idSet = new HashSet<>();
         //归档目录
         String archivePath = userInfo.getArchivePath();
@@ -286,22 +301,25 @@ public class PixivRequestServImpl implements PixivRequestServ {
     /**
      * 使用多线程请求多个作品详情
      *
-     * @param pidSet 请求详情的id列表
+     * @param pidSet    请求详情的id列表
+     * @param useCookie 是否使用cookie请求
      * @return 请求到的详情
      */
-    private List<Illustration> getIllustrationFromPixiv(Set<String> pidSet) {
+    private List<Illustration> getIllustrationFromPixiv(Set<String> pidSet, boolean useCookie) {
         //添加进度
         Progress progress = new Progress(getQuestName("详情任务"), pidSet.size());
         dataManager.addMainProgress(progress);
 
-        List<JSONObject> detail = PixivPost.detail(pidSet, requestExecutor, progress);
+        List<JSONObject> detail = PixivPost.detail(pidSet, useCookie ? userInfo.getCookie() : null, requestExecutor, progress);
 
         List<Illustration> illusts = new ArrayList<>();
         if (detail == null) {
             return null;
         }
         for (JSONObject json : detail) {
-            illusts.add(new Illustration(json));
+            if (json != null) {
+                illusts.add(new Illustration(json));
+            }
         }
         return illusts;
     }
@@ -341,18 +359,18 @@ class DownloadFilesTask implements Callable<List<File>> {
             tasks.add(new DownloadFileTask(url, rootPath, progress));
         }
         List<File> files = PixivPost.executeTasks(tasks, 300, executor, "download", 5);
-
-        //下载到的文件数量与url数量相同 则添加tag
+        progress.complete();
+        //下载到的文件数量与url数量相同 则添加tag和map
         if (files.size() == size) {
-            /*todo*/
-            PixivPost.addTags(ill.getId(), ill.createSimpleTags(), cookie, tt);
+            dataManager.addFilesMap(files);
+            PixivPost.addTags(ill.getId(), cookie, tt, ill.createSimpleTags());
         }
         return files;
     }
 }
 
 /**
- * 文件下载
+ * 单个文件下载
  */
 @Slf4j
 class DownloadFileTask implements Callable<File> {

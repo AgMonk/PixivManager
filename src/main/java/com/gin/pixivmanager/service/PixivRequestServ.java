@@ -20,7 +20,7 @@ public interface PixivRequestServ {
      * @param idSet pid
      * @return 作品详情
      */
-    List<Illustration> getIllustrationDetail(Set<String> idSet);
+    List<Illustration> getIllustrationDetail(Set<String> idSet, boolean useCookie);
 
     /**
      * 获取收藏的作品id

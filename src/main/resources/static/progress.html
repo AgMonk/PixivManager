@@ -31,7 +31,8 @@
 
         .customers {
             font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
-            width: 100%;
+            /*width: 100%;*/
+            word-break: keep-all;
             border-collapse: collapse;
 
         }
@@ -124,6 +125,7 @@
             }
         },
         created() {
+            this.getProgress();
             setInterval(function () {
                 // _this.getDownloading()
                 // _this.getDetails()

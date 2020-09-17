@@ -16,7 +16,7 @@ public class PixivPost {
 
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(PixivPost.class);
     /**
-     * 作品详情接口
+     * 作品详情接口(cookie可选)
      */
     final static String URL_ILLUST_DETAIL = "https://www.pixiv.net/ajax/illust/{pid}";
     /**
@@ -36,13 +36,13 @@ public class PixivPost {
      */
     final static String URL_ILLUST_SEARCH = "https://www.pixiv.net/ajax/search/artworks/{keyword}?p={p}&s_mode={s_mode}&mode={mode}";
     /**
-     * 搜索用户作品接口
-     */
-    final static String URL_USER_ILLUST = "https://www.pixiv.net/ajax/user/{uid}/profile/all";
-    /**
      * 添加收藏接口 需要cookie
      */
     final static String URL_BOOKMARKS_ADD = "https://www.pixiv.net/rpc/index.php";
+    /**
+     * 搜索用户作品接口
+     */
+    final static String URL_USER_ILLUST = "https://www.pixiv.net/ajax/user/{uid}/profile/all";
 
     /**
      * 请求地址
@@ -79,26 +79,37 @@ public class PixivPost {
     /**
      * 查询作品详情
      *
-     * @param pid pid
+     * @param pid    pid
+     * @param cookie
      * @return 如无错误 返回body对象 否则为null
      */
-    public static JSONObject detail(String pid) {
+    public static JSONObject detail(String pid, String cookie) {
 
         long start = System.currentTimeMillis();
         log.info("请求作品详情 {}", pid);
 
         JSONObject body = create(URL_ILLUST_DETAIL).addParamMap("pid", pid)
+                .setCookie(cookie)
                 .sendGet()
                 .getBody(pid);
         long end = System.currentTimeMillis();
-        log.info("获得作品详情 {} 用时 {} 毫秒", pid, end - start);
+        log.info("作品详情获取{} {} 用时 {} 毫秒", body != null ? "成功" : "失败", pid, end - start);
         return body;
     }
 
-    public static List<JSONObject> detail(Set<String> pid, ThreadPoolTaskExecutor executor, Progress progress) {
+    /**
+     * 批量查询详情
+     *
+     * @param pidSet   pid集合
+     * @param cookie   cookie
+     * @param executor 线程池
+     * @param progress 进度对象
+     * @return 详情列表
+     */
+    public static List<JSONObject> detail(Set<String> pidSet, String cookie, ThreadPoolTaskExecutor executor, Progress progress) {
         List<Callable<JSONObject>> tasks = new ArrayList<>();
-        for (String s : pid) {
-            tasks.add(new detailTask(s, progress));
+        for (String s : pidSet) {
+            tasks.add(new detailTask(s, cookie, progress));
         }
         return executeTasks(tasks, 60, executor, "detail", 2);
     }
@@ -111,7 +122,7 @@ public class PixivPost {
      * @param cookie pixiv cookie
      * @param tt     tt
      */
-    public static void addTags(String pid, String tag, String cookie, String tt) {
+    public static void addTags(String pid, String cookie, String tt, String tag) {
         tag = tag.replace(",", " ");
         log.info("给作品添加tag {} -> {}", pid, tag);
         create(URL_TAG_ADD).addParamMap("pid", pid)
@@ -145,7 +156,7 @@ public class PixivPost {
      * @param tag    tag
      * @return body
      */
-    public static JSONObject getBookmarks(String cookie, String uid, String tag, int limit, int offset) {
+    public static JSONObject getBookmarks(String uid, String cookie, String tag, int limit, int offset) {
         long start = System.currentTimeMillis();
         log.info("请求收藏 UID={} 标签={} 第 {} 页", uid, tag, offset / limit + 1);
         JSONObject body = create(URL_BOOKMARKS_GET).setCookie(cookie)
@@ -172,7 +183,7 @@ public class PixivPost {
      * @param page   页数
      * @return 作品列表
      */
-    public static List<JSONObject> getBookmarks(String cookie, String uid, String tag, Integer page, ThreadPoolTaskExecutor executor, Progress progress) {
+    public static List<JSONObject> getBookmarks(String uid, String cookie, String tag, Integer page, ThreadPoolTaskExecutor executor, Progress progress) {
         long start = System.currentTimeMillis();
         page = (page == null || page < 1) ? 1 : page;
         int offset = 0;
@@ -180,7 +191,7 @@ public class PixivPost {
         //请求到的数量
         int total = 0;
         List<JSONObject> worksList = null;
-        JSONObject body = getBookmarks(cookie, uid, tag, limit, offset);
+        JSONObject body = getBookmarks(uid, cookie, tag, limit, offset);
         progress.add(1);
         if (body != null) {
             total = body.getInteger("total");
@@ -198,7 +209,7 @@ public class PixivPost {
         if (offset < total) {
             List<Callable<JSONObject>> tasks = new ArrayList<>();
             while (offset < total) {
-                tasks.add(new bookmarkTask(cookie, uid, tag, limit, offset, progress));
+                tasks.add(new getBookmarkTask(cookie, uid, tag, limit, offset, progress));
                 offset += limit;
             }
             List<JSONObject> otherBodies = executeTasks(tasks, 60, executor, "bookmark", 2);
@@ -221,7 +232,7 @@ public class PixivPost {
      * @param newName 新tag名
      * @param tt      tt
      */
-    public static void setTag(String cookie, String oldName, String newName, String tt) {
+    public static void setTag(String cookie, String tt, String oldName, String newName) {
         log.info("修改Tag {} -> {}", oldName, newName);
         create(URL_TAG_SET)
                 .addFormData("mode", "mod")
@@ -271,9 +282,58 @@ public class PixivPost {
         return null;
     }
 
+    /**
+     * 添加收藏 添加tag(可选)
+     *
+     * @param pid    pid
+     * @param cookie cookie
+     * @param tt     tt
+     * @param tags   tags
+     * @return 如果成功返回true 失败返回其pid
+     */
+    public static Object bmk(String pid, String cookie, String tt, String tags) {
+        tags = tags == null ? "" : tags.replace(",", " ");
+        log.info("添加收藏 {} tags: {}", pid, tags);
+        JSONObject body = create(URL_BOOKMARKS_ADD).setCookie(cookie)
+                .addFormData("mode", "save_illust_bookmark")
+                .addFormData("illust_id", pid)
+                .addFormData("restrict", "0")
+                .addFormData("comment", "")
+                .addFormData("tags", tags)
+                .addFormData("tt", tt)
+                .sendPost().getBody("请求收藏 " + pid);
+        return body != null ? true : pid;
 
+    }
 
+    /**
+     * 批量添加收藏
+     *
+     * @param pidAndTags pid及其对应的tag
+     * @param cookie     cookie
+     * @param tt         tt
+     * @param executor   线程池
+     * @param progress   进度对象
+     * @return 如果有失败任务 返回其pid
+     */
+    public static List<Object> bmk(Map<String, String> pidAndTags, String cookie, String tt, ThreadPoolTaskExecutor executor, Progress progress) {
+        long start = System.currentTimeMillis();
+        Set<String> pidSet = pidAndTags.keySet();
+        log.info("添加收藏任务 {}个", pidAndTags.size());
 
+        List<Callable<Object>> tasks = new ArrayList<>();
+        for (String s : pidSet) {
+            tasks.add(new bmkTask(s, cookie, tt, pidAndTags.get(s), progress));
+        }
+        //执行结果
+        List<Object> bmk = executeTasks(tasks, 5, executor, "bmk", 2);
+
+        bmk.removeIf(o -> o instanceof Boolean);
+
+        log.info("批量收藏 {} 个作品 失败 {} 个 耗时 {} 毫秒", pidAndTags.size(), bmk.size(), System.currentTimeMillis() - start);
+
+        return bmk;
+    }
 
 
     /*—————————— 基础方法 ————————————*/
@@ -425,7 +485,7 @@ public class PixivPost {
     public static <T> List<T> executeTasks(Collection<Callable<T>> tasks, Integer timeoutSeconds, ThreadPoolTaskExecutor executor, String taskName, Integer defaultSize) {
         boolean b = executor == null;
         if (b) {
-            log.info("使用自身线程池");
+            log.info("使用自创线程池执行任务");
             executor = getExecutor(defaultSize, taskName);
         }
 
@@ -481,16 +541,18 @@ public class PixivPost {
  */
 class detailTask implements Callable<JSONObject> {
     private final String pid;
+    private final String useCookie;
     private final Progress progress;
 
-    public detailTask(String pid, Progress progress) {
+    public detailTask(String pid, String useCookie, Progress progress) {
         this.pid = pid;
+        this.useCookie = useCookie;
         this.progress = progress;
     }
 
     @Override
     public JSONObject call() throws Exception {
-        JSONObject detail = PixivPost.detail(pid);
+        JSONObject detail = PixivPost.detail(pid, useCookie);
         if (progress != null) {
             progress.add(1);
         }
@@ -501,7 +563,7 @@ class detailTask implements Callable<JSONObject> {
 /**
  * 请求收藏中作品任务
  */
-class bookmarkTask implements Callable<JSONObject> {
+class getBookmarkTask implements Callable<JSONObject> {
     private final String cookie;
     private final String uid;
     private final String tag;
@@ -509,7 +571,7 @@ class bookmarkTask implements Callable<JSONObject> {
     private final int offset;
     private final Progress progress;
 
-    bookmarkTask(String cookie, String uid, String tag, int limit, int offset, Progress progress) {
+    getBookmarkTask(String cookie, String uid, String tag, int limit, int offset, Progress progress) {
         this.cookie = cookie;
         this.uid = uid;
         this.tag = tag;
@@ -526,10 +588,38 @@ class bookmarkTask implements Callable<JSONObject> {
      */
     @Override
     public JSONObject call() throws Exception {
-        JSONObject bookmarks = PixivPost.getBookmarks(cookie, uid, tag, limit, offset);
+        JSONObject bookmarks = PixivPost.getBookmarks(uid, cookie, tag, limit, offset);
         if (progress != null) {
             progress.add(1);
         }
         return bookmarks;
+    }
+}
+
+/**
+ * 收藏作品任务
+ */
+class bmkTask implements Callable<Object> {
+    private final String pid;
+    private final String cookie;
+    private final String tt;
+    private final String tags;
+    private final Progress progress;
+
+    bmkTask(String pid, String cookie, String tt, String tags, Progress progress) {
+        this.pid = pid;
+        this.cookie = cookie;
+        this.tt = tt;
+        this.tags = tags;
+        this.progress = progress;
+    }
+
+    @Override
+    public Object call() throws Exception {
+        Object bmk = PixivPost.bmk(pid, cookie, tt, tags);
+        if (progress != null) {
+            progress.add(1);
+        }
+        return bmk;
     }
 }
