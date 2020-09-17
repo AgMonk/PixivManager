@@ -545,6 +545,8 @@ class DownloadSearchTask implements Callable<Boolean> {
         if (b) {
             //全部下载完毕 入库
             dataManager.addIllustrations(list);
+        } else{
+            log.warn("应下载文件 {} 个 实际下载 {} 个", files.size(),fileCount);
         }
         progress.add(list.size());
         return b;
