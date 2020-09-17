@@ -129,7 +129,7 @@ public class PixivPost {
                 .setCookie(cookie)
                 .addFormData("tt", tt)
                 .addFormData("id", pid)
-                .addFormData("tags", tags)
+                .addFormData("tag", tags)
                 .addFormData("mode", "add")
                 .addFormData("type", "illust")
                 .addFormData("from_sid", "")
