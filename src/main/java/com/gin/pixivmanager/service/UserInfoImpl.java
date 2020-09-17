@@ -5,7 +5,9 @@ import org.springframework.stereotype.Service;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -38,12 +40,15 @@ public class UserInfoImpl implements UserInfo {
     String archivePath;
     final static String PIXIV_INFO = "config/pixiv.txt";
     final static String NGA_INFO = "config/nga.txt";
+    final static String KEYWORD = "config/keyword.txt";
     final static File PIXIV_FILE = new File(PIXIV_INFO);
     final static File NGA_FILE = new File(NGA_INFO);
+    final static File KEYWORD_FILE = new File(KEYWORD);
 
     final static Map<String, String> NGA_COOKIE_MAP = new HashMap<>();
     final static Map<String, String> NGA_FID_MAP = new HashMap<>();
     final static Map<String, String> NGA_TID_MAP = new HashMap<>();
+    final static List<String> KEYWORD_LIST = new ArrayList<>();
 
     @Override
     public String getNgaCookie(String s) {
@@ -84,6 +89,11 @@ public class UserInfoImpl implements UserInfo {
     @Override
     public String getArchivePath() {
         return archivePath;
+    }
+
+    @Override
+    public List<String> getKeywordList() {
+        return KEYWORD_LIST;
     }
 
     public UserInfoImpl() {
@@ -134,6 +144,18 @@ public class UserInfoImpl implements UserInfo {
                 if (line.startsWith("archivePath")) {
                     archivePath = line.substring(line.indexOf(":") + 1);
                 }
+            }
+            reader.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
+        try {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(KEYWORD_FILE), StandardCharsets.UTF_8));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                KEYWORD_LIST.add(line);
             }
             reader.close();
         } catch (IOException e) {

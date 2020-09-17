@@ -1,5 +1,6 @@
 package com.gin.pixivmanager.service;
 
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.gin.pixivmanager.config.PixivUrl;
 import com.gin.pixivmanager.entity.Illustration;
@@ -50,7 +51,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
     }
 
     /**
-     * 请求一个列表中的pid详情
+     * 请求一个列表中的pid详情 并添加到数据库
      *
      * @param useCookie 是否使用cookie查询
      * @param idSet     pid
@@ -71,10 +72,14 @@ public class PixivRequestServImpl implements PixivRequestServ {
                 lackPidSet.add(s);
             } else {
                 //距离时间过久的或没有的进行请求更新
-                Long lastUpdate = map.get(s).getLastUpdate();
+                Illustration ill = map.get(s);
+                Long lastUpdate = ill.getLastUpdate();
                 long now = System.currentTimeMillis();
-                if (lastUpdate == null || now - lastUpdate > RANGE_OF_LAST_UPDATE) {
-                    log.debug("缓存中的详情记录过于久远 {}", s);
+                if (lastUpdate == null || now - lastUpdate > RANGE_OF_LAST_UPDATE
+                        || ill.getTagTranslated() == null
+                        || ill.getBookmarkCount() == null
+                ) {
+                    log.debug("缓存中的详情记录过于久远 或 仅为搜索结果 {}", s);
                     lackPidSet.add(s);
                 }
             }
@@ -129,7 +134,6 @@ public class PixivRequestServImpl implements PixivRequestServ {
         }
         return idSet;
     }
-
 
     /**
      * 修改tag(批量)
@@ -257,9 +261,13 @@ public class PixivRequestServImpl implements PixivRequestServ {
     }
 
     @Override
-    public List<File> downloadIllustAndAddTags(List<Illustration> illustList, String rootPath) {
+    public List<File> downloadIllust(List<Illustration> illustList, String rootPath) {
         int size = illustList.size();
-        log.info("请求下载 {}个作品", size);
+        List<String> idList = new ArrayList<>();
+        illustList.forEach(ill -> {
+            idList.add(ill.getId());
+        });
+        log.info("请求下载 {}个作品 {}", size, idList.subList(0, Math.min(10, idList.size())));
 
         List<Callable<List<File>>> tasks = new ArrayList<>();
         for (Illustration ill : illustList) {
@@ -276,6 +284,62 @@ public class PixivRequestServImpl implements PixivRequestServ {
 
         return files;
     }
+
+    @Override
+    public List<Illustration> search(Map<String, Integer> keywordAndPage, boolean all) {
+        Progress progress = new Progress(getQuestName("搜索任务"), keywordAndPage.size());
+        dataManager.addMainProgress(progress);
+        //创建搜索任务
+        List<Callable<JSONArray>> tasks = new ArrayList<>();
+        keywordAndPage.forEach((k, i) -> {
+            tasks.add(new SearchTask(k, i, userInfo.getCookie(), false, progress));
+//            tasks.add(new SearchTask(k, i, userInfo.getCookie(), true, progress));
+        });
+        List<JSONArray> searchResult = PixivPost.executeTasks(tasks, 60, scanExecutor, "search", 5);
+
+        progress.complete();
+
+        Set<Illustration> set = new HashSet<>();
+        for (JSONArray array : searchResult) {
+            for (int i = 0; i < array.size(); i++) {
+                set.add(new Illustration(array.getJSONObject(i)));
+            }
+        }
+        //
+        if (!all) {
+            set.removeIf(ill -> ill.getBookmarkData() == 1 || dataManager.getIllustrationMap().containsKey(ill.getId()));
+        }
+
+        log.info("搜索得到 {} 个作品 {}", set.size(), !all ? "已过滤掉已收藏的和已入库的作品" : "");
+        return new ArrayList<>(set);
+    }
+
+    @Override
+    public Integer downloadSearch(Map<String, Integer> keywordAndPage, boolean all) {
+        List<Illustration> searchResult = search(keywordAndPage, false);
+        Progress progress = new Progress(getQuestName("下载搜索"), searchResult.size());
+        dataManager.addMainProgress(progress);
+//        搜索结果分块
+        List<List<Illustration>> splitList = new ArrayList<>();
+        int index = 0;
+        int step = 5;
+        do {
+            List<Illustration> subList = searchResult.subList(index, Math.min(index + step, searchResult.size()));
+            splitList.add(subList);
+            index += step;
+        } while (index < searchResult.size());
+        //创建任务
+        List<Callable<Boolean>> tasks = new ArrayList<>();
+        for (List<Illustration> list : splitList) {
+            tasks.add(new DownloadSearchTask(list, userInfo.getRootPath() + "/search", dataManager, this, progress));
+        }
+
+        PixivPost.executeTasks(tasks, 30 * 60, null, "downloadSearch", 5);
+
+        progress.complete();
+        return searchResult.size();
+    }
+
 
     /**
      * 如有 _ 截断 _
@@ -362,15 +426,19 @@ class DownloadFilesTask implements Callable<List<File>> {
         progress.complete();
         //下载到的文件数量与url数量相同 则添加tag和map
         if (files.size() == size) {
+            //添加fileMap
             dataManager.addFilesMap(files);
-            PixivPost.addTags(ill.getId(), cookie, tt, ill.createSimpleTags());
+            //如果是已收藏作品 添加tag
+            if (ill.getBookmarkData() == 1) {
+                PixivPost.addTags(ill.getId(), cookie, tt, ill.createSimpleTags());
+            }
         }
         return files;
     }
 }
 
 /**
- * 单个文件下载
+ * 单个文件下载任务
  */
 @Slf4j
 class DownloadFileTask implements Callable<File> {
@@ -378,7 +446,7 @@ class DownloadFileTask implements Callable<File> {
     private final Progress progress;
     //下载根目录
     private final String rootPath;
-    private final String url;
+    private String url;
 
     public DownloadFileTask(String url, String rootPath, Progress progress) {
         this.progress = progress;
@@ -391,15 +459,94 @@ class DownloadFileTask implements Callable<File> {
         String filePath = rootPath + "/" + url.substring(url.lastIndexOf("/") + 1);
         log.debug("开始下载 {} -> {}", url, filePath);
         File download = null;
-        try {
-            //下载文件(这是我自己包装的方法)
-            download = ReqUtil.download(url, filePath);
-            log.debug("下载完毕 {} -> {}", url, filePath);
-            //下载完成 进度 +1
-            progress.add(1);
-        } catch (IOException e) {
-            log.debug("下载失败 {} ", e.getMessage());
+        for (int i = 0; i < 2; i++) {
+            try {
+                download = ReqUtil.download(url, filePath);
+                log.debug("下载完毕 {} -> {}", url, filePath);
+                //下载完成 进度 +1
+                progress.add(1);
+                return download;
+            } catch (IOException e) {
+                if (e.getMessage().contains("404错误") && url.contains(".jpg")) {
+                    url = url.replace(".jpg", ".png");
+                } else {
+                    break;
+                }
+            }
         }
-        return download;
+        log.error("下载失败 {} ", url);
+        return null;
+    }
+}
+
+/**
+ * 搜索任务
+ */
+@Slf4j
+class SearchTask implements Callable<JSONArray> {
+    private final String keyword;
+    private final int p;
+    private final String cookie;
+    private final boolean searchTitle;
+    private final Progress progress;
+
+    SearchTask(String keyword, int p, String cookie, boolean searchTitle, Progress progress) {
+        this.keyword = keyword;
+        this.p = p;
+        this.cookie = cookie;
+        this.searchTitle = searchTitle;
+        this.progress = progress;
+    }
+
+    /**
+     * Computes a result, or throws an exception if unable to do so.
+     *
+     * @return computed result
+     * @throws Exception if unable to compute a result
+     */
+    @Override
+    public JSONArray call() throws Exception {
+        JSONArray array = PixivPost.search(keyword, p, cookie, searchTitle, "all");
+        if (array != null) {
+            progress.add(1);
+        }
+        return array;
+    }
+}
+
+/**
+ * 下载搜索结果中的作品 并在完成后入库
+ */
+@Slf4j
+class DownloadSearchTask implements Callable<Boolean> {
+    private final List<Illustration> list;
+    private final String path;
+    private final DataManager dataManager;
+    private final PixivRequestServ requestServ;
+    private final Progress progress;
+
+    DownloadSearchTask(List<Illustration> list, String path, DataManager dataManager, PixivRequestServ requestServ, Progress progress) {
+        this.list = list;
+        this.path = path;
+        this.dataManager = dataManager;
+        this.requestServ = requestServ;
+        this.progress = progress;
+    }
+
+    @Override
+    public Boolean call() throws Exception {
+
+        List<File> files = requestServ.downloadIllust(list, path);
+        int fileCount = 0;
+        for (Illustration ill : list) {
+            fileCount += ill.getPageCount();
+        }
+        boolean b = fileCount == files.size();
+        if (b) {
+            //全部下载完毕 入库
+            dataManager.addIllustrations(list);
+        }
+        progress.add(list.size());
+        return b;
     }
 }

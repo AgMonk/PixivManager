@@ -13,10 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * pixiv接口
@@ -33,6 +30,7 @@ public class PixivController {
     final ThreadPoolTaskExecutor scanExecutor;
 
     final String untaggedLocker = "";
+    Integer autoDownloadSearchIndex = 0;
 
     public PixivController(DataManager dataManager, PixivRequestServ pixivRequestServ, UserInfo userInfo, ThreadPoolTaskExecutor scanExecutor) {
         this.dataManager = dataManager;
@@ -68,9 +66,10 @@ public class PixivController {
         if (idSet.size() == 0) {
             return null;
         }
-        List<Illustration> detail = pixivRequestServ.getIllustrationDetail(idSet, false);
+        List<Illustration> detail = pixivRequestServ.getIllustrationDetail(idSet, true);
 
-        return pixivRequestServ.downloadIllustAndAddTags(detail, userInfo.getRootPath() + "/" + tag);
+
+        return pixivRequestServ.downloadIllust(detail, userInfo.getRootPath() + "/" + tag);
     }
 
     @RequestMapping("addTranslation")
@@ -114,27 +113,38 @@ public class PixivController {
 
     @RequestMapping("test")
     public Object test() {
-//        /*todo 定时搜索指定关键字 过滤掉其中已有数据的*/
-//        String keyword = "(春田 or スプリングフィールド) -創一 -おっさんずラブ -牧";
-//        JSONArray resultArray = PixivPost.search(userInfo.getCookie(), keyword, 1, false, "all");
-//        Set<Illustration> illustSet = new HashSet<>();
-//        if (resultArray != null) {
-//            for (int i = 0; i < resultArray.size(); i++) {
-//                illustSet.add(new Illustration(resultArray.getJSONObject(i)));
-//            }
-//        }
-//        //移除已收藏作品
-//        illustSet.removeIf(ill -> ill.getBookmarkData() == 1 || dataManager.getIllustrationMap().containsKey(ill.getId()));
-//        log.info("搜索到新作品 {}个", illustSet.size());
-//
-//        for (Illustration illustration : illustSet) {
-//            System.err.println(illustration);
-//        }
-//
-        archive("97895465");
+        Map<String, Integer> keywordAndPage = new HashMap<>();
+
+        for (String s : userInfo.getKeywordList()) {
+            keywordAndPage.put(s, 1);
+        }
+
+        pixivRequestServ.downloadSearch(keywordAndPage, false);
 
 
         log.info("测试完毕");
         return null;
+    }
+
+    /**
+     * 定时从关键字中搜索一个并下载
+     */
+    @Scheduled(cron = "0 5/20 * * * *")
+    public void autoDownloadSearch() {
+        Map<String, Integer> keywordAndPage = new HashMap<>();
+        List<String> keywordList = userInfo.getKeywordList();
+        keywordAndPage.put(keywordList.get(autoDownloadSearchIndex), 1);
+
+        autoDownloadSearchIndex++;
+        if (autoDownloadSearchIndex == keywordList.size()) {
+            autoDownloadSearchIndex = 0;
+        }
+
+        Integer count = pixivRequestServ.downloadSearch(keywordAndPage, false);
+
+        if (count == 0) {
+            autoDownloadSearch();
+        }
+
     }
 }

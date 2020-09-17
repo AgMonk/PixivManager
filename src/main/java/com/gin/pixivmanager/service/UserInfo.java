@@ -1,5 +1,6 @@
 package com.gin.pixivmanager.service;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -66,6 +67,9 @@ public interface UserInfo {
      * @return 归档目录
      */
     String getArchivePath();
+
+    List<String> getKeywordList();
+
 
     /**
      * 返回用户、版面、主题名称

@@ -5,6 +5,7 @@ import com.gin.pixivmanager.entity.Tag;
 
 import java.io.File;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -48,12 +49,29 @@ public interface PixivRequestServ {
     Set<String> archive(String[] name);
 
     /**
-     * 下载多个作品 并添加tag
+     * 下载多个作品 如果是收藏作品 添加tag
      *
      * @param illustList 作品列表
      * @param rootPath   下载根目录
      * @return 下载完成的文件
      */
-    List<File> downloadIllustAndAddTags(List<Illustration> illustList, String rootPath);
+    List<File> downloadIllust(List<Illustration> illustList, String rootPath);
 
+    /**
+     * 搜索作品
+     *
+     * @param keywordAndPage 关键字和页数
+     * @param all            是否显示所有作品  false时仅显示未收藏且未记录过的作品
+     * @return 搜索结果
+     */
+    List<Illustration> search(Map<String, Integer> keywordAndPage, boolean all);
+
+    /**
+     * 搜索并下载作品
+     *
+     * @param keywordAndPage 关键字和页数
+     * @param all            是否显示所有作品  false时仅显示未收藏且未记录过的作品
+     * @return
+     */
+    Integer downloadSearch(Map<String, Integer> keywordAndPage, boolean all);
 }
