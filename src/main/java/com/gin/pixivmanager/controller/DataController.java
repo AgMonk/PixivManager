@@ -3,6 +3,7 @@ package com.gin.pixivmanager.controller;
 import com.gin.pixivmanager.entity.Tag;
 import com.gin.pixivmanager.service.DataManager;
 import com.gin.pixivmanager.util.Progress;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -18,6 +19,7 @@ import java.util.Map;
  *
  * @author bx002
  */
+@Slf4j
 @RestController
 @RequestMapping("data")
 public class DataController {
@@ -69,6 +71,7 @@ public class DataController {
         for (String s : name) {
             names.add(dataManager.delFile(s));
         }
+        log.info("删除 {} 个文件", names.size());
         return names;
     }
 

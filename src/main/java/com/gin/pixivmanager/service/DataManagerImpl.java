@@ -386,7 +386,7 @@ public class DataManagerImpl implements DataManager {
 
     @Override
     public void addMainProgress(Progress progress) {
-        log.info("添加主任务 {}", progress.getName());
+        log.debug("添加主任务 {}", progress.getName());
         mainProgress.add(progress);
     }
 

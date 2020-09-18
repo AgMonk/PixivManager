@@ -96,12 +96,12 @@ public class ReqUtil {
 
                 if (file.exists() && file.length() == contentLength) {
                     //文件已存在且大小相同
-                    log.info("文件已存在且大小相同 跳过 {}", file);
+                    log.debug("文件已存在且大小相同 跳过 {}", file);
                     return file;
                 }
                 //下载进度
                 String tempName = url.substring(url.lastIndexOf('/') + 1);
-                log.info("第{}次下载 {}", i, tempName);
+                log.debug("第{}次下载 {}", i, tempName);
                 String questName = tempName + "(" + i + ")";
                 progress = new Progress(questName, contentLength);
                 dataManager.addDownloadingProgress(progress);
@@ -132,7 +132,7 @@ public class ReqUtil {
                 fos.close();
                 EntityUtils.consume(entity);
                 long end = System.currentTimeMillis();
-                log.info("{} 下载完毕 总耗时 {} 秒 平均速度 {}KB/s", tempName, (end - start) / 1000, contentLength / (end - start));
+                log.debug("{} 下载完毕 总耗时 {} 秒 平均速度 {}KB/s", tempName, (end - start) / 1000, contentLength / (end - start));
 
 
                 return file;

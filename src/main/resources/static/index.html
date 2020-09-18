@@ -28,6 +28,11 @@
     <a href="image.html">未分类作品</a><br><br>
     <a href="twitter.html">推特上传</a><br><br>
 
+    <button @click="init()">重新载入数据</button>
+    <br>
+    <button @click="test()">测试接口</button>
+    <br>
+
 
 </div>
 </body>
@@ -35,7 +40,14 @@
     const app = new Vue({
         el: "#app",
         data: {},
-        methods: {},
+        methods: {
+            init() {
+                get("data/init", null, null);
+            },
+            test() {
+                get("pixiv/test", null, null);
+            },
+        },
         created() {
 
         },

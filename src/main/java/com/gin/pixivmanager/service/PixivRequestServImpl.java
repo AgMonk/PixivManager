@@ -78,6 +78,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
                 if (lastUpdate == null || now - lastUpdate > RANGE_OF_LAST_UPDATE
                         || ill.getTagTranslated() == null
                         || ill.getBookmarkCount() == null
+                        || ill.getBookmarkData() == 0
                 ) {
                     log.debug("缓存中的详情记录过于久远 或 仅为搜索结果 {}", s);
                     lackPidSet.add(s);
@@ -123,7 +124,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
     @Override
     public Set<String> getBookmarks(String tag, Integer page) {
         Set<String> idSet = new HashSet<>();
-        Progress progress = new Progress(getQuestName("扫描收藏"), page);
+        Progress progress = new Progress(getQuestName("扫描收藏 " + tag), page);
         dataManager.addMainProgress(progress);
         List<JSONObject> bookmarks = PixivPost.getBookmarks(userInfo.getUid(), userInfo.getCookie(), tag, page, scanExecutor, progress);
         progress.complete();
@@ -317,12 +318,15 @@ public class PixivRequestServImpl implements PixivRequestServ {
     @Override
     public Integer downloadSearch(Map<String, Integer> keywordAndPage, boolean all) {
         List<Illustration> searchResult = search(keywordAndPage, false);
+        if (searchResult.size() == 0) {
+            return 0;
+        }
         Progress progress = new Progress(getQuestName("下载搜索"), searchResult.size());
         dataManager.addMainProgress(progress);
 //        搜索结果分块
         List<List<Illustration>> splitList = new ArrayList<>();
         int index = 0;
-        int step = 5;
+        int step = 3;
         do {
             List<Illustration> subList = searchResult.subList(index, Math.min(index + step, searchResult.size()));
             splitList.add(subList);
@@ -545,8 +549,8 @@ class DownloadSearchTask implements Callable<Boolean> {
         if (b) {
             //全部下载完毕 入库
             dataManager.addIllustrations(list);
-        } else{
-            log.warn("应下载文件 {} 个 实际下载 {} 个", files.size(),fileCount);
+        } else {
+            log.warn("应下载文件 {} 个 实际下载 {} 个", fileCount, files.size());
         }
         progress.add(list.size());
         return b;

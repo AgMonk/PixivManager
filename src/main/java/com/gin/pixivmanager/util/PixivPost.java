@@ -158,7 +158,7 @@ public class PixivPost {
      */
     public static JSONObject getBookmarks(String uid, String cookie, String tag, int limit, int offset) {
         long start = System.currentTimeMillis();
-        log.info("请求收藏 UID={} 标签={} 第 {} 页", uid, tag, offset / limit + 1);
+        log.debug("请求收藏 UID={} 标签={} 第 {} 页", uid, tag, offset / limit + 1);
         JSONObject body = create(URL_BOOKMARKS_GET).setCookie(cookie)
                 .addParamMap("uid", uid)
                 .addParamMap("limit", String.valueOf(limit))
@@ -167,7 +167,7 @@ public class PixivPost {
                 .sendGet()
                 .getBody("请求收藏 " + uid);
         if (body != null) {
-            log.info("获得收藏 UID={} 标签={} 第 {} 页 耗时 {} 毫秒", uid, tag, offset / limit + 1, System.currentTimeMillis() - start);
+            log.debug("获得收藏 UID={} 标签={} 第 {} 页 耗时 {} 毫秒", uid, tag, offset / limit + 1, System.currentTimeMillis() - start);
         } else {
             log.warn("请求错误 UID={} 标签={} 第 {} 页", uid, tag, offset / limit + 1);
         }
@@ -197,7 +197,7 @@ public class PixivPost {
             total = body.getInteger("total");
             log.info("{} 标签下有总计 {} 个作品", tag, total);
             total = Math.min(total, page * limit);
-            log.info("请求 {} 个作品", total);
+            log.debug("请求 {} 个作品", total);
             JSONArray works = body.getJSONArray("works");
             for (int i = 0; i < works.size(); i++) {
                 worksList = worksList != null ? worksList : new ArrayList<>();
@@ -221,7 +221,7 @@ public class PixivPost {
                 }
             }
         }
-        log.info("获取 {} 个作品 耗时 {} 毫秒", total, System.currentTimeMillis() - start);
+        log.debug("获取 {} 个作品 耗时 {} 毫秒", total, System.currentTimeMillis() - start);
         return worksList;
     }
 

@@ -124,11 +124,13 @@ public class PixivController {
     public void autoDownloadSearch() {
         Map<String, Integer> keywordAndPage = new HashMap<>();
         List<String> keywordList = userInfo.getKeywordList();
-        keywordAndPage.put(keywordList.get(autoDownloadSearchIndex), 1);
 
-        autoDownloadSearchIndex++;
-        if (autoDownloadSearchIndex == keywordList.size()) {
-            autoDownloadSearchIndex = 0;
+        for (int i = 0; i < 3; i++) {
+            keywordAndPage.put(keywordList.get(autoDownloadSearchIndex), 1);
+            autoDownloadSearchIndex++;
+            if (autoDownloadSearchIndex == keywordList.size()) {
+                autoDownloadSearchIndex = 0;
+            }
         }
 
         Integer count = pixivRequestServ.downloadSearch(keywordAndPage, false);
@@ -137,5 +139,6 @@ public class PixivController {
             autoDownloadSearch();
         }
 
+        log.info("下载搜索 完毕 {}", keywordAndPage.keySet());
     }
 }
