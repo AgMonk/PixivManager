@@ -1,8 +1,11 @@
 package com.gin.pixivmanager.util;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * 更新进度工具
  */
+@Slf4j
 public class Progress implements Comparable<Progress> {
     /**
      * 任务名称
@@ -13,7 +16,7 @@ public class Progress implements Comparable<Progress> {
      */
     long count;
     long size;
-
+    
     public Progress(String name, long count, long size) {
         this.name = name;
         this.count = count;

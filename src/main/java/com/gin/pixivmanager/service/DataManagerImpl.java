@@ -343,6 +343,8 @@ public class DataManagerImpl implements DataManager {
                     int i2 = Integer.parseInt(p2[1]);
                     return i1 - i2;
                 }
+            } else if (s1.length() != s2.length()) {
+                return s2.length() - s1.length();
             }
 //            if (s1.length() > s2.length()) {
 //                return -1;

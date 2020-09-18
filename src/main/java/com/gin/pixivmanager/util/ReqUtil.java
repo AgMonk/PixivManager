@@ -150,6 +150,11 @@ public class ReqUtil {
         throw new IOException("下载失败 超出最大次数 " + MAX_TIMES);
     }
 
+    /**
+     * 生成http客户端
+     *
+     * @return http客户端
+     */
     private static CloseableHttpClient getCloseableHttpClient() {
         int connectionRequestTimeout = 30 * 1000;
         RequestConfig config = RequestConfig.custom()
@@ -157,9 +162,8 @@ public class ReqUtil {
                 .setConnectTimeout(connectionRequestTimeout)
                 .setSocketTimeout(connectionRequestTimeout).build();
 
-        CloseableHttpClient client = HttpClients.custom()
+        return HttpClients.custom()
                 .setDefaultRequestConfig(config).build();
-        return client;
     }
 
     /**

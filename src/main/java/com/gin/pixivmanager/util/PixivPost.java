@@ -108,8 +108,14 @@ public class PixivPost {
      */
     public static List<JSONObject> detail(Set<String> pidSet, String cookie, ThreadPoolTaskExecutor executor, Progress progress) {
         List<Callable<JSONObject>> tasks = new ArrayList<>();
-        for (String s : pidSet) {
-            tasks.add(new detailTask(s, cookie, progress));
+        for (String pid : pidSet) {
+            tasks.add(() -> {
+                JSONObject detail = PixivPost.detail(pid, cookie);
+                if (progress != null) {
+                    progress.add(1);
+                }
+                return detail;
+            });
         }
         return executeTasks(tasks, 60, executor, "detail", 2);
     }
@@ -209,7 +215,12 @@ public class PixivPost {
         if (offset < total) {
             List<Callable<JSONObject>> tasks = new ArrayList<>();
             while (offset < total) {
-                tasks.add(new getBookmarkTask(cookie, uid, tag, limit, offset, progress));
+                int finalOffset = offset;
+                tasks.add(() -> {
+                    JSONObject bookmarks = PixivPost.getBookmarks(uid, cookie, tag, limit, finalOffset);
+                    progress.add(1);
+                    return bookmarks;
+                });
                 offset += limit;
             }
             List<JSONObject> otherBodies = executeTasks(tasks, 60, executor, "bookmark", 2);
@@ -322,8 +333,14 @@ public class PixivPost {
         log.info("添加收藏任务 {}个", pidAndTags.size());
 
         List<Callable<Object>> tasks = new ArrayList<>();
-        for (String s : pidSet) {
-            tasks.add(new bmkTask(s, cookie, tt, pidAndTags.get(s), progress));
+        for (String pid : pidSet) {
+            tasks.add(() -> {
+                Object bmk = PixivPost.bmk(pid, cookie, tt, pidAndTags.get(pid));
+                if (progress != null) {
+                    progress.add(1);
+                }
+                return bmk;
+            });
         }
         //执行结果
         List<Object> bmk = executeTasks(tasks, 5, executor, "bmk", 2);
@@ -536,90 +553,3 @@ public class PixivPost {
     }
 }
 
-/**
- * 详情任务
- */
-class detailTask implements Callable<JSONObject> {
-    private final String pid;
-    private final String useCookie;
-    private final Progress progress;
-
-    public detailTask(String pid, String useCookie, Progress progress) {
-        this.pid = pid;
-        this.useCookie = useCookie;
-        this.progress = progress;
-    }
-
-    @Override
-    public JSONObject call() throws Exception {
-        JSONObject detail = PixivPost.detail(pid, useCookie);
-        if (progress != null) {
-            progress.add(1);
-        }
-        return detail;
-    }
-}
-
-/**
- * 请求收藏中作品任务
- */
-class getBookmarkTask implements Callable<JSONObject> {
-    private final String cookie;
-    private final String uid;
-    private final String tag;
-    private final int limit;
-    private final int offset;
-    private final Progress progress;
-
-    getBookmarkTask(String cookie, String uid, String tag, int limit, int offset, Progress progress) {
-        this.cookie = cookie;
-        this.uid = uid;
-        this.tag = tag;
-        this.limit = limit;
-        this.offset = offset;
-        this.progress = progress;
-    }
-
-    /**
-     * Computes a result, or throws an exception if unable to do so.
-     *
-     * @return computed result
-     * @throws Exception if unable to compute a result
-     */
-    @Override
-    public JSONObject call() throws Exception {
-        JSONObject bookmarks = PixivPost.getBookmarks(uid, cookie, tag, limit, offset);
-        if (progress != null) {
-            progress.add(1);
-        }
-        return bookmarks;
-    }
-}
-
-/**
- * 收藏作品任务
- */
-class bmkTask implements Callable<Object> {
-    private final String pid;
-    private final String cookie;
-    private final String tt;
-    private final String tags;
-    private final Progress progress;
-
-    bmkTask(String pid, String cookie, String tt, String tags, Progress progress) {
-        this.pid = pid;
-        this.cookie = cookie;
-        this.tt = tt;
-        this.tags = tags;
-        this.progress = progress;
-    }
-
-    @Override
-    public Object call() throws Exception {
-        Object bmk = PixivPost.bmk(pid, cookie, tt, tags);
-        if (progress != null) {
-            progress.add(1);
-        }
-        return bmk;
-    }
-}

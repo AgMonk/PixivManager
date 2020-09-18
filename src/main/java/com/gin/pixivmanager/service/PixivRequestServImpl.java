@@ -362,7 +362,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
      * @return 唯一任务名
      */
     private static String getQuestName(String name) {
-        return name + System.currentTimeMillis() % 1000;
+        return name + "-" + System.currentTimeMillis() % 1000;
     }
 
 
@@ -502,16 +502,10 @@ class SearchTask implements Callable<JSONArray> {
         this.progress = progress;
     }
 
-    /**
-     * Computes a result, or throws an exception if unable to do so.
-     *
-     * @return computed result
-     * @throws Exception if unable to compute a result
-     */
     @Override
     public JSONArray call() throws Exception {
         JSONArray array = PixivPost.search(keyword, p, cookie, searchTitle, "all");
-        if (array != null) {
+        if (progress != null) {
             progress.add(1);
         }
         return array;
