@@ -142,7 +142,7 @@ public class DataManagerImpl implements DataManager {
             List<File> list = new ArrayList<>();
             String rootPath = userInfo.getRootPath();
             listFiles(new File(rootPath), list);
-
+            log.info("未分类作品数量 {}", list.size());
             addFilesMap(list);
 
             latch.countDown();
@@ -330,7 +330,40 @@ public class DataManagerImpl implements DataManager {
     public List<Map<String, String>> getFilesPath() {
         List<Map<String, String>> list = new ArrayList<>();
         List<String> keyList = new ArrayList<>(filesMap.keySet());
-        Collections.sort(keyList);
+//        Collections.sort(keyList);
+
+        keyList.sort((s1, s2) -> {
+            if (s1.contains("_p") && s2.contains("_p")) {
+                String[] p1 = s1.split("_p");
+                String[] p2 = s2.split("_p");
+                if (!p1[0].equals(p2[0])) {
+                    return -1 * p1[0].compareTo(p2[0]);
+                } else {
+                    int i1 = Integer.parseInt(p1[1]);
+                    int i2 = Integer.parseInt(p2[1]);
+                    return i1 - i2;
+                }
+            }
+//            if (s1.length() > s2.length()) {
+//                return -1;
+//            } else if (s1.length() < s2.length()) {
+//                return 1;
+//            } else if (s1.contains("_p") && s2.contains("_p")) {
+//                String sub1 = s1.substring(0, s1.indexOf("_p"));
+//                String sub2 = s2.substring(0, s2.indexOf("_p"));
+//                if (!sub1.equals(sub2)) {
+//                    return -1 * sub1.compareTo(sub2);
+//                } else {
+//                    sub1 = s1.substring(s1.indexOf("_p"));
+//                    sub2 = s2.substring(s2.indexOf("_p"));
+//                    return sub1.compareTo(sub2);
+//                }
+//            } else {
+            return -1 * s1.compareTo(s2);
+//            }
+
+        });
+
 //        keyList.sort((s1, s2) -> {
 //            System.err.println(s1 + "  " + s2);
 //            s1 = s1.replace("p", "");
