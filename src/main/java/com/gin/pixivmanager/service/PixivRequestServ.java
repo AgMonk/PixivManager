@@ -3,7 +3,6 @@ package com.gin.pixivmanager.service;
 import com.gin.pixivmanager.entity.Illustration;
 import com.gin.pixivmanager.entity.Tag;
 
-import java.io.File;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -18,10 +17,11 @@ public interface PixivRequestServ {
     /**
      * 请求一个列表中的pid详情
      *
-     * @param idSet pid
+     * @param idSet        pid
+     * @param idBookmarked
      * @return 作品详情
      */
-    List<Illustration> getIllustrationDetail(Set<String> idSet, boolean useCookie);
+    List<Illustration> getIllustrationDetail(Set<String> idSet, boolean idBookmarked);
 
     /**
      * 获取收藏的作品id
@@ -41,6 +41,13 @@ public interface PixivRequestServ {
     void setTag(Tag tag);
 
     /**
+     * 批量添加tag
+     *
+     * @param detail 详情
+     */
+    void addTags(List<Illustration> detail);
+
+    /**
      * 文件归档(重命名)
      *
      * @param name id列表 格式  xxxx_p0
@@ -55,7 +62,8 @@ public interface PixivRequestServ {
      * @param rootPath   下载根目录
      * @return 下载完成的文件
      */
-    List<File> downloadIllust(List<Illustration> illustList, String rootPath);
+    void downloadIllust(List<Illustration> illustList, String rootPath);
+
 
     /**
      * 搜索作品

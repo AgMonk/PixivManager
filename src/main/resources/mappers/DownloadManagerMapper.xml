@@ -13,6 +13,14 @@ Mapper 3.0//EN"
         from t_downloadlist;
     </select>
     <insert id="addDownloadFileList">
+        delete from t_downloadlist where url in (
+        <foreach collection="list" item="i" index="index" separator=",">
+            (
+            #{i.url}
+            )
+        </foreach>
+        );
+
         insert into t_downloadlist (url, path)
         values
         <foreach collection="list" item="i" index="index" separator=",">

@@ -1,5 +1,6 @@
 package com.gin.pixivmanager.service;
 
+import com.gin.pixivmanager.entity.DownloadFile;
 import com.gin.pixivmanager.entity.Illustration;
 import com.gin.pixivmanager.entity.Tag;
 import com.gin.pixivmanager.util.Progress;
@@ -166,4 +167,24 @@ public interface DataManager {
      * @param name 文件名
      */
     void moveFile(String[] name);
+
+    /**
+     * 添加下载列表
+     *
+     * @param list 下载列表
+     * @return 数量
+     */
+    Integer addDownload(List<DownloadFile> list);
+
+    /**
+     * 从列表中把 1个未正在下载的文件添加进队列
+     */
+    void download();
+
+    /**
+     * 返回当前下载队列的数量
+     *
+     * @return 下载队列数量
+     */
+    Integer getDownloadingCount();
 }

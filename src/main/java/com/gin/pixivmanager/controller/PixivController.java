@@ -3,7 +3,6 @@ package com.gin.pixivmanager.controller;
 import com.gin.pixivmanager.entity.Illustration;
 import com.gin.pixivmanager.entity.Tag;
 import com.gin.pixivmanager.service.DataManager;
-import com.gin.pixivmanager.service.DownloadManager;
 import com.gin.pixivmanager.service.PixivRequestServ;
 import com.gin.pixivmanager.service.UserInfo;
 import lombok.extern.slf4j.Slf4j;
@@ -13,7 +12,6 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.io.File;
 import java.util.*;
 
 /**
@@ -29,17 +27,15 @@ public class PixivController {
     final PixivRequestServ pixivRequestServ;
     final UserInfo userInfo;
     final ThreadPoolTaskExecutor scanExecutor;
-    final DownloadManager downloadManager;
 
     final String untaggedLocker = "";
     Integer autoDownloadSearchIndex = 0;
 
-    public PixivController(DataManager dataManager, PixivRequestServ pixivRequestServ, UserInfo userInfo, ThreadPoolTaskExecutor scanExecutor, DownloadManager downloadManager) {
+    public PixivController(DataManager dataManager, PixivRequestServ pixivRequestServ, UserInfo userInfo, ThreadPoolTaskExecutor scanExecutor) {
         this.dataManager = dataManager;
         this.pixivRequestServ = pixivRequestServ;
         this.userInfo = userInfo;
         this.scanExecutor = scanExecutor;
-        this.downloadManager = downloadManager;
     }
 
     /**
@@ -62,17 +58,18 @@ public class PixivController {
      * @return 文件列表
      */
     @RequestMapping("downloadBookmark")
-    public List<File> downloadBookmark(String tag, Integer page) {
+    public void downloadBookmark(String tag, Integer page) {
         tag = tag != null ? tag : "未分類";
 
         Set<String> idSet = pixivRequestServ.getBookmarks(tag, page);
         if (idSet.size() == 0) {
-            return null;
+            return;
         }
         List<Illustration> detail = pixivRequestServ.getIllustrationDetail(idSet, true);
 
 
-        return pixivRequestServ.downloadIllust(detail, userInfo.getRootPath() + "/" + tag);
+        pixivRequestServ.downloadIllust(detail, userInfo.getRootPath() + "/" + tag);
+        pixivRequestServ.addTags(detail);
     }
 
     @RequestMapping("addTranslation")

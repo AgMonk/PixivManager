@@ -106,16 +106,16 @@ public class NgaPostServImpl implements NgaPostServ {
                 //查询详情
                 List<Illustration> detail = pixivRequestServ.getIllustrationDetail(lackPidSet, false);
                 //下载文件
-                List<File> download = pixivRequestServ.downloadIllust(detail, tempPath);
-                for (File file : download) {
-                    String fileName = file.getName();
-                    String pidAndCount = fileName.substring(0, fileName.lastIndexOf('.'));
-                    //发现需要文件
-                    if (lackList.contains(pidAndCount)) {
-                        //加入map
-                        uploadMap.put(pidAndCount, file);
-                    }
-                }
+                pixivRequestServ.downloadIllust(detail, tempPath);
+//                for (File file : download) {
+//                    String fileName = file.getName();
+//                    String pidAndCount = fileName.substring(0, fileName.lastIndexOf('.'));
+//                    //发现需要文件
+//                    if (lackList.contains(pidAndCount)) {
+//                        //加入map
+//                        uploadMap.put(pidAndCount, file);
+//                    }
+//                }
             }
             latch.countDown();
         });

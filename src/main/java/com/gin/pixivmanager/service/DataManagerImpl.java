@@ -1,10 +1,14 @@
 package com.gin.pixivmanager.service;
 
 import com.gin.pixivmanager.dao.DataManagerMapper;
+import com.gin.pixivmanager.dao.DownloadManagerMapper;
+import com.gin.pixivmanager.entity.DownloadFile;
 import com.gin.pixivmanager.entity.Illustration;
 import com.gin.pixivmanager.entity.Tag;
 import com.gin.pixivmanager.util.FilesUtil;
+import com.gin.pixivmanager.util.PixivPost;
 import com.gin.pixivmanager.util.Progress;
+import com.gin.pixivmanager.util.ReqUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -14,6 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -63,15 +68,26 @@ public class DataManagerImpl implements DataManager {
      * 文件列表
      */
     private Map<String, File> filesMap;
+    /**
+     * 下载文件列表
+     */
+    final private List<DownloadFile> downloadFileList;
 
     final private ThreadPoolTaskExecutor serviceExecutor;
+    final private ThreadPoolTaskExecutor downloadExecutor;
+    final private DownloadManagerMapper downloadManagerMapper;
     final private DataManagerMapper mapper;
     final private UserInfo userInfo;
 
-    public DataManagerImpl(ThreadPoolTaskExecutor serviceExecutor, DataManagerMapper dataManagerMapper, UserInfo userInfo) {
+    public DataManagerImpl(ThreadPoolTaskExecutor serviceExecutor, ThreadPoolTaskExecutor downloadExecutor, DownloadManagerMapper downloadManagerMapper, DataManagerMapper dataManagerMapper, UserInfo userInfo) {
         this.serviceExecutor = serviceExecutor;
+        this.downloadExecutor = downloadExecutor;
+        this.downloadManagerMapper = downloadManagerMapper;
         this.mapper = dataManagerMapper;
         this.userInfo = userInfo;
+
+        downloadFileList = downloadManagerMapper.findDownloadFileList();
+
 
         init();
 
@@ -147,7 +163,6 @@ public class DataManagerImpl implements DataManager {
 
             latch.countDown();
         });
-
 
         try {
             latch.await();
@@ -492,6 +507,52 @@ public class DataManagerImpl implements DataManager {
         }
     }
 
+
+    @Override
+    public Integer addDownload(List<DownloadFile> list) {
+        synchronized (downloadFileList) {
+            log.info("添加下载队列 {} 个", list.size());
+            downloadFileList.addAll(list);
+            return downloadManagerMapper.addDownloadFileList(list);
+        }
+    }
+
+
+    private void removeDownload(DownloadFile downloadFile) {
+        synchronized (downloadFileList) {
+            downloadFileList.remove(downloadFile);
+            downloadManagerMapper.remove(downloadFile);
+        }
+    }
+
+    /**
+     * 从列表中把 1个未正在下载的文件添加进队列
+     */
+    @Override
+    public void download() {
+        synchronized (downloadFileList) {
+            List<Callable<File>> list = new ArrayList<>();
+            for (DownloadFile downloadFile : downloadFileList) {
+                if (!downloadFile.isDownloading()) {
+                    downloadFile.setDownloading(true);
+                    list.add(() -> {
+                        File file = ReqUtil.download(downloadFile.getUrl(), downloadFile.getPath());
+                        removeDownload(downloadFile);
+
+                        return file;
+                    });
+                    break;
+                }
+            }
+            List<File> files = PixivPost.executeTasks(list, 600, downloadExecutor, "dl", 5);
+            addFilesMap(files);
+        }
+    }
+
+    @Override
+    public Integer getDownloadingCount() {
+        return downloadFileList.size();
+    }
 
     /**
      * 定时清理进度中完成的任务

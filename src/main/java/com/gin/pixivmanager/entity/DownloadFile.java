@@ -17,4 +17,5 @@ public class DownloadFile {
         this.path = path;
         this.url = url;
     }
+
 }

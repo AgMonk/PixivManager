@@ -176,7 +176,7 @@ public class Illustration {
     public String getLink() {
         return "https://www.pixiv.net/artworks/" + id;
     }
-
+    
     public List<String> getUrls() {
         List<String> list = new ArrayList<>();
         urlPrefix += urlPrefix.endsWith("/") ? "" : "/";
