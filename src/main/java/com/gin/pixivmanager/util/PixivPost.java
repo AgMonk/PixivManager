@@ -109,7 +109,7 @@ public class PixivPost {
      */
     public static List<JSONObject> detail(Set<String> pidSet, String cookie, ThreadPoolTaskExecutor executor, Progress progress) {
         List<Callable<JSONObject>> tasks = new ArrayList<>();
-        log.info("请求作品详情 {} 个", pidSet.size());
+        log.debug("请求作品详情 {} 个", pidSet.size());
         for (String pid : pidSet) {
             tasks.add(() -> {
                 JSONObject detail = PixivPost.detail(pid, cookie);
@@ -120,7 +120,7 @@ public class PixivPost {
             });
         }
         List<JSONObject> detail = executeTasks(tasks, 60, executor, "detail", 2);
-        log.info("获得作品详情 {} 个", detail.size());
+        log.debug("获得作品详情 {} 个", detail.size());
         return detail;
     }
 

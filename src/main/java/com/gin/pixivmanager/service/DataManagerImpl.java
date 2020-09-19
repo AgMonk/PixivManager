@@ -6,7 +6,6 @@ import com.gin.pixivmanager.entity.DownloadFile;
 import com.gin.pixivmanager.entity.Illustration;
 import com.gin.pixivmanager.entity.Tag;
 import com.gin.pixivmanager.util.FilesUtil;
-import com.gin.pixivmanager.util.PixivPost;
 import com.gin.pixivmanager.util.Progress;
 import com.gin.pixivmanager.util.ReqUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -18,7 +17,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -529,23 +527,28 @@ public class DataManagerImpl implements DataManager {
      * 从列表中把 1个未正在下载的文件添加进队列
      */
     @Override
+    @Scheduled(cron = "0/2 * * * * *")
     public void download() {
-        synchronized (downloadFileList) {
-            List<Callable<File>> list = new ArrayList<>();
+        if (downloadExecutor.getActiveCount() < downloadExecutor.getMaxPoolSize() * 2) {
             for (DownloadFile downloadFile : downloadFileList) {
                 if (!downloadFile.isDownloading()) {
-                    downloadFile.setDownloading(true);
-                    list.add(() -> {
-                        File file = ReqUtil.download(downloadFile.getUrl(), downloadFile.getPath());
-                        removeDownload(downloadFile);
-
-                        return file;
+                    downloadExecutor.execute(() -> {
+                        File file;
+                        try {
+                            downloadFile.setDownloading(true);
+                            file = ReqUtil.download(downloadFile.getUrl(), downloadFile.getPath());
+                            removeDownload(downloadFile);
+                            List<File> files = new ArrayList<File>();
+                            files.add(file);
+                            addFilesMap(files);
+                        } catch (IOException e) {
+                            downloadFile.setDownloading(false);
+                            e.printStackTrace();
+                        }
                     });
                     break;
                 }
             }
-            List<File> files = PixivPost.executeTasks(list, 600, downloadExecutor, "dl", 5);
-            addFilesMap(files);
         }
     }
 
@@ -559,7 +562,6 @@ public class DataManagerImpl implements DataManager {
      */
     @Scheduled(cron = "0/3 * * * * *")
     public void cleanProgress() {
-
         mainProgress.removeIf(Progress::isCompleted);
         downloadingProgress.removeIf(Progress::isCompleted);
     }

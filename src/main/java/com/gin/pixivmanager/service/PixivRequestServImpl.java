@@ -287,30 +287,6 @@ public class PixivRequestServImpl implements PixivRequestServ {
             }
         }
         dataManager.addDownload(downloadFileList);
-
-//        int size = illustList.size();
-//        List<String> idList = new ArrayList<>();
-//        illustList.forEach(ill -> {
-//            idList.add(ill.getId());
-//        });
-//        log.info("请求下载 {}个作品 {}", size, idList.subList(0, Math.min(10, idList.size())));
-//
-//        List<Callable<List<File>>> tasks = new ArrayList<>();
-//        for (Illustration ill : illustList) {
-//            tasks.add(new DownloadFilesTask(ill, rootPath, dataManager, downloadExecutor, userInfo.getCookie(), userInfo.getTt()));
-//        }
-//
-//        List<List<File>> list = PixivPost.executeTasks(tasks, 1800, downloadMainExecutor, "dMain", 5);
-//
-//        List<File> files = new ArrayList<>();
-//        for (List<File> fileList : list) {
-//            files.addAll(fileList);
-//        }
-//        log.info("下载完成 {} 个作品 总计 {} 个文件", list.size(), files.size());
-
-//        return files;
-
-
     }
 
 
@@ -321,8 +297,11 @@ public class PixivRequestServImpl implements PixivRequestServ {
         //创建搜索任务
         List<Callable<JSONArray>> tasks = new ArrayList<>();
         keywordAndPage.forEach((k, i) -> {
-            tasks.add(new SearchTask(k, i, userInfo.getCookie(), false, progress));
-//            tasks.add(new SearchTask(k, i, userInfo.getCookie(), true, progress));
+            tasks.add(() -> {
+                JSONArray array = PixivPost.search(k, i, userInfo.getCookie(), false, "all");
+                progress.add(1);
+                return array;
+            });
         });
         List<JSONArray> searchResult = PixivPost.executeTasks(tasks, 60, scanExecutor, "search", 5);
 
@@ -396,31 +375,3 @@ public class PixivRequestServImpl implements PixivRequestServ {
     }
 }
 
-/**
- * 搜索任务
- */
-@Slf4j
-class SearchTask implements Callable<JSONArray> {
-    private final String keyword;
-    private final int p;
-    private final String cookie;
-    private final boolean searchTitle;
-    private final Progress progress;
-
-    SearchTask(String keyword, int p, String cookie, boolean searchTitle, Progress progress) {
-        this.keyword = keyword;
-        this.p = p;
-        this.cookie = cookie;
-        this.searchTitle = searchTitle;
-        this.progress = progress;
-    }
-
-    @Override
-    public JSONArray call() throws Exception {
-        JSONArray array = PixivPost.search(keyword, p, cookie, searchTitle, "all");
-        if (progress != null) {
-            progress.add(1);
-        }
-        return array;
-    }
-}

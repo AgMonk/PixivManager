@@ -113,18 +113,22 @@ public class PixivController {
 
     @RequestMapping("test")
     public Object test() {
+
+        autoDownloadSearch();
+
+        log.info("测试接口运行完毕");
         return null;
     }
 
     /**
      * 定时从关键字中搜索一个并下载
      */
-    @Scheduled(cron = "0 5/20 * * * *")
+    @Scheduled(cron = "0 5/10 * * * *")
     public void autoDownloadSearch() {
         Map<String, Integer> keywordAndPage = new HashMap<>();
         List<String> keywordList = userInfo.getKeywordList();
 
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 2; i++) {
             keywordAndPage.put(keywordList.get(autoDownloadSearchIndex), 1);
             autoDownloadSearchIndex++;
             if (autoDownloadSearchIndex == keywordList.size()) {
@@ -132,12 +136,16 @@ public class PixivController {
             }
         }
 
-        Integer count = pixivRequestServ.downloadSearch(keywordAndPage, false);
-
-        if (count == 0) {
-            autoDownloadSearch();
+        List<Illustration> search = pixivRequestServ.search(keywordAndPage, false);
+        if (search.size() == 0) {
+            return;
         }
+        HashSet<String> idSet = new HashSet<>();
+        for (Illustration ill : search) {
+            idSet.add(ill.getId());
+        }
+        List<Illustration> detail = pixivRequestServ.getIllustrationDetail(idSet, false);
 
-        log.info("下载搜索 完毕 {}", keywordAndPage.keySet());
+        pixivRequestServ.downloadIllust(detail, userInfo.getRootPath() + "/search");
     }
 }
