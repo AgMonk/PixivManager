@@ -343,7 +343,6 @@ public class DataManagerImpl implements DataManager {
     public List<Map<String, String>> getFilesPath() {
         List<Map<String, String>> list = new ArrayList<>();
         List<String> keyList = new ArrayList<>(filesMap.keySet());
-//        Collections.sort(keyList);
 
         keyList.sort((s1, s2) -> {
             if (s1.contains("_p") && s2.contains("_p")) {
@@ -359,50 +358,10 @@ public class DataManagerImpl implements DataManager {
             } else if (s1.length() != s2.length()) {
                 return s2.length() - s1.length();
             }
-//            if (s1.length() > s2.length()) {
-//                return -1;
-//            } else if (s1.length() < s2.length()) {
-//                return 1;
-//            } else if (s1.contains("_p") && s2.contains("_p")) {
-//                String sub1 = s1.substring(0, s1.indexOf("_p"));
-//                String sub2 = s2.substring(0, s2.indexOf("_p"));
-//                if (!sub1.equals(sub2)) {
-//                    return -1 * sub1.compareTo(sub2);
-//                } else {
-//                    sub1 = s1.substring(s1.indexOf("_p"));
-//                    sub2 = s2.substring(s2.indexOf("_p"));
-//                    return sub1.compareTo(sub2);
-//                }
-//            } else {
             return -1 * s1.compareTo(s2);
-//            }
 
         });
 
-//        keyList.sort((s1, s2) -> {
-//            System.err.println(s1 + "  " + s2);
-//            s1 = s1.replace("p", "");
-//            s2 = s2.replace("p", "");
-//            if (s1.length() > s2.length()) {
-//                return -1;
-//            }
-//            long pid1 = Long.parseLong(s1.contains("_") ? s1.substring(0, s1.indexOf("_")) : s1);
-//            long pid2 = Long.parseLong(s2.contains("_") ? s2.substring(0, s2.indexOf("_")) : s2);
-//
-//            if (pid1 > pid2) {
-//                return -1;
-//            } else if (pid1 < pid2) {
-//                return 1;
-//            } else {
-//                long count1 = Long.parseLong(s1.contains("_") ? s1.substring(s1.indexOf("_") + 1) : s1);
-//                long count2 = Long.parseLong(s2.contains("_") ? s2.substring(s2.indexOf("_") + 1) : s2);
-//                if (count1 > count2) {
-//                    return 1;
-//                } else {
-//                    return -1;
-//                }
-//            }
-//        });
 
         for (String s : keyList) {
             Map<String, String> map = new HashMap<>();

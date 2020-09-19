@@ -97,19 +97,6 @@ public class PixivRequestServImpl implements PixivRequestServ {
                 dataManager.addIllustrations(detailsFromPixiv);
                 dataManager.addTags(detailsFromPixiv);
 
-//                //删除已收藏的作品
-//                detailsFromPixiv.removeIf(ill -> ill.getBookmarkData() == 1);
-//                if (idBookmarked && detailsFromPixiv.size() > 0) {
-//                    requestExecutor.execute(() -> {
-//                        //把剩余作品添加收藏并添加tag
-//                        Progress progress = new Progress(getQuestName("收藏作品"), detailsFromPixiv.size());
-//                        Map<String, String> pidAndTags = new HashMap<>();
-//                        for (Illustration ill : detailsFromPixiv) {
-//                            pidAndTags.put(ill.getId(), ill.createSimpleTags());
-//                        }
-//                        PixivPost.bmk(pidAndTags, userInfo.getCookie(), userInfo.getTt(), null, progress);
-//                    });
-//                }
             }
         }
         return list;
