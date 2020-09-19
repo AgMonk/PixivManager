@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
@@ -69,7 +70,7 @@ public class DataManagerImpl implements DataManager {
     /**
      * 下载文件列表
      */
-    final private List<DownloadFile> downloadFileList;
+    final private Set<DownloadFile> downloadFileList;
 
     final private ThreadPoolTaskExecutor serviceExecutor;
     final private ThreadPoolTaskExecutor downloadExecutor;
@@ -466,11 +467,11 @@ public class DataManagerImpl implements DataManager {
 
 
     @Override
-    public Integer addDownload(List<DownloadFile> list) {
+    public Integer addDownload(Set<DownloadFile> set) {
         synchronized (downloadFileList) {
-            log.info("添加下载队列 {} 个", list.size());
-            downloadFileList.addAll(list);
-            return downloadManagerMapper.addDownloadFileList(list);
+            log.info("添加下载队列 {} 个", set.size());
+            downloadFileList.addAll(set);
+            return downloadManagerMapper.addDownloadFileList(set);
         }
     }
 
@@ -486,15 +487,16 @@ public class DataManagerImpl implements DataManager {
      * 从列表中把 1个未正在下载的文件添加进队列
      */
     @Override
-    @Scheduled(cron = "0/2 * * * * *")
+    @Scheduled(cron = "0 0/5 * * * *")
     public void download() {
-        if (downloadExecutor.getActiveCount() < downloadExecutor.getMaxPoolSize() * 2) {
+//        if (downloadExecutor.getActiveCount() < downloadExecutor.getMaxPoolSize()+2 ) {
             for (DownloadFile downloadFile : downloadFileList) {
                 if (!downloadFile.isDownloading()) {
+//                    log.info("添加下载队列 {}",downloadFile);
+                    downloadFile.setDownloading(true);
                     downloadExecutor.execute(() -> {
                         File file;
                         try {
-                            downloadFile.setDownloading(true);
 //                            file = ReqUtil.PoolDownload(downloadFile.getUrl(), downloadFile.getPath());
                             file = ReqUtil.download(downloadFile.getUrl(), downloadFile.getPath());
                             removeDownload(downloadFile);
@@ -506,10 +508,10 @@ public class DataManagerImpl implements DataManager {
                             e.printStackTrace();
                         }
                     });
-                    break;
+//                    break;
                 }
             }
-        }
+//        }
     }
 
     @Override

@@ -10,11 +10,12 @@ Mapper 3.0//EN"
 
     <select id="findDownloadFileList" resultType="com.gin.pixivmanager.entity.DownloadFile">
         select url, path
-        from t_downloadlist;
+        from t_downloadlist
+        ORDER BY url DESC
     </select>
     <insert id="addDownloadFileList">
         delete from t_downloadlist where url in (
-        <foreach collection="list" item="i" index="index" separator=",">
+        <foreach collection="set" item="i" index="index" separator=",">
             (
             #{i.url}
             )
@@ -23,7 +24,7 @@ Mapper 3.0//EN"
 
         insert into t_downloadlist (url, path)
         values
-        <foreach collection="list" item="i" index="index" separator=",">
+        <foreach collection="set" item="i" index="index" separator=",">
             (
             #{i.url},#{i.path}
             )

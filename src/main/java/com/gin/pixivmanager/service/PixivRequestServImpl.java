@@ -267,7 +267,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
 
     @Override
     public void downloadIllust(List<Illustration> details, String rootPath) {
-        List<DownloadFile> downloadFileList = new ArrayList<>();
+        Set<DownloadFile> downloadFileList =new HashSet<>();
         for (Illustration ill : details) {
             for (String url : ill.getUrls()) {
                 downloadFileList.add(new DownloadFile(url, rootPath + url.substring(url.lastIndexOf("/"))));

@@ -4,6 +4,7 @@ import com.gin.pixivmanager.entity.DownloadFile;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * @author bx002
@@ -16,15 +17,15 @@ public interface DownloadManagerMapper {
      *
      * @return 文件列表
      */
-    List<DownloadFile> findDownloadFileList();
+    Set<DownloadFile> findDownloadFileList();
 
     /**
      * 添加下载文件列表
      *
-     * @param list 文件列表
+     * @param set 文件列表
      * @return 添加数量
      */
-    Integer addDownloadFileList(List<DownloadFile> list);
+    Integer addDownloadFileList(Set<DownloadFile> set);
 
     /**
      * 删除一个文件

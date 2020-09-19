@@ -91,7 +91,7 @@ public class ReqUtil {
         //状态码 = 206 时表示支持断点续传
         if (statusCode == HttpStatus.SC_PARTIAL_CONTENT) {
             //创建线程池
-            ThreadPoolTaskExecutor downloadExecutor = TaskExecutePool.getExecutor("d", 10);
+            ThreadPoolTaskExecutor downloadExecutor = TaskExecutePool.getExecutor(filePath.substring(filePath.lastIndexOf("/")+1), 5);
             int k = 1024;
             //分块大小 这里选择80k
             int step = 40 * k;
@@ -154,7 +154,7 @@ public class ReqUtil {
 
             long end = System.currentTimeMillis();
 
-            log.info("{} 下载完毕 用时 {}毫秒 总速度:{}KB/s", filePath.substring(filePath.lastIndexOf("/") + 1), (end - start), contentLength * 1000 / 1024 / (end - start));
+            log.info("{} 下载完毕 用时 {}毫秒 总速度:{}KB/s", filePath.substring(filePath.lastIndexOf("/") + 1), (end - start), contentLength * 1000L / 1024 / (end - start));
         }
         return file;
     }

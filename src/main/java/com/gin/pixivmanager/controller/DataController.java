@@ -99,6 +99,8 @@ public class DataController {
 
     @RequestMapping("test")
     public Object test() {
+dataManager.download();
+
         return null;
     }
 }
