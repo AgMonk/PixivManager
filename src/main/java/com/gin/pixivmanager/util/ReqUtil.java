@@ -1,5 +1,6 @@
 package com.gin.pixivmanager.util;
 
+import com.gin.pixivmanager.config.TaskExecutePool;
 import com.gin.pixivmanager.service.DataManager;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.ConnectionClosedException;
@@ -18,6 +19,7 @@ import org.apache.http.entity.mime.content.StringBody;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.util.StringUtils;
 
 import java.io.*;
@@ -56,6 +58,106 @@ public class ReqUtil {
         HEADERS_DEFUALT.put("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.135 Safari/537.36");
     }
 
+    /**
+     * 多线程下载
+     *
+     * @param url      url
+     * @param filePath 文件地址
+     * @throws IOException 异常
+     */
+    public static File PoolDownload(String url, String filePath) throws IOException {
+        DataManager dataManager = SpringContextUtil.getBean(DataManager.class);
+
+        //开始时间
+        long start = System.currentTimeMillis();
+
+        File file = new File(filePath);
+        if (file.exists()) {
+            file.delete();
+        }
+        File parentFile = file.getParentFile();
+        if (!parentFile.exists()) {
+            parentFile.mkdirs();
+        }
+        //第一次尝试连接 获取文件大小 以及是否支持断点续传
+        CloseableHttpResponse response = getResponse(url, null, null);
+        //状态码
+        int statusCode = response.getStatusLine().getStatusCode();
+        //文件总大小 这里直接转换为int比较方便计算 因为我们的目的是下载小文件 int足够使用
+        int contentLength = Math.toIntExact(response.getEntity().getContentLength());
+        //字节数组 用来存储下载到的数据 下载完成后写入到文件
+        byte[] bytesFile = new byte[contentLength];
+
+        //状态码 = 206 时表示支持断点续传
+        if (statusCode == HttpStatus.SC_PARTIAL_CONTENT) {
+            //创建线程池
+            ThreadPoolTaskExecutor downloadExecutor = TaskExecutePool.getExecutor("d", 10);
+            int k = 1024;
+            //分块大小 这里选择80k
+            int step = 40 * k;
+            //用来分配任务的数组下标
+            int index = 0;
+            Progress progress = new Progress(url.substring(url.lastIndexOf('/') + 1), contentLength);
+            dataManager.addDownloadingProgress(progress);
+            while (index < contentLength) {
+                int finalIndex = index;
+                //提交任务
+                downloadExecutor.execute(() -> {
+                    //循环到成功
+                    while (true) {
+                        try {
+                            //请求一个分块的数据
+                            CloseableHttpResponse res = getResponse(url, finalIndex, finalIndex + step - 1);
+                            HttpEntity entity = res.getEntity();
+                            InputStream inputStream = entity.getContent();
+                            //缓冲字节数组 大小4k
+                            byte[] buffer = new byte[4 * k];
+                            //读取到的字节数组长度
+                            int readLength;
+                            //分块内已读取到的位置下标
+                            int totalRead = 0;
+                            while ((readLength = inputStream.read(buffer)) > 0) {
+                                //把读取到的字节数组复制到总的字节数组的对应位置
+                                System.arraycopy(buffer, 0, bytesFile, finalIndex + totalRead, readLength);
+                                //下标移动
+                                totalRead += readLength;
+                            }
+                            progress.add(totalRead);
+                            EntityUtils.consume(entity);
+                            //分段下载成功 结束任务
+                            return;
+                        } catch (IOException e) {
+                            //分段下载失败 重新开始
+//                            log.warn(e.getMessage());
+                        }
+                    }
+
+                });
+                index += step;
+            }
+            //等待任务结束 这里用了一个比较粗糙的方法
+            do {
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            } while (downloadExecutor.getActiveCount() > 0);
+            downloadExecutor.shutdown();
+
+            //把总字节数组写入到文件;
+            FileOutputStream fos = new FileOutputStream(file);
+            fos.write(bytesFile, 0, bytesFile.length);
+            fos.flush();
+            fos.close();
+
+
+            long end = System.currentTimeMillis();
+
+            log.info("{} 下载完毕 用时 {}毫秒 总速度:{}KB/s", filePath.substring(filePath.lastIndexOf("/") + 1), (end - start), contentLength * 1000 / 1024 / (end - start));
+        }
+        return file;
+    }
 
     /**
      * 尝试下载文件
@@ -488,4 +590,22 @@ public class ReqUtil {
     }
 
 
+    /**
+     * 一次尝试连接
+     *
+     * @param url   url
+     * @param start 文件开头
+     * @param end   文件结尾
+     * @return 响应对象
+     * @throws IOException
+     */
+    private static CloseableHttpResponse getResponse(String url, Integer start, Integer end) throws IOException {
+        CloseableHttpClient client = getCloseableHttpClient();
+        HttpGet get = new HttpGet(url);
+        int endIndex = url.indexOf("/", url.indexOf("//") + 2);
+        get.addHeader("Referer", url.substring(0, endIndex));
+        get.addHeader("Range", "bytes=" + (start != null ? start : 0) + "-" + (end != null ? end : ""));
+        CloseableHttpResponse execute = client.execute(get);
+        return execute;
+    }
 }

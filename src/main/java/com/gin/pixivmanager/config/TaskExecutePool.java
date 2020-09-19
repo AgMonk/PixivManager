@@ -58,7 +58,7 @@ public class TaskExecutePool {
      * @param coreSize 核心线程池大小
      * @return 线程池
      */
-    private ThreadPoolTaskExecutor getExecutor(String name, Integer coreSize) {
+    public static ThreadPoolTaskExecutor getExecutor(String name, Integer coreSize) {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         //核心线程池大小
         executor.setCorePoolSize(coreSize);

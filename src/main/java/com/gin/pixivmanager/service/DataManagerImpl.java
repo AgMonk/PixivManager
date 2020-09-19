@@ -536,6 +536,7 @@ public class DataManagerImpl implements DataManager {
                         File file;
                         try {
                             downloadFile.setDownloading(true);
+//                            file = ReqUtil.PoolDownload(downloadFile.getUrl(), downloadFile.getPath());
                             file = ReqUtil.download(downloadFile.getUrl(), downloadFile.getPath());
                             removeDownload(downloadFile);
                             List<File> files = new ArrayList<File>();
