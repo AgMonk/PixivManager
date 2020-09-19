@@ -80,6 +80,11 @@ public class DataController {
         return dataManager.getProgress();
     }
 
+    @RequestMapping("getDownloadingCount")
+    public Integer getDownloadingCount() {
+        return dataManager.getDownloadingCount();
+    }
+
     @RequestMapping("uploadTwitter")
     public void uploadTwitter(HttpServletResponse response, MultipartFile[] file, String title, String tags) {
         for (MultipartFile f : file) {

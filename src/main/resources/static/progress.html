@@ -78,7 +78,7 @@
     </table>
     <table class="customers">
         <tr>
-            <th>下载任务</th>
+            <th>下载任务({{downloadingCount}})</th>
             <th>进度</th>
             <th>%</th>
         </tr>
@@ -101,6 +101,7 @@
                 details: [],
                 downloading: [],
             },
+            downloadingCount: 0,
         },
         methods: {
             getDownloading() {
@@ -121,6 +122,9 @@
             getProgress() {
                 get("data/getProgress", null, function (res) {
                     _this.progress = res.data;
+                })
+                get("data/getDownloadingCount", null, function (res) {
+                    _this.downloadingCount = res.data;
                 })
             }
         },
