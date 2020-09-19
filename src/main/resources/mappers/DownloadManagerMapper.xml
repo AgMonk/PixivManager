@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD
+Mapper 3.0//EN"
+        "http://ibatis.apache.org/dtd/ibatis-3-mapper.dtd">
+
+<!-- 根节点必须为mapper -->
+<!-- namespace接口文件 -->
+<mapper namespace="com.gin.pixivmanager.dao.DownloadManagerMapper">
+
+
+    <select id="findDownloadFileList" resultType="com.gin.pixivmanager.entity.DownloadFile">
+        select url, path
+        from t_downloadlist;
+    </select>
+    <insert id="addDownloadFileList">
+        insert into t_downloadlist (url, path)
+        values
+        <foreach collection="list" item="i" index="index" separator=",">
+            (
+            #{i.url},#{i.path}
+            )
+        </foreach>
+    </insert>
+    <delete id="remove">
+        delete
+        from t_downloadlist
+        where url = #{url}
+          and path = #{path}
+    </delete>
+</mapper>

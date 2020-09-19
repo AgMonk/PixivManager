@@ -25,6 +25,7 @@ import java.util.concurrent.Callable;
 public class PixivRequestServImpl implements PixivRequestServ {
     final ThreadPoolTaskExecutor downloadExecutor, requestExecutor, scanExecutor, downloadMainExecutor;
     final DataManager dataManager;
+    final DownloadManager downloadManager;
     final PixivUrl pixivUrl;
     final UserInfo userInfo;
     /**
@@ -37,13 +38,14 @@ public class PixivRequestServImpl implements PixivRequestServ {
                                 ThreadPoolTaskExecutor scanExecutor,
                                 ThreadPoolTaskExecutor downloadMainExecutor,
                                 DataManager dataManager,
-                                PixivUrl pixivUrl,
+                                DownloadManager downloadManager, PixivUrl pixivUrl,
                                 UserInfo userInfo) {
         this.downloadExecutor = downloadExecutor;
         this.requestExecutor = requestExecutor;
         this.scanExecutor = scanExecutor;
         this.downloadMainExecutor = downloadMainExecutor;
         this.dataManager = dataManager;
+        this.downloadManager = downloadManager;
         this.pixivUrl = pixivUrl;
         this.userInfo = userInfo;
 

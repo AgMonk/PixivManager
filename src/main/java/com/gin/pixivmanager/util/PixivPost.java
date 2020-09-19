@@ -2,6 +2,7 @@ package com.gin.pixivmanager.util;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import org.apache.http.client.methods.HttpGet;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.*;
@@ -525,6 +526,7 @@ public class PixivPost {
             } catch (ExecutionException | TimeoutException | InterruptedException e) {
                 // 执行失败或超时时取消任务
                 future.cancel(true);
+                e.printStackTrace();
             }
         }
         //任务执行完毕 且 已取消未完成任务
@@ -547,9 +549,16 @@ public class PixivPost {
     }
 
     public static void main(String[] args) {
+        String url = "https://i.pximg.net/img-original/img/2020/06/29/19/26/32/82644683_p0.png";
+//        get.addHeader("Referer", url.substring(0, endIndex));
+        HttpGet get = new HttpGet(url);
+        get.addHeader("Referer", "https://i.pximg.net");
+        get.addHeader("Range", "bytes=0-");
 
 
         log.info("执行完毕");
     }
+
+
 }
 

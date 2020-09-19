@@ -3,6 +3,7 @@ package com.gin.pixivmanager.controller;
 import com.gin.pixivmanager.entity.Illustration;
 import com.gin.pixivmanager.entity.Tag;
 import com.gin.pixivmanager.service.DataManager;
+import com.gin.pixivmanager.service.DownloadManager;
 import com.gin.pixivmanager.service.PixivRequestServ;
 import com.gin.pixivmanager.service.UserInfo;
 import lombok.extern.slf4j.Slf4j;
@@ -28,15 +29,17 @@ public class PixivController {
     final PixivRequestServ pixivRequestServ;
     final UserInfo userInfo;
     final ThreadPoolTaskExecutor scanExecutor;
+    final DownloadManager downloadManager;
 
     final String untaggedLocker = "";
     Integer autoDownloadSearchIndex = 0;
 
-    public PixivController(DataManager dataManager, PixivRequestServ pixivRequestServ, UserInfo userInfo, ThreadPoolTaskExecutor scanExecutor) {
+    public PixivController(DataManager dataManager, PixivRequestServ pixivRequestServ, UserInfo userInfo, ThreadPoolTaskExecutor scanExecutor, DownloadManager downloadManager) {
         this.dataManager = dataManager;
         this.pixivRequestServ = pixivRequestServ;
         this.userInfo = userInfo;
         this.scanExecutor = scanExecutor;
+        this.downloadManager = downloadManager;
     }
 
     /**
@@ -113,7 +116,6 @@ public class PixivController {
 
     @RequestMapping("test")
     public Object test() {
-        autoDownloadSearch();
         return null;
     }
 
