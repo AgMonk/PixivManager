@@ -190,7 +190,7 @@ public class ReqUtil {
                 response = client.execute(get);
                 int statusCode = response.getStatusLine().getStatusCode();
                 if (statusCode == 404) {
-                    throw new IOException("404错误 请检查URL");
+                    throw new IOException("404错误 请检查URL: "+url);
                 }
                 HttpEntity entity = response.getEntity();
                 long contentLength = entity.getContentLength();

@@ -73,7 +73,6 @@ public class PixivRequestServImpl implements PixivRequestServ {
                 if (lastUpdate == null || now - lastUpdate > RANGE_OF_LAST_UPDATE
                         || ill.getTagTranslated() == null
                         || ill.getBookmarkCount() == null
-                        || ill.getBookmarkData() == 0
                 ) {
                     log.debug("缓存中的详情记录过于久远 或 仅为搜索结果 {}", s);
                     lackPidSet.add(s);

@@ -70,6 +70,7 @@ public class PixivController {
 
         pixivRequestServ.downloadIllust(detail, userInfo.getRootPath() + "/" + tag);
         pixivRequestServ.addTags(detail);
+        dataManager.download();
     }
 
     @RequestMapping("addTranslation")
