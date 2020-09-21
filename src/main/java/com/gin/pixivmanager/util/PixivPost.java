@@ -2,7 +2,6 @@ package com.gin.pixivmanager.util;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import org.apache.http.client.methods.HttpGet;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.*;
@@ -81,7 +80,7 @@ public class PixivPost {
      * 查询作品详情
      *
      * @param pid    pid
-     * @param cookie
+     * @param cookie cookie
      * @return 如无错误 返回body对象 否则为null
      */
     public static JSONObject detail(String pid, String cookie) {
@@ -511,7 +510,7 @@ public class PixivPost {
         }
 
         List<Future<T>> futures = new ArrayList<>();
-        List<T> resultList = null;
+        List<T> resultList = new ArrayList<>();
         //把任务提交到线程池 并保存future对象
         for (Callable<T> task : tasks) {
             Future<T> future = executor.submit(task);
@@ -522,7 +521,6 @@ public class PixivPost {
             try {
                 //获取future对象的执行结果（阻塞）
                 T result = future.get(timeoutSeconds, TimeUnit.SECONDS);
-                resultList = resultList == null ? new ArrayList<>() : resultList;
                 //把执行结果放入List
                 resultList.add(result);
 
@@ -552,12 +550,6 @@ public class PixivPost {
     }
 
     public static void main(String[] args) {
-        String url = "https://i.pximg.net/img-original/img/2020/06/29/19/26/32/82644683_p0.png";
-//        get.addHeader("Referer", url.substring(0, endIndex));
-        HttpGet get = new HttpGet(url);
-        get.addHeader("Referer", "https://i.pximg.net");
-        get.addHeader("Range", "bytes=0-");
-
 
         log.info("执行完毕");
     }

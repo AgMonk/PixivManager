@@ -494,7 +494,7 @@ public class DataManagerImpl implements DataManager {
      * 从列表中把 1个未正在下载的文件添加进队列
      */
     @Override
-    @Scheduled(cron = "0 0/5 * * * *")
+    @Scheduled(cron = "0 0/2 * * * *")
     public void download() {
 //        if (downloadExecutor.getActiveCount() < downloadExecutor.getMaxPoolSize()+2 ) {
         for (DownloadFile downloadFile : downloadFileList) {
