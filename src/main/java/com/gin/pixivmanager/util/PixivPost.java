@@ -88,10 +88,16 @@ public class PixivPost {
         long start = System.currentTimeMillis();
         log.debug("请求作品详情{} {}", cookie == null ? "" : "(cookie)", pid);
 
-        JSONObject body = create(URL_ILLUST_DETAIL).addParamMap("pid", pid)
-                .setCookie(cookie)
-                .sendGet()
-                .getBody(pid);
+//        JSONObject body = create(URL_ILLUST_DETAIL).addParamMap("pid", pid)
+//                .setCookie(cookie)
+//                .sendGet()
+//                .getBody(pid);
+
+        Request request = Request.create(URL_ILLUST_DETAIL).addParam("pid", pid).setCookie(cookie).get("utf-8");
+        String result = (String) request.getResult();
+        JSONObject body = JSONObject.parseObject(result).getJSONObject("body");
+
+
         long end = System.currentTimeMillis();
         log.debug("作品详情获取{} {} 用时 {} 毫秒", body != null ? "成功" : "失败", pid, end - start);
         return body;

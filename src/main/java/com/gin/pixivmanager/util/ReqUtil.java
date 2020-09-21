@@ -91,7 +91,7 @@ public class ReqUtil {
         //状态码 = 206 时表示支持断点续传
         if (statusCode == HttpStatus.SC_PARTIAL_CONTENT) {
             //创建线程池
-            ThreadPoolTaskExecutor downloadExecutor = TaskExecutePool.getExecutor(filePath.substring(filePath.lastIndexOf("/")+1), 5);
+            ThreadPoolTaskExecutor downloadExecutor = TaskExecutePool.getExecutor(filePath.substring(filePath.lastIndexOf("/") + 1), 5);
             int k = 1024;
             //分块大小 这里选择80k
             int step = 40 * k;
@@ -190,7 +190,7 @@ public class ReqUtil {
                 response = client.execute(get);
                 int statusCode = response.getStatusLine().getStatusCode();
                 if (statusCode == 404) {
-                    throw new IOException("404错误 请检查URL: "+url);
+                    throw new IOException("404错误 请检查URL: " + url);
                 }
                 HttpEntity entity = response.getEntity();
                 long contentLength = entity.getContentLength();

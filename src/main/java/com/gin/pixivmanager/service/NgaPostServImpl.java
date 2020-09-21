@@ -163,6 +163,7 @@ public class NgaPostServImpl implements NgaPostServ {
         }
         log.info("添加推特分享卡 {} 个", idSet.size());
 //        ngaPost.addTitle("Twitter").addTitle("搬运bot酱");
+        ngaPost.addContent("[h]").addContent("Twitter").addContent("搬运bot酱").addContent("[/h]").addContent(NgaPost.getWrap());
 
         for (String id : idSet) {
             StringBuilder cardBuilder = new StringBuilder();
@@ -211,6 +212,7 @@ public class NgaPostServImpl implements NgaPostServ {
         List<Illustration> illList = pixivRequestServ.getIllustrationDetail(new HashSet<>(Arrays.asList(name)), false);
         log.info("查询得到作品详情 {}条", illList.size());
 
+        ngaPost.addContent("[h]").addContent("Pixiv").addContent("搬运bot酱").addContent("[/h]").addContent(NgaPost.getWrap());
 //        ngaPost.addTitle("Pixiv").addTitle("搬运bot酱");
         for (Illustration ill : illList) {
             log.info("添加卡片 {}", ill.getId());
