@@ -106,7 +106,7 @@ public class Request {
      */
     public Request addHeader(String k, String v) {
         if (v != null && !"".equals(v)) {
-            log.info("设置header {} -> {}", k, v.substring(0, Math.min(v.length(), 40)) + (v.length() > 40 ? "..." : ""));
+            log.debug("设置header {} -> {}", k, v.substring(0, Math.min(v.length(), 40)) + (v.length() > 40 ? "..." : ""));
             header.put(k, v);
         }
         return this;
@@ -154,7 +154,7 @@ public class Request {
         entityBuilder = entityBuilder == null ? MultipartEntityBuilder.create() : entityBuilder;
         setContentType(CONTENT_TYPE_MULTIPART_FORM_DATA);
         if (v != null && !"".equals(v)) {
-            log.info("添加form-data : {} -> {}", k, v);
+            log.debug("添加form-data : {} -> {}", k, v);
             entityBuilder.addPart(k, new StringBody(v, CONTENT_TYPE_TEXT_PLAIN));
         }
         return this;
@@ -199,7 +199,7 @@ public class Request {
         if (!file.exists()) {
             log.error("文件不存在 {}", file.getPath());
         } else if (name != null && !"".equals(name)) {
-            log.info("添加文件：{} 文件名：{}", name, file.getName());
+            log.debug("添加文件：{} 文件名：{}", name, file.getName());
             entityBuilder.addPart(name, new FileBody(file));
         }
         return this;
@@ -438,12 +438,12 @@ public class Request {
             File parentFile = file.getParentFile();
             long contentLength = entity.getContentLength();
             if (file.exists() && file.length() == contentLength) {
-                log.info("文件已存在且大小相同 跳过 {}", file);
+                log.debug("文件已存在且大小相同 跳过 {}", file);
                 result = file;
             } else if (!parentFile.exists()) {
                 String parentFilePath = parentFile.getPath();
                 if (parentFile.mkdirs()) {
-                    log.info("创建文件夹 {}", parentFilePath);
+                    log.debug("创建文件夹 {}", parentFilePath);
                 } else {
                     log.warn("文件夹创建失败 {}", parentFilePath);
                 }
@@ -453,7 +453,7 @@ public class Request {
                 progressMap.put("count", 0);
 
                 long start = System.currentTimeMillis();
-                log.info("第{}次下载 {}", i, file.getName());
+                log.debug("第{}次下载 {}", i, file.getName());
                 try {
                     InputStream inputStream = entity.getContent();
                     ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -473,7 +473,7 @@ public class Request {
                     EntityUtils.consume(entity);
 
                     long end = System.currentTimeMillis();
-                    log.info("{} 下载完毕 总耗时 {} 秒 平均速度 {}KB/s", file.getName(), (end - start) / 1000, contentLength * 1000L / 1024 / (end - start));
+                    log.debug("{} 下载完毕 总耗时 {} 秒 平均速度 {}KB/s", file.getName(), (end - start) / 1000, contentLength * 1000L / 1024 / (end - start));
                     result = file;
 
                 } catch (ConnectionClosedException e) {
@@ -506,20 +506,20 @@ public class Request {
             try {
                 long start = System.currentTimeMillis();
                 long end;
-                log.info("第{}次请求 地址：{}", times, method.getURI());
+                log.debug("第{}次请求 地址：{}", times, method.getURI());
                 CloseableHttpResponse response = client.execute(method);
                 int statusCode = response.getStatusLine().getStatusCode();
                 switch (statusCode) {
                     case HttpStatus.SC_OK:
                         end = System.currentTimeMillis();
-                        log.info("第{}次请求 成功 地址：{} 耗时：{}", times, method.getURI(), formatDuration(end - start));
+                        log.debug("第{}次请求 成功 地址：{} 耗时：{}", times, method.getURI(), formatDuration(end - start));
                         HttpEntity entity = response.getEntity();
                         String contentType = response.getEntity().getContentType().getValue();
-                        log.info("响应类型 {}", contentType);
+                        log.debug("响应类型 {}", contentType);
                         handleEntity(i, entity, contentType);
                         return this;
                     case HttpStatus.SC_BAD_GATEWAY:
-                        log.info("第{}次请求 失败 服务器错误({})", times, statusCode);
+                        log.debug("第{}次请求 失败 服务器错误({})", times, statusCode);
                         try {
                             Thread.sleep(10 * 1000);
                         } catch (InterruptedException e) {
@@ -538,16 +538,16 @@ public class Request {
 
 
             } catch (RuntimeException e) {
-                log.info(e.getMessage());
+                log.debug(e.getMessage());
                 e.printStackTrace();
                 break;
             } catch (SocketTimeoutException e) {
                 if (maxTimes == times) {
                     log.error(timeoutMsg, times, method.getURI());
                 } else if ((maxTimes / 3) == times || (maxTimes * 2 / 3) == times) {
-                    log.info(timeoutMsg, times, method.getURI());
+                    log.debug(timeoutMsg, times, method.getURI());
                 } else {
-                    log.info(timeoutMsg, times, method.getURI());
+                    log.debug(timeoutMsg, times, method.getURI());
                 }
             } catch (IOException e) {
                 e.printStackTrace();
