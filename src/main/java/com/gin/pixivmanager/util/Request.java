@@ -105,8 +105,10 @@ public class Request {
      * @return this
      */
     public Request addHeader(String k, String v) {
-        log.info("设置header {} -> {}", k, v.substring(0, Math.min(v.length(), 40)) + (v.length() > 40 ? "..." : ""));
-        header.put(k, v);
+        if (v != null && !"".equals(v)) {
+            log.info("设置header {} -> {}", k, v.substring(0, Math.min(v.length(), 40)) + (v.length() > 40 ? "..." : ""));
+            header.put(k, v);
+        }
         return this;
     }
 

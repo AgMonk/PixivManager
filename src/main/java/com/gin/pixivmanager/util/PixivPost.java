@@ -7,6 +7,8 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import java.util.*;
 import java.util.concurrent.*;
 
+import static com.gin.pixivmanager.util.JsonUtil.printJson;
+
 /**
  * Pixiv请求工具类
  *
@@ -19,6 +21,7 @@ public class PixivPost {
      * 作品详情接口(cookie可选)
      */
     final static String URL_ILLUST_DETAIL = "https://www.pixiv.net/ajax/illust/{pid}";
+    final static String URL_ILLUST_DETAIL_2 = "https://www.pixiv.net/ajax/illust/";
     /**
      * 获取收藏作品接口 需要cookie
      */
@@ -93,7 +96,7 @@ public class PixivPost {
 //                .sendGet()
 //                .getBody(pid);
 
-        Request request = Request.create(URL_ILLUST_DETAIL).addParam("pid", pid).setCookie(cookie).get("utf-8");
+        Request request = Request.create(URL_ILLUST_DETAIL_2+pid).setCookie(cookie).get("utf-8");
         String result = (String) request.getResult();
         JSONObject body = JSONObject.parseObject(result).getJSONObject("body");
 
@@ -556,7 +559,8 @@ public class PixivPost {
     }
 
     public static void main(String[] args) {
-
+        JSONObject detail = detail("84525393", null);
+        printJson(detail);
         log.info("执行完毕");
     }
 
