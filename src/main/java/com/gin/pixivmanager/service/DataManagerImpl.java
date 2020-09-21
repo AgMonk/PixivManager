@@ -12,7 +12,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
@@ -395,19 +394,27 @@ public class DataManagerImpl implements DataManager {
     @Override
     public void addMainProgress(Progress progress) {
         log.debug("添加主任务 {}", progress.getName());
-        mainProgress.add(progress);
+        synchronized (mainProgress) {
+            mainProgress.add(progress);
+        }
     }
 
     @Override
     public void addDownloadingProgress(Progress progress) {
-        downloadingProgress.add(progress);
+        synchronized (downloadingProgress) {
+            downloadingProgress.add(progress);
+        }
     }
 
     @Override
     public Map<String, List<Progress>> getProgress() {
         HashMap<String, List<Progress>> map = new HashMap<>();
-        Collections.sort(mainProgress);
-        Collections.sort(downloadingProgress);
+        synchronized (mainProgress) {
+            Collections.sort(mainProgress);
+        }
+        synchronized (downloadingProgress) {
+            Collections.sort(downloadingProgress);
+        }
         map.put("main", mainProgress);
         map.put("downloading", downloadingProgress);
 
@@ -490,27 +497,27 @@ public class DataManagerImpl implements DataManager {
     @Scheduled(cron = "0 0/5 * * * *")
     public void download() {
 //        if (downloadExecutor.getActiveCount() < downloadExecutor.getMaxPoolSize()+2 ) {
-            for (DownloadFile downloadFile : downloadFileList) {
-                if (!downloadFile.isDownloading()) {
+        for (DownloadFile downloadFile : downloadFileList) {
+            if (!downloadFile.isDownloading()) {
 //                    log.info("添加下载队列 {}",downloadFile);
-                    downloadFile.setDownloading(true);
-                    downloadExecutor.execute(() -> {
-                        File file;
-                        try {
+                downloadFile.setDownloading(true);
+                downloadExecutor.execute(() -> {
+                    File file;
+                    try {
 //                            file = ReqUtil.PoolDownload(downloadFile.getUrl(), downloadFile.getPath());
-                            file = ReqUtil.download(downloadFile.getUrl(), downloadFile.getPath());
-                            removeDownload(downloadFile);
-                            List<File> files = new ArrayList<File>();
-                            files.add(file);
-                            addFilesMap(files);
-                        } catch (IOException e) {
-                            downloadFile.setDownloading(false);
-                            e.printStackTrace();
-                        }
-                    });
+                        file = ReqUtil.download(downloadFile.getUrl(), downloadFile.getPath());
+                        removeDownload(downloadFile);
+                        List<File> files = new ArrayList<File>();
+                        files.add(file);
+                        addFilesMap(files);
+                    } catch (IOException e) {
+                        downloadFile.setDownloading(false);
+                        e.printStackTrace();
+                    }
+                });
 //                    break;
-                }
             }
+        }
 //        }
     }
 
@@ -524,8 +531,12 @@ public class DataManagerImpl implements DataManager {
      */
     @Scheduled(cron = "0/3 * * * * *")
     public void cleanProgress() {
-        mainProgress.removeIf(Progress::isCompleted);
-        downloadingProgress.removeIf(Progress::isCompleted);
+        synchronized (mainProgress) {
+            mainProgress.removeIf(Progress::isCompleted);
+        }
+        synchronized (downloadingProgress) {
+            downloadingProgress.removeIf(Progress::isCompleted);
+        }
     }
 
 

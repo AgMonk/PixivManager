@@ -261,12 +261,25 @@ public class PixivRequestServImpl implements PixivRequestServ {
         }
         log.info("归档 {} 个文件 完成", idSet.size());
 
+        //添加收藏
+        Map<String, String> pidAndTags = new HashMap<>();
+        detail.forEach(ill -> {
+            if (ill.getBookmarkData() == 0) {
+                pidAndTags.put(ill.getId(), ill.createSimpleTags());
+            }
+        });
+        if (pidAndTags.size() > 0) {
+            Progress progress = new Progress(getQuestName("收藏"), pidAndTags.size());
+            dataManager.addMainProgress(progress);
+            PixivPost.bmk(pidAndTags, userInfo.getCookie(), userInfo.getTt(), null, progress);
+        }
+
         return idSet;
     }
 
     @Override
     public void downloadIllust(List<Illustration> details, String rootPath) {
-        Set<DownloadFile> downloadFileList =new HashSet<>();
+        Set<DownloadFile> downloadFileList = new HashSet<>();
         for (Illustration ill : details) {
             for (String url : ill.getUrls()) {
                 downloadFileList.add(new DownloadFile(url, rootPath + url.substring(url.lastIndexOf("/"))));
