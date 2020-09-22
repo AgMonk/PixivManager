@@ -1,19 +1,17 @@
 package com.gin.pixivmanager.service;
 
-import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.gin.pixivmanager.entity.DownloadFile;
 import com.gin.pixivmanager.entity.Illustration;
 import com.gin.pixivmanager.entity.Tag;
 import com.gin.pixivmanager.util.PixivPost;
-import com.gin.pixivmanager.util.Progress;
+import com.gin.pixivmanager.util.Request;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.util.*;
-import java.util.concurrent.Callable;
 
 /**
  * @author bx002
@@ -111,10 +109,9 @@ public class PixivRequestServImpl implements PixivRequestServ {
     @Override
     public Set<String> getBookmarks(String tag, Integer page) {
         Set<String> idSet = new HashSet<>();
-        Progress progress = new Progress(getQuestName("扫描收藏 " + tag), page);
-        dataManager.addMainProgress(progress);
-        List<JSONObject> bookmarks = PixivPost.getBookmarks(userInfo.getUid(), userInfo.getCookie(), tag, page, scanExecutor, progress);
-        progress.complete();
+        Map<String, Integer> progressMap = Request.createProgressMap(page);
+        dataManager.addProgressMain("获取收藏作品ID", progressMap);
+        List<JSONObject> bookmarks = PixivPost.getBookmarks(userInfo.getUid(), userInfo.getCookie(), tag, page, scanExecutor, progressMap);
         if (bookmarks != null) {
             for (JSONObject bookmark : bookmarks) {
                 idSet.add(bookmark.getString("id"));
@@ -152,17 +149,13 @@ public class PixivRequestServImpl implements PixivRequestServ {
 
     @Override
     public void addTags(List<Illustration> detail) {
-        Progress progress = new Progress("添加Tag", detail.size());
-        dataManager.addMainProgress(progress);
-        List<Callable<Void>> tasks = new ArrayList<>();
-        for (Illustration ill : detail) {
-            tasks.add(() -> {
-                PixivPost.addTags(ill.getId(), userInfo.getCookie(), userInfo.getTt(), ill.createSimpleTags());
-                progress.add(1);
-                return null;
-            });
-        }
-        PixivPost.executeTasks(tasks, 4, null, "addTag", 1);
+        Map<String, Integer> progressMap = Request.createProgressMap(detail.size());
+        dataManager.addProgressMain("添加Tag", progressMap);
+        Map<String, String> pidAndTags = new HashMap<>();
+        detail.forEach(ill -> {
+            pidAndTags.put(ill.getId(), ill.createSimpleTags());
+        });
+        PixivPost.addTags(pidAndTags, userInfo.getCookie(), userInfo.getTt(), null, progressMap);
     }
 
 
@@ -269,9 +262,9 @@ public class PixivRequestServImpl implements PixivRequestServ {
             }
         });
         if (pidAndTags.size() > 0) {
-            Progress progress = new Progress(getQuestName("收藏"), pidAndTags.size());
-            dataManager.addMainProgress(progress);
-            PixivPost.bmk(pidAndTags, userInfo.getCookie(), userInfo.getTt(), null, progress);
+            Map<String, Integer> progressMap = Request.createProgressMap(pidAndTags.size());
+            dataManager.addProgressMain("收藏作品", progressMap);
+            PixivPost.bmk(pidAndTags, userInfo.getCookie(), userInfo.getTt(), null, progressMap);
         }
 
         return idSet;
@@ -290,27 +283,15 @@ public class PixivRequestServImpl implements PixivRequestServ {
 
 
     @Override
-    public List<Illustration> search(Map<String, Integer> keywordAndPage, boolean all) {
-        Progress progress = new Progress(getQuestName("搜索任务"), keywordAndPage.size());
-        dataManager.addMainProgress(progress);
-        //创建搜索任务
-        List<Callable<JSONArray>> tasks = new ArrayList<>();
-        keywordAndPage.forEach((k, i) -> {
-            tasks.add(() -> {
-                JSONArray array = PixivPost.search(k, i, userInfo.getCookie(), false, "all");
-                progress.add(1);
-                return array;
-            });
-        });
-        List<JSONArray> searchResult = PixivPost.executeTasks(tasks, 60, scanExecutor, "search", 5);
+    public Set<Illustration> search(Set<String> keywordSet, Integer p, boolean all) {
+        Map<String, Integer> progressMap = Request.createProgressMap(keywordSet.size() * p);
+        dataManager.addProgressMain("搜索任务", progressMap);
 
-        progress.complete();
+        List<JSONObject> searchResult = PixivPost.search(keywordSet, p, userInfo.getCookie(), false, "all", null, progressMap);
 
         Set<Illustration> set = new HashSet<>();
-        for (JSONArray array : searchResult) {
-            for (int i = 0; i < array.size(); i++) {
-                set.add(new Illustration(array.getJSONObject(i)));
-            }
+        for (JSONObject jsonobj : searchResult) {
+            set.add(new Illustration(jsonobj));
         }
         //
         if (!all) {
@@ -318,7 +299,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
         }
 
         log.info("搜索得到 {} 个作品 {}", set.size(), !all ? "已过滤掉已收藏的和已入库的作品" : "");
-        return new ArrayList<>(set);
+        return set;
     }
 
     @Override
@@ -337,16 +318,6 @@ public class PixivRequestServImpl implements PixivRequestServ {
 
     }
 
-    /**
-     * 生成唯一任务名称
-     *
-     * @param name 任务名
-     * @return 唯一任务名
-     */
-    private static String getQuestName(String name) {
-        return name + "-" + System.currentTimeMillis() % 1000;
-    }
-
 
     /**
      * 使用多线程请求多个作品详情
@@ -356,10 +327,10 @@ public class PixivRequestServImpl implements PixivRequestServ {
      */
     private List<Illustration> getIllustrationFromPixiv(Set<String> pidSet) {
         //添加进度
-        Progress progress = new Progress(getQuestName("详情任务"), pidSet.size());
-        dataManager.addMainProgress(progress);
+        Map<String, Integer> progressMap = Request.createProgressMap(pidSet.size());
+        dataManager.addProgressMain("详情任务", progressMap);
 
-        List<JSONObject> detail = PixivPost.detail(pidSet, null, requestExecutor, progress);
+        List<JSONObject> detail = PixivPost.detail(pidSet, null, requestExecutor, progressMap);
 
         List<Illustration> illusts = new ArrayList<>();
         if (detail == null) {

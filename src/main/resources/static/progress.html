@@ -78,12 +78,16 @@
     </table>
     <table class="customers">
         <tr>
+            <th>次</th>
             <th>下载任务({{downloadingCount}})</th>
             <th>进度</th>
             <th>%</th>
         </tr>
         <tr v-for="(item,i) in progress.downloading">
-            <td>{{item.name}}</td>
+            <td>{{item.times}}</td>
+            <td>
+                <a target="_blank" :href="'https://www.pixiv.net/artworks/'+item.name.substr(0,item.name.indexOf('_'))">{{item.name}}</a>
+            </td>
             <td>{{item.progressInSize}}</td>
             <td>{{item.progressInPercent}}</td>
         </tr>

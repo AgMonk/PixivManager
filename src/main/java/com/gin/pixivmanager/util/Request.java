@@ -1,6 +1,5 @@
 package com.gin.pixivmanager.util;
 
-import org.apache.http.ConnectionClosedException;
 import org.apache.http.Consts;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
@@ -21,7 +20,8 @@ import java.io.*;
 import java.net.SocketTimeoutException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 请求工具类
@@ -33,6 +33,7 @@ public class Request {
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(Request.class);
     public static final String CONTENT_TYPE_JSON = "application/json";
     public static final String CONTENT_TYPE_MULTIPART_FORM_DATA = "multipart/form-data";
+    public static final String CONTENT_TYPE_X_WWW_FORM_URLENCODED = "application/x-www-form-urlencoded";
     private static final ContentType CONTENT_TYPE_TEXT_PLAIN = ContentType.create(ContentType.TEXT_PLAIN.getMimeType(), Consts.UTF_8);
 
 
@@ -46,13 +47,17 @@ public class Request {
      */
     private Integer maxTimes = 10;
     /**
-     * 请求结果编码
+     * 请求结果编码 默认utf-8
      */
-    private String enc = "utf-8";
+    private String decodeEnc = "utf-8";
+    /**
+     * 参数编码 默认utf-8
+     */
+    private String encodeEnc = "utf-8";
     /**
      * 请求结果
      */
-    private Object result;
+    private String result;
     /**
      * 如果请求地址为文件的下载地址
      */
@@ -68,7 +73,7 @@ public class Request {
     /**
      * 地址栏参数
      */
-    private Map<String, String[]> paramMap = new HashMap<>();
+    private StringBuilder param = new StringBuilder();
     private MultipartEntityBuilder entityBuilder;
     private static final Map<String, String> DEFAULT_HEADERS = new HashMap<>();
 
@@ -152,8 +157,7 @@ public class Request {
      */
     public Request addFormData(String k, String v) {
         entityBuilder = entityBuilder == null ? MultipartEntityBuilder.create() : entityBuilder;
-        setContentType(CONTENT_TYPE_MULTIPART_FORM_DATA);
-        if (v != null && !"".equals(v)) {
+        if (v != null) {
             log.debug("添加form-data : {} -> {}", k, v);
             entityBuilder.addPart(k, new StringBody(v, CONTENT_TYPE_TEXT_PLAIN));
         }
@@ -205,20 +209,11 @@ public class Request {
         return this;
     }
 
-    public Request addParam(String k, String v) {
-        List<String> list;
-        String[] key = paramMap.get(k);
-        if (key == null) {
-            list = new ArrayList<>();
-        } else {
-            list = Arrays.asList(key);
+    public Request addParam(String k, Object v) {
+        log.debug("添加参数 {} ->{}", k, v);
+        if (v != null && !"".equals(v)) {
+            param.append("&").append(k).append("=").append(encode(String.valueOf(v), encodeEnc));
         }
-        list.add(v);
-        String[] s = new String[list.size()];
-        for (int i = 0; i < list.size(); i++) {
-            s[i] = list.get(i);
-        }
-        paramMap.put(k, s);
         return this;
     }
 
@@ -250,6 +245,7 @@ public class Request {
      * @param url
      */
     private Request(String url) {
+        url += url.contains("?") ? "" : "?";
         this.url = url;
         setTimeOutSecond(15);
         addDefaultHeaders();
@@ -271,21 +267,21 @@ public class Request {
     /**
      * get方法
      *
-     * @param enc 参数编码 为null时默认utf-8
      * @return Request
      */
-    public Request get(String enc) {
-        return execute(new HttpGet(addParamMap(this.url, paramMap, enc)));
+    public Request get() {
+        return execute(new HttpGet(this.url + param));
     }
 
     /**
      * post方法
      *
-     * @param enc 参数编码 为null时默认utf-8
      * @return Request
      */
-    public Request post(String enc) {
-        return execute(new HttpPost(addParamMap(this.url, paramMap, enc)));
+    public Request post() {
+        HttpPost method = new HttpPost(this.url + param);
+        method.setEntity(entityBuilder.build());
+        return execute(method);
     }
 
     /**
@@ -327,62 +323,6 @@ public class Request {
         return encode;
     }
 
-    /**
-     * 参数序列化
-     *
-     * @param paramMap 参数表
-     * @return 序列化
-     */
-    private static String queryString(Map<String, String[]> paramMap, String enc) {
-        StringBuilder sb = new StringBuilder();
-        if (paramMap == null || paramMap.size() == 0) {
-            return "";
-        }
-        paramMap.forEach((key, value) -> {
-            for (String v : value) {
-                sb.append("&").append(key).append("=").append(encode(v, enc));
-            }
-        });
-        return sb.toString();
-    }
-
-    /**
-     * 为url添加参数表
-     *
-     * @param url      url
-     * @param paramMap 地址栏参数表
-     * @param enc      参数编码 为null时默认utf-8
-     * @return 添加好的url
-     */
-    private static String addParamMap(String url, Map<String, String[]> paramMap, String enc) {
-        if (paramMap != null && paramMap.size() > 0) {
-            url += url.endsWith("?") ? "" : "?";
-            url += queryString(paramMap, enc);
-        }
-        return url;
-    }
-
-    /**
-     * 格式化输出时长 毫秒 秒 分钟
-     *
-     * @param duration 时长
-     * @return 格式化
-     */
-    private static String formatDuration(long duration) {
-        int second = 1000;
-        int minute = 60 * second;
-
-        if (duration > minute) {
-            return duration / minute + "分钟";
-        }
-        if (duration > 10 * second) {
-            double d = 1.0 * duration / second * 10;
-            d = Math.floor(d) / 10;
-            return d + "秒";
-        }
-        return duration + "毫秒";
-    }
-
 
     public Request setFile(File file) {
         this.file = file;
@@ -399,7 +339,7 @@ public class Request {
      *
      * @param count 增加的进度
      */
-    private void updateProgress(Integer count) {
+    private void addProgress(Integer count) {
         Integer c = progressMap.get("count");
         c += count;
         progressMap.put("count", c);
@@ -412,17 +352,19 @@ public class Request {
         progressMap.put("count", progressMap.get("size"));
     }
 
-    public Object getResult() {
+    public String getResult() {
         return result;
     }
 
 
-    public void setMaxTimes(Integer maxTimes) {
+    public Request setMaxTimes(Integer maxTimes) {
         this.maxTimes = maxTimes;
+        return this;
     }
 
-    public void setEnc(String enc) {
-        this.enc = enc;
+    public Request setDecodeEnc(String decodeEnc) {
+        this.decodeEnc = decodeEnc;
+        return this;
     }
 
 
@@ -433,13 +375,15 @@ public class Request {
      * @param entity      entity
      * @param contentType 正文类型
      */
-    private void handleEntity(int i, HttpEntity entity, String contentType) {
+    private void handleEntity(int i, HttpEntity entity, String contentType) throws IOException {
         if (contentType.startsWith("image") || contentType.endsWith("zip")) {
+            int contentLength = Math.toIntExact(entity.getContentLength());
             File parentFile = file.getParentFile();
-            long contentLength = entity.getContentLength();
+            progressMap.put("size", contentLength);
+            progressMap.put("times", i + 1);
             if (file.exists() && file.length() == contentLength) {
                 log.debug("文件已存在且大小相同 跳过 {}", file);
-                result = file;
+                progressMap.put("count", progressMap.get("size"));
             } else if (!parentFile.exists()) {
                 String parentFilePath = parentFile.getPath();
                 if (parentFile.mkdirs()) {
@@ -448,47 +392,43 @@ public class Request {
                     log.warn("文件夹创建失败 {}", parentFilePath);
                 }
             } else {
-                progressMap = progressMap == null ? new HashMap<>() : progressMap;
-                progressMap.put("size", Math.toIntExact(contentLength));
-                progressMap.put("count", 0);
+                progressMap = progressMap == null ? createProgressMap(contentLength) : progressMap;
 
                 long start = System.currentTimeMillis();
-                log.debug("第{}次下载 {}", i, file.getName());
-                try {
-                    InputStream inputStream = entity.getContent();
-                    ByteArrayOutputStream output = new ByteArrayOutputStream();
-                    //缓存大小
-                    byte[] buffer = new byte[4096];
-                    int r;
-                    while ((r = inputStream.read(buffer)) > 0) {
-                        output.write(buffer, 0, r);
-                        updateProgress(r);
-                    }
-
-                    FileOutputStream fos = new FileOutputStream(file.getPath());
-                    output.writeTo(fos);
-                    output.flush();
-                    output.close();
-                    fos.close();
-                    EntityUtils.consume(entity);
-
-                    long end = System.currentTimeMillis();
-                    log.debug("{} 下载完毕 总耗时 {} 秒 平均速度 {}KB/s", file.getName(), (end - start) / 1000, contentLength * 1000L / 1024 / (end - start));
-                    result = file;
-
-                } catch (ConnectionClosedException e) {
-                    log.warn("连接关闭({}):  {}", i, file.getName());
-                } catch (SocketTimeoutException e) {
-                    log.warn("连接超时({}):  {} ", i, file.getName());
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } finally {
-                    complete();
+                log.debug("第{}次下载 {}", i + 1, file.getName());
+//                try {
+                InputStream inputStream = entity.getContent();
+                ByteArrayOutputStream output = new ByteArrayOutputStream();
+                //缓存大小
+                byte[] buffer = new byte[4096];
+                int r;
+                while ((r = inputStream.read(buffer)) > 0) {
+                    output.write(buffer, 0, r);
+                    addProgress(r);
                 }
+
+                FileOutputStream fos = new FileOutputStream(file.getPath());
+                output.writeTo(fos);
+                output.flush();
+                output.close();
+                fos.close();
+                EntityUtils.consume(entity);
+
+                long end = System.currentTimeMillis();
+                log.debug("{} 下载完毕 总耗时 {} 平均速度 {}KB/s", file.getName(), timeCost(start, end), contentLength * 1000L / 1024 / (end - start));
+//                } catch (ConnectionClosedException e) {
+//                    log.warn("连接关闭({}):  {}", i, file.getName());
+//                } catch (SocketTimeoutException e) {
+//                    log.warn("连接超时({}):  {} ", i, file.getName());
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                } finally {
+//                    complete();
+//                }
             }
         } else {
             try {
-                result = EntityUtils.toString(entity, enc);
+                result = EntityUtils.toString(entity, decodeEnc);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -501,25 +441,24 @@ public class Request {
 
         String timeoutMsg = "请求超时({}) 地址：{}";
         String msg = " 未定义错误 ";
-        int times = 1;
-        for (int i = 0; i < times; i++) {
+        for (int i = 0; i < maxTimes; i++) {
             try {
                 long start = System.currentTimeMillis();
                 long end;
-                log.debug("第{}次请求 地址：{}", times, method.getURI());
+                log.debug("第{}次请求 地址：{}", i + 1, method.getURI());
                 CloseableHttpResponse response = client.execute(method);
                 int statusCode = response.getStatusLine().getStatusCode();
                 switch (statusCode) {
                     case HttpStatus.SC_OK:
                         end = System.currentTimeMillis();
-                        log.debug("第{}次请求 成功 地址：{} 耗时：{}", times, method.getURI(), formatDuration(end - start));
+                        log.debug("第{}次请求 成功 地址：{} 耗时：{}", i + 1, method.getURI(), timeCost(start, end));
                         HttpEntity entity = response.getEntity();
                         String contentType = response.getEntity().getContentType().getValue();
                         log.debug("响应类型 {}", contentType);
                         handleEntity(i, entity, contentType);
                         return this;
                     case HttpStatus.SC_BAD_GATEWAY:
-                        log.debug("第{}次请求 失败 服务器错误({})", times, statusCode);
+                        log.debug("第{}次请求 失败 服务器错误({})", i + 1, statusCode);
                         try {
                             Thread.sleep(10 * 1000);
                         } catch (InterruptedException e) {
@@ -528,10 +467,13 @@ public class Request {
                         break;
                     case HttpStatus.SC_INTERNAL_SERVER_ERROR:
                         msg = " 服务器错误 ";
+                        throw new RuntimeException(statusCode + msg + method.getURI());
                     case HttpStatus.SC_NOT_FOUND:
                         msg = " 地址不存在 ";
+                        throw new RuntimeException(statusCode + msg + method.getURI());
                     case HttpStatus.SC_MOVED_TEMPORARILY:
                         msg = " 连接被重定向 ";
+                        throw new RuntimeException(statusCode + msg + method.getURI());
                     default:
                         throw new RuntimeException(statusCode + msg + method.getURI());
                 }
@@ -539,15 +481,14 @@ public class Request {
 
             } catch (RuntimeException e) {
                 log.debug(e.getMessage());
-                e.printStackTrace();
                 break;
             } catch (SocketTimeoutException e) {
-                if (maxTimes == times) {
-                    log.error(timeoutMsg, times, method.getURI());
-                } else if ((maxTimes / 3) == times || (maxTimes * 2 / 3) == times) {
-                    log.debug(timeoutMsg, times, method.getURI());
+                if (maxTimes == i + 1) {
+                    log.error(timeoutMsg, i + 1, method.getURI());
+                } else if ((maxTimes / 3) == i + 1 || (maxTimes * 2 / 3) == i + 1) {
+                    log.debug(timeoutMsg, i + 1, method.getURI());
                 } else {
-                    log.debug(timeoutMsg, times, method.getURI());
+                    log.debug(timeoutMsg, i + 1, method.getURI());
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -556,7 +497,58 @@ public class Request {
         return this;
     }
 
-    public static void main(String[] args) {
+    /**
+     * 计算耗时
+     *
+     * @param start 开始
+     * @param end   结束
+     * @return 耗时
+     */
+    public static String timeCost(long start, long end) {
+        long l = end - start;
+        int k = 1000;
 
+        if (l > 60 * k) {
+            double d = fixTo(l * 1.0 / 60 / k, 1);
+            return d + " 分";
+        }
+        if (l > 10 * k) {
+            return l / k + " 秒";
+        }
+
+        return l + " 毫秒";
+    }
+
+    /**
+     * 保留小数
+     *
+     * @param f 待处理数
+     * @param x 位数
+     * @return 结果
+     */
+    public static double fixTo(double f, int x) {
+        for (int i = 0; i < x; i++) {
+            f *= 10;
+        }
+        f = Math.floor(f);
+        for (int i = 0; i < x; i++) {
+            f /= 10;
+        }
+        return f;
+    }
+
+    public void setEncodeEnc(String encodeEnc) {
+        this.encodeEnc = encodeEnc;
+    }
+
+    public static Map<String, Integer> createProgressMap(int size) {
+        Map<String, Integer> map = new HashMap<>();
+        map.put("count", 0);
+        map.put("times", 1);
+        map.put("size", size);
+        return map;
+    }
+
+    public static void main(String[] args) {
     }
 }

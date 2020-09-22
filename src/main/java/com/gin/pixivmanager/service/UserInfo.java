@@ -1,7 +1,7 @@
 package com.gin.pixivmanager.service;
 
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 当前登录用户的信息
@@ -68,7 +68,7 @@ public interface UserInfo {
      */
     String getArchivePath();
 
-    List<String> getKeywordList();
+    Set<String> getKeywordSet();
 
 
     /**

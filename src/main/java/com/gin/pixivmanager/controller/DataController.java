@@ -85,6 +85,11 @@ public class DataController {
         return dataManager.getDownloadingCount();
     }
 
+    @RequestMapping("getDownloadingProgressMap")
+    public Map<String, Map<String, Integer>> getDownloadingProgressMap() {
+        return dataManager.getProgressDownloading();
+    }
+
     @RequestMapping("uploadTwitter")
     public void uploadTwitter(HttpServletResponse response, MultipartFile[] file, String title, String tags) {
         for (MultipartFile f : file) {
@@ -99,7 +104,7 @@ public class DataController {
 
     @RequestMapping("test")
     public Object test() {
-dataManager.download();
+        dataManager.download();
 
         return null;
     }

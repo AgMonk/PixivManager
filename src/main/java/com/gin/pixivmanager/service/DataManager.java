@@ -131,19 +131,17 @@ public interface DataManager {
      */
     String delFile(String name);
 
-    /**
-     * 添加详情进度
-     *
-     * @param progress 详情进度
-     */
-    void addMainProgress(Progress progress);
+    void addProgressMain(String k, Map<String, Integer> map);
 
     /**
      * 添加下载进度
      *
-     * @param progress 下载进度
+     * @param k   任务名称
+     * @param map 进度
      */
-    void addDownloadingProgress(Progress progress);
+    void addProgressDownloading(String k, Map<String, Integer> map);
+
+    Map<String, Map<String, Integer>> getProgressDownloading();
 
     /**
      * 获取各个任务进度

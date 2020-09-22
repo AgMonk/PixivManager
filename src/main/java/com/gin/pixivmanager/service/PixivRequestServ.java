@@ -72,7 +72,7 @@ public interface PixivRequestServ {
      * @param all            是否显示所有作品  false时仅显示未收藏且未记录过的作品
      * @return 搜索结果
      */
-    List<Illustration> search(Map<String, Integer> keywordAndPage, boolean all);
+    Set<Illustration> search(Set<String> keywordSet, Integer p, boolean all);
 
     /**
      * 搜索并下载作品

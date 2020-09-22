@@ -5,10 +5,10 @@ import org.springframework.stereotype.Service;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 用户自定义配置
@@ -48,7 +48,7 @@ public class UserInfoImpl implements UserInfo {
     final static Map<String, String> NGA_COOKIE_MAP = new HashMap<>();
     final static Map<String, String> NGA_FID_MAP = new HashMap<>();
     final static Map<String, String> NGA_TID_MAP = new HashMap<>();
-    final static List<String> KEYWORD_LIST = new ArrayList<>();
+    final static Set<String> KEYWORD_LIST = new HashSet<>();
 
     @Override
     public String getNgaCookie(String s) {
@@ -92,7 +92,7 @@ public class UserInfoImpl implements UserInfo {
     }
 
     @Override
-    public List<String> getKeywordList() {
+    public Set<String> getKeywordSet() {
         return KEYWORD_LIST;
     }
 

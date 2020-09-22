@@ -29,7 +29,7 @@ public class PixivController {
     final ThreadPoolTaskExecutor scanExecutor;
 
     final String untaggedLocker = "";
-    Integer autoDownloadSearchIndex = 0;
+    Set<String> keywordSet;
 
     public PixivController(DataManager dataManager, PixivRequestServ pixivRequestServ, UserInfo userInfo, ThreadPoolTaskExecutor scanExecutor) {
         this.dataManager = dataManager;
@@ -62,15 +62,12 @@ public class PixivController {
         tag = tag != null ? tag : "未分類";
 
         Set<String> idSet = pixivRequestServ.getBookmarks(tag, page);
-        if (idSet.size() == 0) {
-            return;
+        if (idSet.size() > 0) {
+            List<Illustration> detail = pixivRequestServ.getIllustrationDetail(idSet, true);
+            pixivRequestServ.downloadIllust(detail, userInfo.getRootPath() + "/" + tag);
+            pixivRequestServ.addTags(detail);
         }
-        List<Illustration> detail = pixivRequestServ.getIllustrationDetail(idSet, true);
-
-
-        pixivRequestServ.downloadIllust(detail, userInfo.getRootPath() + "/" + tag);
-        pixivRequestServ.addTags(detail);
-        dataManager.download();
+//        dataManager.download();
     }
 
     @RequestMapping("addTranslation")
@@ -114,8 +111,11 @@ public class PixivController {
 
     @RequestMapping("test")
     public Object test() {
+        Set<String> pidSet = new HashSet<>();
+        pidSet.add("84532363");
+        pidSet.add("84532309");
+        pidSet.add("84529965");
 
-        autoDownloadSearch();
 
         log.info("测试接口运行完毕");
         return null;
@@ -125,19 +125,23 @@ public class PixivController {
      * 定时从关键字中搜索一个并下载
      */
     @Scheduled(cron = "0 5/10 * * * *")
+    @RequestMapping("autoSearch")
     public void autoDownloadSearch() {
         Map<String, Integer> keywordAndPage = new HashMap<>();
-        List<String> keywordList = userInfo.getKeywordList();
-
-        for (int i = 0; i < 2; i++) {
-            keywordAndPage.put(keywordList.get(autoDownloadSearchIndex), 1);
-            autoDownloadSearchIndex++;
-            if (autoDownloadSearchIndex == keywordList.size()) {
-                autoDownloadSearchIndex = 0;
-            }
+        if (keywordSet == null || keywordSet.size() == 0) {
+            keywordSet = userInfo.getKeywordSet();
         }
 
-        List<Illustration> search = pixivRequestServ.search(keywordAndPage, false);
+        int i = 0;
+        Set<String> set = new HashSet<>();
+        Iterator<String> iterator = keywordSet.iterator();
+        while (iterator.hasNext() && i < 2) {
+            set.add(iterator.next());
+            iterator.remove();
+            i++;
+        }
+
+        Set<Illustration> search = pixivRequestServ.search(set, 1, false);
         if (search.size() == 0) {
             return;
         }

@@ -1,6 +1,5 @@
 package com.gin.pixivmanager.util;
 
-import com.gin.pixivmanager.config.TaskExecutePool;
 import com.gin.pixivmanager.service.DataManager;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.ConnectionClosedException;
@@ -91,14 +90,12 @@ public class ReqUtil {
         //状态码 = 206 时表示支持断点续传
         if (statusCode == HttpStatus.SC_PARTIAL_CONTENT) {
             //创建线程池
-            ThreadPoolTaskExecutor downloadExecutor = TaskExecutePool.getExecutor(filePath.substring(filePath.lastIndexOf("/") + 1), 5);
+            ThreadPoolTaskExecutor downloadExecutor = TasksUtil.getExecutor(filePath.substring(filePath.lastIndexOf("/") + 1), 5);
             int k = 1024;
             //分块大小 这里选择80k
             int step = 40 * k;
             //用来分配任务的数组下标
             int index = 0;
-            Progress progress = new Progress(url.substring(url.lastIndexOf('/') + 1), contentLength);
-            dataManager.addDownloadingProgress(progress);
             while (index < contentLength) {
                 int finalIndex = index;
                 //提交任务
@@ -122,7 +119,6 @@ public class ReqUtil {
                                 //下标移动
                                 totalRead += readLength;
                             }
-                            progress.add(totalRead);
                             EntityUtils.consume(entity);
                             //分段下载成功 结束任务
                             return;
@@ -172,9 +168,6 @@ public class ReqUtil {
         File file = new File(filePath);
 
 
-        DataManager dataManager = SpringContextUtil.getBean(DataManager.class);
-
-
         int endIndex = url.indexOf("/", url.indexOf("//") + 2);
         HttpGet get;
         get = new HttpGet(url);
@@ -204,9 +197,6 @@ public class ReqUtil {
                 //下载进度
                 String tempName = url.substring(url.lastIndexOf('/') + 1);
                 log.debug("第{}次下载 {}", i, tempName);
-                String questName = tempName + "(" + i + ")";
-                progress = new Progress(questName, contentLength);
-                dataManager.addDownloadingProgress(progress);
 
                 InputStream inputStream = entity.getContent();
                 ByteArrayOutputStream output = new ByteArrayOutputStream();

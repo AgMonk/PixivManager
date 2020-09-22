@@ -2,6 +2,8 @@ package com.gin.pixivmanager.util;
 
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Map;
+
 /**
  * 更新进度工具
  */
@@ -10,13 +12,14 @@ public class Progress implements Comparable<Progress> {
     /**
      * 任务名称
      */
-    final String name;
+    String name;
     /**
      * 当前和最大进度
      */
     long count;
     long size;
-    
+    int times;
+
     public Progress(String name, long count, long size) {
         this.name = name;
         this.count = count;
@@ -25,6 +28,13 @@ public class Progress implements Comparable<Progress> {
 
     public Progress(String name, long size) {
         this(name, 0, size);
+    }
+
+    public Progress(String k, Map<String, Integer> map) {
+        name = k;
+        count = map.get("count");
+        size = map.get("size");
+        times = map.get("times");
     }
 
     /**
@@ -111,6 +121,9 @@ public class Progress implements Comparable<Progress> {
         return name;
     }
 
+    public int getTimes() {
+        return times;
+    }
 
     @Override
     public int compareTo(Progress o) {

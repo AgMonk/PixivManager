@@ -7,7 +7,7 @@ import com.gin.pixivmanager.entity.Illustration;
 import com.gin.pixivmanager.entity.Tag;
 import com.gin.pixivmanager.util.FilesUtil;
 import com.gin.pixivmanager.util.Progress;
-import com.gin.pixivmanager.util.ReqUtil;
+import com.gin.pixivmanager.util.Request;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -46,9 +46,14 @@ public class DataManagerImpl implements DataManager {
      * 查询详情进度
      */
     final private Map<String, String> details = new HashMap<>();
-
-    final private List<Progress> mainProgress = new ArrayList<>();
-    final private List<Progress> downloadingProgress = new ArrayList<>();
+    /**
+     * 下载进度
+     */
+    final private Map<String, Map<String, Integer>> progressDownloading = new HashMap<>();
+    /**
+     * 主任务进度
+     */
+    final private Map<String, Map<String, Integer>> progressMain = new HashMap<>();
 
     /**
      * 作品数据
@@ -392,32 +397,45 @@ public class DataManagerImpl implements DataManager {
     }
 
     @Override
-    public void addMainProgress(Progress progress) {
-        log.debug("添加主任务 {}", progress.getName());
-        synchronized (mainProgress) {
-            mainProgress.add(progress);
+    public void addProgressMain(String k, Map<String, Integer> map) {
+        k = getQuestName(k);
+        log.debug("添加主任务 {}", k);
+        synchronized (progressMain) {
+            progressMain.put(k, map);
+        }
+    }
+
+
+    @Override
+    public void addProgressDownloading(String k, Map<String, Integer> map) {
+        log.debug("添加下载任务 {}", k);
+        synchronized (progressDownloading) {
+            progressDownloading.put(k, map);
         }
     }
 
     @Override
-    public void addDownloadingProgress(Progress progress) {
-        synchronized (downloadingProgress) {
-            downloadingProgress.add(progress);
-        }
+    public Map<String, Map<String, Integer>> getProgressDownloading() {
+        return progressDownloading;
     }
 
     @Override
     public Map<String, List<Progress>> getProgress() {
         HashMap<String, List<Progress>> map = new HashMap<>();
-        synchronized (mainProgress) {
-            Collections.sort(mainProgress);
+        synchronized (progressMain) {
+            List<Progress> list = new ArrayList<>();
+            progressMain.forEach((k, v) -> {
+                list.add(new Progress(k, v));
+            });
+            map.put("main", list);
         }
-        synchronized (downloadingProgress) {
-            Collections.sort(downloadingProgress);
+        synchronized (progressDownloading) {
+            List<Progress> list = new ArrayList<>();
+            progressDownloading.forEach((k, v) -> {
+                list.add(new Progress(k, v));
+            });
+            map.put("downloading", list);
         }
-        map.put("main", mainProgress);
-        map.put("downloading", downloadingProgress);
-
         return map;
     }
 
@@ -496,29 +514,37 @@ public class DataManagerImpl implements DataManager {
     @Override
     @Scheduled(cron = "0 0/2 * * * *")
     public void download() {
-//        if (downloadExecutor.getActiveCount() < downloadExecutor.getMaxPoolSize()+2 ) {
         for (DownloadFile downloadFile : downloadFileList) {
             if (!downloadFile.isDownloading()) {
-//                    log.info("添加下载队列 {}",downloadFile);
                 downloadFile.setDownloading(true);
                 downloadExecutor.execute(() -> {
-                    File file;
+                    File file = new File(downloadFile.getPath());
+                    Request request = null;
                     try {
-//                            file = ReqUtil.PoolDownload(downloadFile.getUrl(), downloadFile.getPath());
-                        file = ReqUtil.download(downloadFile.getUrl(), downloadFile.getPath());
+                        String fileName = downloadFile.getUrl().substring(downloadFile.getUrl().lastIndexOf("/") + 1);
+                        Map<String, Integer> progressMap = Request.createProgressMap(100);
+                        addProgressDownloading(fileName, progressMap);
+
+                        request = Request.create(downloadFile.getUrl())
+                                .setFile(file)
+                                .setReferer(null)
+                                .setProgressMap(progressMap)
+                                .get();
+
+
                         removeDownload(downloadFile);
                         List<File> files = new ArrayList<File>();
                         files.add(file);
                         addFilesMap(files);
-                    } catch (IOException e) {
+                    } catch (Exception e) {
                         downloadFile.setDownloading(false);
+                        assert request != null;
+                        request.complete();
                         e.printStackTrace();
                     }
                 });
-//                    break;
             }
         }
-//        }
     }
 
     @Override
@@ -531,11 +557,22 @@ public class DataManagerImpl implements DataManager {
      */
     @Scheduled(cron = "0/3 * * * * *")
     public void cleanProgress() {
-        synchronized (mainProgress) {
-            mainProgress.removeIf(Progress::isCompleted);
+        synchronized (progressMain) {
+            cleanProgress(progressMain);
         }
-        synchronized (downloadingProgress) {
-            downloadingProgress.removeIf(Progress::isCompleted);
+        synchronized (progressDownloading) {
+            cleanProgress(progressDownloading);
+        }
+    }
+
+    private void cleanProgress(Map<String, Map<String, Integer>> map) {
+        Iterator<Map.Entry<String, Map<String, Integer>>> iterator = map.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<String, Map<String, Integer>> next = iterator.next();
+            Map<String, Integer> value = next.getValue();
+            if (value.get("count").equals(value.get("size"))) {
+                iterator.remove();
+            }
         }
     }
 
@@ -589,5 +626,15 @@ public class DataManagerImpl implements DataManager {
                 list.add(f);
             }
         }
+    }
+
+    /**
+     * 生成唯一任务名称
+     *
+     * @param name 任务名
+     * @return 唯一任务名
+     */
+    private static String getQuestName(String name) {
+        return name + "-" + System.currentTimeMillis() % 1000;
     }
 }

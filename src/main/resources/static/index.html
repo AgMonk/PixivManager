@@ -30,6 +30,8 @@
 
     <button @click="init()">重新载入数据</button>
     <br>
+    <button @click="autoSearch()">自动搜索</button>
+    <br>
     <button @click="test()">测试接口</button>
     <br>
 
@@ -46,6 +48,9 @@
             },
             test() {
                 get("pixiv/test", null, null);
+            },
+            autoSearch() {
+                get("pixiv/autoSearch", null, null);
             },
         },
         created() {
