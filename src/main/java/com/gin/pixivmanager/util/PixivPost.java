@@ -154,6 +154,7 @@ public class PixivPost {
             });
         }
         TasksUtil.executeTasks(tasks, 60, executor, "addTags", 2);
+        completeProgress(progressMap);
         long end = System.currentTimeMillis();
         log.debug("添加Tag {} 个 耗时 {}", pidAndTags.size(), timeCost(start, end));
     }
@@ -452,5 +453,15 @@ public class PixivPost {
     private static void addProgress(Map<String, Integer> progressMap) {
         progressMap.put("count", progressMap.get("count") + 1);
     }
+
+    /**
+     * 完成进度
+     *
+     * @param progressMap 进度
+     */
+    private static void completeProgress(Map<String, Integer> progressMap) {
+        progressMap.put("count", progressMap.get("size"));
+    }
+
 }
 

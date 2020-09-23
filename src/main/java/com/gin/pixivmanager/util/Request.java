@@ -392,8 +392,6 @@ public class Request {
                     log.warn("文件夹创建失败 {}", parentFilePath);
                 }
             } else {
-                progressMap = progressMap == null ? createProgressMap(contentLength) : progressMap;
-
                 long start = System.currentTimeMillis();
                 log.debug("第{}次下载 {}", i + 1, file.getName());
 //                try {
@@ -427,11 +425,7 @@ public class Request {
 //                }
             }
         } else {
-            try {
-                result = EntityUtils.toString(entity, decodeEnc);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            result = EntityUtils.toString(entity, decodeEnc);
         }
 
     }
@@ -490,8 +484,10 @@ public class Request {
                 } else {
                     log.debug(timeoutMsg, i + 1, method.getURI());
                 }
+                progressMap.put("count", 0);
             } catch (IOException e) {
                 e.printStackTrace();
+                progressMap.put("count", 0);
             }
         }
         return this;

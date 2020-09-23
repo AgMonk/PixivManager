@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -95,11 +94,11 @@ public class DataController {
         for (MultipartFile f : file) {
             dataManager.uploadTwitter(f, title, tags);
         }
-        try {
-            response.sendRedirect("/twitter.html");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+//        try {
+//            response.sendRedirect("/twitter.html");
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
     }
 
     @RequestMapping("test")

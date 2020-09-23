@@ -399,7 +399,7 @@ public class DataManagerImpl implements DataManager {
     @Override
     public void addProgressMain(String k, Map<String, Integer> map) {
         k = getQuestName(k);
-        log.debug("添加主任务 {}", k);
+        log.debug("添加主任务 {} 0/{}", k, map.get("size"));
         synchronized (progressMain) {
             progressMain.put(k, map);
         }
