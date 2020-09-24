@@ -60,7 +60,6 @@ public interface PixivRequestServ {
      *
      * @param illustList 作品列表
      * @param rootPath   下载根目录
-     * @return 下载完成的文件
      */
     void downloadIllust(List<Illustration> illustList, String rootPath);
 
@@ -68,11 +67,13 @@ public interface PixivRequestServ {
     /**
      * 搜索作品
      *
-     * @param keywordAndPage 关键字和页数
-     * @param all            是否显示所有作品  false时仅显示未收藏且未记录过的作品
+     * @param keywordSet 关键字
+     * @param start      开始页码
+     * @param end        结束页码
+     * @param all        是否显示所有作品  false时仅显示未收藏且未记录过的作品
      * @return 搜索结果
      */
-    Set<Illustration> search(Set<String> keywordSet, Integer p, boolean all);
+    Set<Illustration> search(Set<String> keywordSet, Integer start, Integer end, boolean all);
 
     /**
      * 搜索并下载作品

@@ -283,11 +283,11 @@ public class PixivRequestServImpl implements PixivRequestServ {
 
 
     @Override
-    public Set<Illustration> search(Set<String> keywordSet, Integer p, boolean all) {
-        Map<String, Integer> progressMap = Request.createProgressMap(keywordSet.size() * p);
+    public Set<Illustration> search(Set<String> keywordSet, Integer start, Integer end, boolean all) {
+        Map<String, Integer> progressMap = Request.createProgressMap(keywordSet.size() * (end - start + 1));
         dataManager.addProgressMain("搜索任务", progressMap);
 
-        List<JSONObject> searchResult = PixivPost.search(keywordSet, p, userInfo.getCookie(), false, "all", null, progressMap);
+        List<JSONObject> searchResult = PixivPost.search(keywordSet, start, end, userInfo.getCookie(), false, "all", null, progressMap);
 
         Set<Illustration> set = new HashSet<>();
         for (JSONObject jsonobj : searchResult) {

@@ -379,8 +379,10 @@ public class Request {
         if (contentType.startsWith("image") || contentType.endsWith("zip")) {
             int contentLength = Math.toIntExact(entity.getContentLength());
             File parentFile = file.getParentFile();
-            progressMap.put("size", contentLength);
-            progressMap.put("times", i + 1);
+            if (progressMap != null) {
+                progressMap.put("size", contentLength);
+                progressMap.put("times", i + 1);
+            }
             if (file.exists() && file.length() == contentLength) {
                 log.debug("文件已存在且大小相同 跳过 {}", file);
                 progressMap.put("count", progressMap.get("size"));
@@ -484,10 +486,14 @@ public class Request {
                 } else {
                     log.debug(timeoutMsg, i + 1, method.getURI());
                 }
-                progressMap.put("count", 0);
+                if (progressMap != null) {
+                    progressMap.put("count", 0);
+                }
             } catch (IOException e) {
                 e.printStackTrace();
-                progressMap.put("count", 0);
+                if (progressMap != null) {
+                    progressMap.put("count", 0);
+                }
             }
         }
         return this;

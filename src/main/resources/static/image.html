@@ -88,7 +88,8 @@
         <button @click="move()">移动</button>
         <br><br><br>
         <button @click="del()">删除</button>
-
+        <button @click="init()">重新载入数据</button>
+        <br>
     </div>
     <a :href="getFilePath(imgIndex)"><img :src="getFilePath(imgIndex)" style="width: 100%"></a>
     <br><br><br><br><br>
@@ -114,6 +115,9 @@
             imgIndex: 0,
         },
         methods: {
+            init() {
+                get("data/init", null, null);
+            },
             getFileUrls() {
                 get("/data/getFilesPath", null, function (res) {
                     _this.fileUrls = res.data;

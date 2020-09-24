@@ -64,11 +64,12 @@ public class PixivPost {
         Request request = Request.create(URL_ILLUST_DETAIL + pid)
                 .setCookie(cookie).get();
         String result = request.getResult();
-        JSONObject body = JSONObject.parseObject(result).getJSONObject("body");
+        JSONObject resultJson = result == null ? null : JSONObject.parseObject(result);
+        JSONObject body = resultJson == null ? null : resultJson.getJSONObject("body");
 
 
         long end = System.currentTimeMillis();
-        log.debug("作品详情获取{} {} 耗时 {} 毫秒", body != null ? "成功" : "失败", pid, timeCost(start, end));
+        log.debug("获得作品详情{} {} 耗时 {} 毫秒", body != null ? "成功" : "失败", pid, timeCost(start, end));
         return body;
     }
 
@@ -306,7 +307,7 @@ public class PixivPost {
             JSONObject illustManga = body.getJSONObject("illustManga");
             Integer total = illustManga.getInteger("total");
             JSONArray data = illustManga.getJSONArray("data");
-            log.info("搜索{} 关键字: {} 获得结果 {} 个 总计结果 {} 个", searchTitle ? "标题" : "标签", keyword, data.size(), total);
+            log.info("搜索{} 关键字: {} 获得结果 {} 个 总计结果 {} 个 共计 {} 页", searchTitle ? "标题" : "标签", keyword, data.size(), total, total / 60 + 1);
 
             List<JSONObject> resultList = new ArrayList<>();
             for (int i = 0; i < data.size(); i++) {
@@ -322,7 +323,7 @@ public class PixivPost {
      * 批量搜索
      *
      * @param keywordSet  关键字
-     * @param p           页数
+     * @param start       页数
      * @param cookie      cookie(可选 不提供时不能搜索R-18作品)
      * @param searchTitle true = 搜索标题 false =搜 索tag
      * @param mode        模式 可取值： all safe r18
@@ -330,12 +331,12 @@ public class PixivPost {
      * @param progressMap 进度
      * @return 搜索结果
      */
-    public static List<JSONObject> search(Set<String> keywordSet, Integer p, String cookie, boolean searchTitle
+    public static List<JSONObject> search(Set<String> keywordSet, Integer start, Integer end, String cookie, boolean searchTitle
             , String mode, ThreadPoolTaskExecutor executor, Map<String, Integer> progressMap) {
         List<Callable<List<JSONObject>>> tasks = new ArrayList<>();
         for (String keyword : keywordSet) {
-            for (int i = 0; i < p; i++) {
-                Integer finalI = i + 1;
+            for (int i = start; i <= end; i++) {
+                Integer finalI = i;
                 tasks.add(() -> {
                     List<JSONObject> search = search(keyword, finalI, cookie, searchTitle, mode);
                     addProgress(progressMap);

@@ -4,6 +4,7 @@ import com.gin.pixivmanager.entity.Tag;
 import com.gin.pixivmanager.service.DataManager;
 import com.gin.pixivmanager.util.Progress;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -100,6 +101,12 @@ public class DataController {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    @RequestMapping("download")
+    @Scheduled(cron = "0 0/2 * * * *")
+    public void download() {
+        dataManager.download();
     }
 
     @RequestMapping("test")

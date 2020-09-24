@@ -67,7 +67,7 @@ public class PixivController {
             pixivRequestServ.downloadIllust(detail, userInfo.getRootPath() + "/" + tag);
             pixivRequestServ.addTags(detail);
         }
-//        dataManager.download();
+        dataManager.download();
     }
 
     @RequestMapping("addTranslation")
@@ -140,17 +140,23 @@ public class PixivController {
             iterator.remove();
             i++;
         }
+        searchDownload(1, 1, set.toArray(new String[2]));
+    }
 
-        Set<Illustration> search = pixivRequestServ.search(set, 1, false);
-        if (search.size() == 0) {
-            return;
-        }
-        HashSet<String> idSet = new HashSet<>();
-        for (Illustration ill : search) {
-            idSet.add(ill.getId());
-        }
-        List<Illustration> detail = pixivRequestServ.getIllustrationDetail(idSet, false);
+    @RequestMapping("searchDownload")
+    public void searchDownload(Integer start, Integer end, String... keyword) {
+        Set<String> set = new HashSet<>(Arrays.asList(keyword));
+        Set<Illustration> search = pixivRequestServ.search(set, start, end, false);
+        if (search.size() > 0) {
+            HashSet<String> idSet = new HashSet<>();
+            for (Illustration ill : search) {
+                idSet.add(ill.getId());
+            }
+            List<Illustration> detail = pixivRequestServ.getIllustrationDetail(idSet, false);
 
-        pixivRequestServ.downloadIllust(detail, userInfo.getRootPath() + "/search");
+            pixivRequestServ.downloadIllust(detail, userInfo.getRootPath() + "/search");
+        }
+
+        dataManager.download();
     }
 }

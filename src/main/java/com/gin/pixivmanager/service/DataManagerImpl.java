@@ -74,7 +74,7 @@ public class DataManagerImpl implements DataManager {
     /**
      * 下载文件列表
      */
-    final private Set<DownloadFile> downloadFileList;
+    final private Set<DownloadFile> downloadFileSet;
 
     final private ThreadPoolTaskExecutor serviceExecutor;
     final private ThreadPoolTaskExecutor downloadExecutor;
@@ -89,7 +89,7 @@ public class DataManagerImpl implements DataManager {
         this.mapper = dataManagerMapper;
         this.userInfo = userInfo;
 
-        downloadFileList = downloadManagerMapper.findDownloadFileList();
+        downloadFileSet = downloadManagerMapper.findDownloadFileList();
 
 
         init();
@@ -493,18 +493,10 @@ public class DataManagerImpl implements DataManager {
 
     @Override
     public Integer addDownload(Set<DownloadFile> set) {
-        synchronized (downloadFileList) {
+        synchronized (downloadFileSet) {
             log.info("添加下载队列 {} 个", set.size());
-            downloadFileList.addAll(set);
+            downloadFileSet.addAll(set);
             return downloadManagerMapper.addDownloadFileList(set);
-        }
-    }
-
-
-    private void removeDownload(DownloadFile downloadFile) {
-        synchronized (downloadFileList) {
-            downloadFileList.remove(downloadFile);
-            downloadManagerMapper.remove(downloadFile);
         }
     }
 
@@ -512,9 +504,10 @@ public class DataManagerImpl implements DataManager {
      * 从列表中把 1个未正在下载的文件添加进队列
      */
     @Override
-    @Scheduled(cron = "0 0/2 * * * *")
     public void download() {
-        for (DownloadFile downloadFile : downloadFileList) {
+        List<DownloadFile> list = new ArrayList<>(downloadFileSet);
+
+        for (DownloadFile downloadFile : list) {
             if (!downloadFile.isDownloading()) {
                 downloadFile.setDownloading(true);
                 downloadExecutor.execute(() -> {
@@ -531,8 +524,11 @@ public class DataManagerImpl implements DataManager {
                                 .setProgressMap(progressMap)
                                 .get();
 
+                        downloadManagerMapper.remove(downloadFile);
+                        synchronized (downloadFileSet) {
+                            downloadFileSet.remove(downloadFile);
+                        }
 
-                        removeDownload(downloadFile);
                         List<File> files = new ArrayList<File>();
                         files.add(file);
                         addFilesMap(files);
@@ -549,7 +545,7 @@ public class DataManagerImpl implements DataManager {
 
     @Override
     public Integer getDownloadingCount() {
-        return downloadFileList.size();
+        return downloadFileSet.size();
     }
 
     /**
