@@ -62,7 +62,6 @@
     <button @click="autoSearch()">自动搜索</button>
     <br><br>
     <input type="text" v-model="keyword" placeholder="关键字">
-    <input type="text" v-model="startFrom" placeholder="起始页">
     <button @click="slowSearch">慢搜索</button>
     <table class="customers">
         <tr>
@@ -143,7 +142,7 @@
                 get("pixiv/autoSearch", null, null);
             },
             slowSearch() {
-                get("pixiv/slowSearchDownload", {keyword: this.keyword, startFrom: this.startFrom}, null);
+                get("pixiv/slowSearch", {keyword: this.keyword}, null);
             }
         },
         created() {

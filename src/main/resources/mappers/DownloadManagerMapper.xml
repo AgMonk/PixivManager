@@ -13,6 +13,10 @@ Mapper 3.0//EN"
         from t_downloadlist
         ORDER BY url DESC
     </select>
+    <select id="getSlowSearchSet" resultType="java.lang.String">
+        select pid
+        from t_slow_search;
+    </select>
     <insert id="addDownloadFileList">
         delete from t_downloadlist where url in (
         <foreach collection="set" item="i" index="index" separator=",">
@@ -30,10 +34,31 @@ Mapper 3.0//EN"
             )
         </foreach>
     </insert>
+    <insert id="addSlowSearchSet">
+
+        insert into t_slow_search (pid)
+        values
+        <foreach collection="pidSet" item="i" index="index" separator=",">
+            (
+            #{i}
+            )
+        </foreach>
+    </insert>
     <delete id="remove">
         delete
         from t_downloadlist
         where url = #{url}
           and path = #{path}
     </delete>
+    <delete id="removeSlowSearchPid">
+        delete from t_slow_search where pid in(
+        <foreach collection="pidSet" item="i" index="index" separator=",">
+            (
+            #{i}
+            )
+        </foreach>
+        );
+    </delete>
+
+
 </mapper>

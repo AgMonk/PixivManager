@@ -178,6 +178,12 @@ public interface DataManager {
      */
     void download();
 
+    Integer addSlowSearchPid(Set<String> pidSet);
+
+    Integer removeSlowSearchPid(Set<String> pidSet);
+
+    Set<String> getSlowSearchPidSet();
+
     /**
      * 返回当前下载队列的数量
      *

@@ -51,6 +51,11 @@ public class TaskExecutePool {
         return TasksUtil.getExecutor("Ctrl", 10);
     }
 
+    @Bean
+    public ThreadPoolTaskExecutor slowSearchExecutor() {
+        return TasksUtil.getExecutor("slow", 1);
+    }
+
 
     @Bean(name = "myThreadPoolTaskScheduler")
     public TaskScheduler getTaskScheduler() {

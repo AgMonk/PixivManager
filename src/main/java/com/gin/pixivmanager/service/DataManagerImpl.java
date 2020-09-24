@@ -75,6 +75,10 @@ public class DataManagerImpl implements DataManager {
      * 下载文件列表
      */
     final private Set<DownloadFile> downloadFileSet;
+    /**
+     * 慢搜索pid set
+     */
+    final private Set<String> slowSearchPidSet;
 
     final private ThreadPoolTaskExecutor serviceExecutor;
     final private ThreadPoolTaskExecutor downloadExecutor;
@@ -90,7 +94,7 @@ public class DataManagerImpl implements DataManager {
         this.userInfo = userInfo;
 
         downloadFileSet = downloadManagerMapper.findDownloadFileList();
-
+        slowSearchPidSet = downloadManagerMapper.getSlowSearchSet();
 
         init();
 
@@ -544,6 +548,28 @@ public class DataManagerImpl implements DataManager {
                 });
             }
         }
+    }
+
+    @Override
+    public Integer addSlowSearchPid(Set<String> pidSet) {
+        synchronized (slowSearchPidSet) {
+            slowSearchPidSet.addAll(pidSet);
+            downloadManagerMapper.removeSlowSearchPid(pidSet);
+            return downloadManagerMapper.addSlowSearchSet(pidSet);
+        }
+    }
+
+    @Override
+    public Integer removeSlowSearchPid(Set<String> pidSet) {
+        synchronized (slowSearchPidSet) {
+            slowSearchPidSet.removeIf(pidSet::contains);
+            return downloadManagerMapper.removeSlowSearchPid(pidSet);
+        }
+    }
+
+    @Override
+    public Set<String> getSlowSearchPidSet() {
+        return slowSearchPidSet;
     }
 
     @Override

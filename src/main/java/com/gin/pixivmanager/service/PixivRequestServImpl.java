@@ -7,6 +7,7 @@ import com.gin.pixivmanager.entity.Tag;
 import com.gin.pixivmanager.util.PixivPost;
 import com.gin.pixivmanager.util.Request;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 
@@ -82,7 +83,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
             /*
               向pixiv查询到的作品详情
              */
-            List<Illustration> detailsFromPixiv = getIllustrationFromPixiv(lackPidSet);
+            List<Illustration> detailsFromPixiv = getIllustrationFromPixiv(lackPidSet, requestExecutor);
             if (detailsFromPixiv != null) {
                 log.debug("向pixiv请求到 {} 条详情", detailsFromPixiv.size());
                 if (idBookmarked) {
@@ -309,6 +310,48 @@ public class PixivRequestServImpl implements PixivRequestServ {
     }
 
     @Override
+    public void slowSearch(String keyword) {
+        Set<String> keywordSet = new HashSet<>();
+        keywordSet.add(keyword);
+        int page = 1;
+        int count = 0;
+        Set<Illustration> search;
+        do {
+            search = search(keywordSet, page, page, false);
+            if (search.size() > 0) {
+                Set<String> set = new HashSet<>();
+                search.forEach(ill -> {
+                    set.add(ill.getId());
+                });
+                dataManager.addSlowSearchPid(set);
+                count += search.size();
+            }
+            page++;
+        } while (search.size() > 0);
+        log.info("搜索完毕 添加 {} 个 慢搜索Pid", count);
+    }
+
+
+    @Async(value = "slowSearchExecutor")
+    @Override
+    public void slowDetail() {
+        Set<String> searchPidSet = dataManager.getSlowSearchPidSet();
+        log.info("慢详情 剩余 {} 个", searchPidSet.size());
+        Set<String> set = new HashSet<>();
+        int count = 0;
+        for (String pid : searchPidSet) {
+            set.add(pid);
+            count++;
+            if (count == 10) {
+                break;
+            }
+        }
+        List<Illustration> detail = getIllustrationDetail(set, 200, false);
+        downloadIllust(detail, userInfo.getRootPath() + "/slowSearch");
+        dataManager.removeSlowSearchPid(set);
+    }
+
+    @Override
     public Integer downloadSearch(Map<String, Integer> keywordAndPage, boolean all) {
         return null;
     }
@@ -328,15 +371,16 @@ public class PixivRequestServImpl implements PixivRequestServ {
     /**
      * 使用多线程请求多个作品详情
      *
-     * @param pidSet 请求详情的id列表
+     * @param pidSet   请求详情的id列表
+     * @param executor
      * @return 请求到的详情
      */
-    private List<Illustration> getIllustrationFromPixiv(Set<String> pidSet) {
+    private List<Illustration> getIllustrationFromPixiv(Set<String> pidSet, ThreadPoolTaskExecutor executor) {
         //添加进度
         Map<String, Integer> progressMap = Request.createProgressMap(pidSet.size());
         dataManager.addProgressMain("详情任务", progressMap);
 
-        List<JSONObject> detail = PixivPost.detail(pidSet, null, requestExecutor, progressMap);
+        List<JSONObject> detail = PixivPost.detail(pidSet, null, executor, progressMap);
 
         List<Illustration> illusts = new ArrayList<>();
         if (detail == null) {

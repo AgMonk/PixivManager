@@ -2,6 +2,7 @@ package com.gin.pixivmanager.service;
 
 import com.gin.pixivmanager.entity.Illustration;
 import com.gin.pixivmanager.entity.Tag;
+import org.springframework.scheduling.annotation.Async;
 
 import java.util.List;
 import java.util.Map;
@@ -75,6 +76,16 @@ public interface PixivRequestServ {
      * @return 搜索结果
      */
     Set<Illustration> search(Set<String> keywordSet, Integer start, Integer end, boolean all);
+
+    /**
+     * 慢搜索 存储关键字的搜索结果pid 缓慢获取详情
+     *
+     * @param keyword
+     */
+    void slowSearch(String keyword);
+
+    @Async(value = "slowSearchExecutor")
+    void slowDetail();
 
     /**
      * 搜索并下载作品

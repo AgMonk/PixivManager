@@ -3,7 +3,6 @@ package com.gin.pixivmanager.dao;
 import com.gin.pixivmanager.entity.DownloadFile;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
 import java.util.Set;
 
 /**
@@ -33,4 +32,26 @@ public interface DownloadManagerMapper {
      * @param downloadFile 文件
      */
     void remove(DownloadFile downloadFile);
+
+    /**
+     * 添加慢搜索id
+     *
+     * @param pidSet id set
+     * @return 数量
+     */
+    Integer addSlowSearchSet(Set<String> pidSet);
+
+    /**
+     * 获得慢搜索id
+     *
+     * @return
+     */
+    Set<String> getSlowSearchSet();
+
+    /**
+     * 移除慢搜索pid
+     *
+     * @param pidSet
+     */
+    Integer removeSlowSearchPid(Set<String> pidSet);
 }

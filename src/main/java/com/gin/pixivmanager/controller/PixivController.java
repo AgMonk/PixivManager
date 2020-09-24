@@ -162,31 +162,14 @@ public class PixivController {
         return detail.size();
     }
 
-    @RequestMapping("slowSearchDownload")
-    public void slowSearchDownload(String keyword, Integer startFrom) {
-        int page = startFrom;
-        int count = 60;
-        long interval = 1L * 60 * 1000;
-        while (count > 0) {
-            long start = System.currentTimeMillis();
-            log.info("慢搜索 {} 第 {} 页", keyword, page);
-            count = searchDownload(page, page, 200, keyword);
-            page++;
-            if (count == 0) {
-                continue;
-            }
-            long end = System.currentTimeMillis();
-            if (end - start < interval) {
-                try {
-                    long sleep = interval - (end - start);
-                    log.info("等待 {}毫秒", sleep);
-                    Thread.sleep(sleep);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
+    @RequestMapping("slowSearch")
+    public void slowSearch(String keyword) {
+        pixivRequestServ.slowSearch(keyword);
+    }
 
-        log.info("慢搜索 {} 完毕", keyword);
+
+    @Scheduled(cron = "0/10 * * * * *")
+    public void slowDetail() {
+        pixivRequestServ.slowDetail();
     }
 }
