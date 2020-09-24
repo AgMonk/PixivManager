@@ -46,12 +46,13 @@ public class PixivRequestServImpl implements PixivRequestServ {
     /**
      * 请求一个列表中的pid详情 并添加到数据库
      *
-     * @param idSet        pid
-     * @param idBookmarked 是否是已收藏作品
+     * @param idSet         pid
+     * @param bookmarkCount
+     * @param idBookmarked  是否是已收藏作品
      * @return 作品详情
      */
     @Override
-    public List<Illustration> getIllustrationDetail(Set<String> idSet, boolean idBookmarked) {
+    public List<Illustration> getIllustrationDetail(Set<String> idSet, Integer bookmarkCount, boolean idBookmarked) {
         List<Illustration> list = dataManager.getIllustrations(idSet);
         log.debug("从缓存中获得 {}条数据", list.size());
         Set<String> lackPidSet = new HashSet<>();
@@ -84,13 +85,18 @@ public class PixivRequestServImpl implements PixivRequestServ {
             List<Illustration> detailsFromPixiv = getIllustrationFromPixiv(lackPidSet);
             if (detailsFromPixiv != null) {
                 log.debug("向pixiv请求到 {} 条详情", detailsFromPixiv.size());
-                list.addAll(detailsFromPixiv);
                 if (idBookmarked) {
+                    log.info("设置为已收藏作品");
                     detailsFromPixiv.forEach(ill -> {
                         ill.setBookmarkData(1);
                     });
                 }
+                if (bookmarkCount != null) {
+                    detailsFromPixiv.removeIf(ill -> ill.getBookmarkCount() < bookmarkCount);
+                    log.info("过滤掉收藏数较低的作品 < {} 剩余 {} 个作品", bookmarkCount, detailsFromPixiv.size());
+                }
 
+                list.addAll(detailsFromPixiv);
                 dataManager.addIllustrations(detailsFromPixiv);
                 dataManager.addTags(detailsFromPixiv);
 
@@ -171,7 +177,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
         }
         log.info("归档 {} 个文件 来自 {} 个作品", name.length, idSet.size());
         //获得id的详情信息 使用cookie查询
-        List<Illustration> detail = getIllustrationDetail(idSet, true);
+        List<Illustration> detail = getIllustrationDetail(idSet, null, true);
         idSet = new HashSet<>();
         //归档目录
         String archivePath = userInfo.getArchivePath();

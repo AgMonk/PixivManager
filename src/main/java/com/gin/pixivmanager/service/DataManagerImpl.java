@@ -493,6 +493,9 @@ public class DataManagerImpl implements DataManager {
 
     @Override
     public Integer addDownload(Set<DownloadFile> set) {
+        if (set.size() == 0) {
+            return 0;
+        }
         synchronized (downloadFileSet) {
             log.info("添加下载队列 {} 个", set.size());
             downloadFileSet.addAll(set);

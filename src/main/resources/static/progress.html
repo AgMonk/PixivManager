@@ -62,9 +62,8 @@
     <button @click="autoSearch()">自动搜索</button>
     <br><br>
     <input type="text" v-model="keyword" placeholder="关键字">
-    <input type="text" v-model="start" placeholder="开始页数">
-    <input type="text" v-model="end" placeholder="结束页数">
-    <button @click="searchDownload">搜索下载</button>
+    <input type="text" v-model="startFrom" placeholder="起始页">
+    <button @click="slowSearch">慢搜索</button>
     <table class="customers">
         <tr>
             <th>主任务</th>
@@ -109,8 +108,7 @@
             },
             downloadingCount: 0,
             keyword: "",
-            start: 1,
-            end: 1,
+            startFrom: 2,
         },
         methods: {
             searchDownload() {
@@ -144,7 +142,9 @@
             autoSearch() {
                 get("pixiv/autoSearch", null, null);
             },
-
+            slowSearch() {
+                get("pixiv/slowSearchDownload", {keyword: this.keyword, startFrom: this.startFrom}, null);
+            }
         },
         created() {
             this.getProgress();

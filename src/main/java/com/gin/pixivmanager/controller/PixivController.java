@@ -63,7 +63,7 @@ public class PixivController {
 
         Set<String> idSet = pixivRequestServ.getBookmarks(tag, page);
         if (idSet.size() > 0) {
-            List<Illustration> detail = pixivRequestServ.getIllustrationDetail(idSet, true);
+            List<Illustration> detail = pixivRequestServ.getIllustrationDetail(idSet, null, true);
             pixivRequestServ.downloadIllust(detail, userInfo.getRootPath() + "/" + tag);
             pixivRequestServ.addTags(detail);
         }
@@ -140,23 +140,53 @@ public class PixivController {
             iterator.remove();
             i++;
         }
-        searchDownload(1, 1, set.toArray(new String[2]));
+        searchDownload(1, 1, null, set.toArray(new String[2]));
     }
 
     @RequestMapping("searchDownload")
-    public void searchDownload(Integer start, Integer end, String... keyword) {
+    public Integer searchDownload(Integer start, Integer end, Integer bookmarkCount, String... keyword) {
         Set<String> set = new HashSet<>(Arrays.asList(keyword));
         Set<Illustration> search = pixivRequestServ.search(set, start, end, false);
+        List<Illustration> detail = new ArrayList<>();
         if (search.size() > 0) {
             HashSet<String> idSet = new HashSet<>();
             for (Illustration ill : search) {
                 idSet.add(ill.getId());
             }
-            List<Illustration> detail = pixivRequestServ.getIllustrationDetail(idSet, false);
+            detail = pixivRequestServ.getIllustrationDetail(idSet, bookmarkCount, false);
 
             pixivRequestServ.downloadIllust(detail, userInfo.getRootPath() + "/search");
         }
 
         dataManager.download();
+        return detail.size();
+    }
+
+    @RequestMapping("slowSearchDownload")
+    public void slowSearchDownload(String keyword, Integer startFrom) {
+        int page = startFrom;
+        int count = 60;
+        long interval = 1L * 60 * 1000;
+        while (count > 0) {
+            long start = System.currentTimeMillis();
+            log.info("慢搜索 {} 第 {} 页", keyword, page);
+            count = searchDownload(page, page, 200, keyword);
+            page++;
+            if (count == 0) {
+                continue;
+            }
+            long end = System.currentTimeMillis();
+            if (end - start < interval) {
+                try {
+                    long sleep = interval - (end - start);
+                    log.info("等待 {}毫秒", sleep);
+                    Thread.sleep(sleep);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        log.info("慢搜索 {} 完毕", keyword);
     }
 }

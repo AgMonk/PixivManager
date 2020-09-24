@@ -85,7 +85,7 @@ public class PixivPost {
     public static List<JSONObject> detail(Set<String> pidSet, String cookie, ThreadPoolTaskExecutor executor, Map<String, Integer> progressMap) {
         List<Callable<JSONObject>> tasks = new ArrayList<>();
         long start = System.currentTimeMillis();
-        log.debug("请求作品详情 {} 个", pidSet.size());
+        log.info("请求作品详情 {} 个", pidSet.size());
         for (String pid : pidSet) {
             tasks.add(() -> {
                 JSONObject detail = detail(pid, cookie);
@@ -95,7 +95,7 @@ public class PixivPost {
         }
         List<JSONObject> detail = TasksUtil.executeTasks(tasks, 60, executor, "detail", 2);
         long end = System.currentTimeMillis();
-        log.debug("获得作品详情 {} 个 耗时 {}", detail.size(), timeCost(start, end));
+        log.info("获得作品详情 {} 个 耗时 {}", detail.size(), timeCost(start, end));
         return detail;
     }
 
@@ -292,7 +292,7 @@ public class PixivPost {
         }
 
         p = p == null || p < 0 ? 1 : p;
-        log.info("搜索{} 关键字: {}", searchTitle ? "标题" : "标签", keyword);
+        log.info("搜索{} 关键字: {} 第 {} 页", searchTitle ? "标题" : "标签", keyword, p);
 
         String result = Request.create(URL_ILLUST_SEARCH + Request.encode(keyword, null))
                 .setCookie(cookie)
@@ -307,7 +307,7 @@ public class PixivPost {
             JSONObject illustManga = body.getJSONObject("illustManga");
             Integer total = illustManga.getInteger("total");
             JSONArray data = illustManga.getJSONArray("data");
-            log.info("搜索{} 关键字: {} 获得结果 {} 个 总计结果 {} 个 共计 {} 页", searchTitle ? "标题" : "标签", keyword, data.size(), total, total / 60 + 1);
+            log.info("搜索{} 关键字: {}  第 {} 页 获得结果 {} 个 总计结果 {} 个 共计 {} 页", searchTitle ? "标题" : "标签", keyword, p, data.size(), total, total / 60 + 1);
 
             List<JSONObject> resultList = new ArrayList<>();
             for (int i = 0; i < data.size(); i++) {
