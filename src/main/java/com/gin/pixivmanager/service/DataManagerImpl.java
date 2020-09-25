@@ -531,9 +531,14 @@ public class DataManagerImpl implements DataManager {
                                 .setProgressMap(progressMap)
                                 .get();
 
-                        downloadManagerMapper.remove(downloadFile);
-                        synchronized (downloadFileSet) {
-                            downloadFileSet.remove(downloadFile);
+
+                        if (file.exists()) {
+                            synchronized (downloadFileSet) {
+                                downloadManagerMapper.remove(downloadFile);
+                                downloadFileSet.remove(downloadFile);
+                            }
+                        } else {
+                            log.warn("文件未下载 {}", downloadFile.getUrl());
                         }
 
                         List<File> files = new ArrayList<File>();

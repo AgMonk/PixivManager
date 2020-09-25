@@ -314,7 +314,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
         int count = 0;
         Set<Illustration> search;
         do {
-            search = search(keywordSet, page, page, false);
+            search = search(keywordSet, page, page + 1, false);
             if (search.size() > 0) {
                 Set<String> set = new HashSet<>();
                 search.forEach(ill -> {
@@ -323,7 +323,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
                 dataManager.addSlowSearchPid(set);
                 count += search.size();
             }
-            page++;
+            page += 2;
         } while (search.size() > 0);
         log.info("搜索完毕 添加 {} 个 慢搜索Pid", count);
     }
@@ -351,8 +351,8 @@ public class PixivRequestServImpl implements PixivRequestServ {
 
         List<Illustration> detail1 = detail.stream().filter(ill -> ill.getBookmarkCount() >= 500).collect(Collectors.toList());
         List<Illustration> detail2 = detail.stream().filter(ill -> ill.getBookmarkCount() < 500 && ill.getBookmarkCount() > 200).collect(Collectors.toList());
-        downloadIllust(detail1, userInfo.getRootPath() + "/slowSearch/bmk500-");
-        downloadIllust(detail2, userInfo.getRootPath() + "/slowSearch/bmk200-500");
+        downloadIllust(detail1, userInfo.getRootPath() + "/slowSearch/bmk500_");
+        downloadIllust(detail2, userInfo.getRootPath() + "/slowSearch/bmk200_500");
         dataManager.removeSlowSearchPid(set);
     }
 

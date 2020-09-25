@@ -386,14 +386,16 @@ public class Request {
             if (file.exists() && file.length() == contentLength) {
                 log.debug("文件已存在且大小相同 跳过 {}", file);
                 progressMap.put("count", progressMap.get("size"));
-            } else if (!parentFile.exists()) {
-                String parentFilePath = parentFile.getPath();
-                if (parentFile.mkdirs()) {
-                    log.debug("创建文件夹 {}", parentFilePath);
-                } else {
-                    log.warn("文件夹创建失败 {}", parentFilePath);
-                }
             } else {
+                if (!parentFile.exists()) {
+                    String parentFilePath = parentFile.getPath();
+                    if (parentFile.mkdirs()) {
+                        log.debug("创建文件夹 {}", parentFilePath);
+                    } else {
+                        log.warn("文件夹创建失败 {}", parentFilePath);
+                    }
+                }
+
                 long start = System.currentTimeMillis();
                 log.debug("第{}次下载 {}", i + 1, file.getName());
 //                try {
