@@ -336,6 +336,9 @@ public class PixivRequestServImpl implements PixivRequestServ {
     @Override
     public void slowDetail() {
         Set<String> searchPidSet = dataManager.getSlowSearchPidSet();
+        if (searchPidSet.size() == 0) {
+            return;
+        }
         log.info("慢详情 剩余 {} 个", searchPidSet.size());
         Set<String> set = new HashSet<>();
         int count = 0;
@@ -346,6 +349,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
                 break;
             }
         }
+
         List<Illustration> detail = getIllustrationDetail(set, 200, false);
         downloadIllust(detail, userInfo.getRootPath() + "/slowSearch");
         dataManager.removeSlowSearchPid(set);
