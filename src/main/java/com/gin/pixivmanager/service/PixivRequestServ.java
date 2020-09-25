@@ -24,6 +24,8 @@ public interface PixivRequestServ {
      */
     List<Illustration> getIllustrationDetail(Set<String> idSet, boolean idBookmarked);
 
+    Set<Illustration> getIllustrationDetail1(Set<String> idSet, boolean idBookmarked);
+
     /**
      * 获取收藏的作品id
      *

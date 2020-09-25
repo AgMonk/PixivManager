@@ -1,11 +1,13 @@
 package com.gin.pixivmanager.service;
 
 import com.alibaba.fastjson.JSONObject;
+import com.gin.pixivmanager.dao.DataManagerMapper;
 import com.gin.pixivmanager.entity.DownloadFile;
 import com.gin.pixivmanager.entity.Illustration;
 import com.gin.pixivmanager.entity.Tag;
 import com.gin.pixivmanager.util.PixivPost;
 import com.gin.pixivmanager.util.Request;
+import com.gin.pixivmanager.util.SpringContextUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -101,6 +103,39 @@ public class PixivRequestServImpl implements PixivRequestServ {
             }
         }
         return list;
+    }
+
+    @Override
+    public Set<Illustration> getIllustrationDetail1(Set<String> idSet, boolean idBookmarked) {
+        Set<Illustration> set = new HashSet<>();
+        Map<String, Illustration> illustrationMap = dataManager.getIllustrationMap();
+        /*todo*/
+
+        //检查缓存中是否存在的详情数据 如存在则加入
+        illustrationMap.entrySet().stream()
+                .filter(entry -> idSet.contains(entry.getKey()))
+                .filter(entry -> entry.getValue().getUserId() != null)
+                .forEach(entry -> set.add(entry.getValue()));
+        log.info("缓存中查询到 {} 条数据", set.size());
+
+        //过滤出缓存中不存在的详情数据 到数据库中查询 如有数据则加入
+        List<String> lackPidList = illustrationMap.entrySet().stream()
+                .filter(entry -> idSet.contains(entry.getKey()))
+                .filter(entry -> !set.contains(entry.getValue()))
+                .map(Map.Entry::getKey).collect(Collectors.toList());
+        DataManagerMapper dataManagerMapper = SpringContextUtil.getBean(DataManagerMapper.class);
+        List<Illustration> detailFromMapper = dataManagerMapper.getIllustrationsById(lackPidList);
+        set.addAll(detailFromMapper);
+
+
+        //过滤出缓存和数据库中均不存在的、或数据库中过旧的详情数据 向pixiv请求 如有数据则加入
+        Set<String> lackPidSet = illustrationMap.entrySet().stream()
+                .filter(entry -> idSet.contains(entry.getKey()))
+                .filter(entry -> !set.contains(entry.getValue()) || System.currentTimeMillis() - entry.getValue().getLastUpdate() > RANGE_OF_LAST_UPDATE)
+                .map(Map.Entry::getKey).collect(Collectors.toSet());
+        
+
+        return null;
     }
 
     /**
