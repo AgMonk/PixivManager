@@ -286,6 +286,9 @@ public class PixivPost {
      * @return 搜索结果
      */
     public static List<JSONObject> search(String keyword, Integer p, String cookie, boolean searchTitle, String mode) {
+        if (keyword == null) {
+            return null;
+        }
         List<String> availableMode = new ArrayList<>(Arrays.asList("all", "safe", "r18"));
         if (mode == null || !availableMode.contains(mode)) {
             mode = "all";

@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * pixiv接口
@@ -63,7 +64,7 @@ public class PixivController {
 
         Set<String> idSet = pixivRequestServ.getBookmarks(tag, page);
         if (idSet.size() > 0) {
-            List<Illustration> detail = pixivRequestServ.getIllustrationDetail(idSet, null, true);
+            List<Illustration> detail = pixivRequestServ.getIllustrationDetail(idSet, true);
             pixivRequestServ.downloadIllust(detail, userInfo.getRootPath() + "/" + tag);
             pixivRequestServ.addTags(detail);
         }
@@ -153,7 +154,9 @@ public class PixivController {
             for (Illustration ill : search) {
                 idSet.add(ill.getId());
             }
-            detail = pixivRequestServ.getIllustrationDetail(idSet, bookmarkCount, false);
+            detail = pixivRequestServ.getIllustrationDetail(idSet, false);
+
+            detail = detail.stream().filter(ill -> ill.getBookmarkCount() > 500).collect(Collectors.toList());
 
             pixivRequestServ.downloadIllust(detail, userInfo.getRootPath() + "/search");
         }

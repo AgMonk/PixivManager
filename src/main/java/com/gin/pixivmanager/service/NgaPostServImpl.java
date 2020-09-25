@@ -104,7 +104,7 @@ public class NgaPostServImpl implements NgaPostServ {
         serviceExecutor.execute(() -> {
             if (lackPidSet.size() > 0) {
                 //查询详情
-                List<Illustration> detail = pixivRequestServ.getIllustrationDetail(lackPidSet, null, false);
+                List<Illustration> detail = pixivRequestServ.getIllustrationDetail(lackPidSet, false);
                 //下载文件
                 pixivRequestServ.downloadIllust(detail, tempPath);
             }
@@ -209,7 +209,7 @@ public class NgaPostServImpl implements NgaPostServ {
      * @param name    文件名数组
      */
     private void appendPixivCard(NgaPost ngaPost, StringBuilder sb, String[] name) {
-        List<Illustration> illList = pixivRequestServ.getIllustrationDetail(new HashSet<>(Arrays.asList(name)), null, false);
+        List<Illustration> illList = pixivRequestServ.getIllustrationDetail(new HashSet<>(Arrays.asList(name)), false);
         log.info("查询得到作品详情 {}条", illList.size());
 
         ngaPost.addContent("[h]").addContent("Pixiv").addContent("搬运bot酱").addContent("[/h]").addContent(NgaPost.getWrap());
