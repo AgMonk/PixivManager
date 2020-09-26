@@ -53,12 +53,12 @@ public class TaskExecutePool {
 
     @Bean
     public ThreadPoolTaskExecutor slowSearchExecutor() {
-        return TasksUtil.getExecutor("slowSearch", 1);
+        return TasksUtil.getExecutor("slowSearch", 2);
     }
 
     @Bean
     public ThreadPoolTaskExecutor slowDetailExecutor() {
-        return TasksUtil.getExecutor("slowDetail", 1);
+        return TasksUtil.getExecutor("slowDetail", 2);
     }
 
 
