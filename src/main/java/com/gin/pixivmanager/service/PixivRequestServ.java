@@ -3,6 +3,7 @@ package com.gin.pixivmanager.service;
 import com.gin.pixivmanager.entity.Illustration;
 import com.gin.pixivmanager.entity.Tag;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.Map;
 import java.util.Set;
@@ -72,9 +73,10 @@ public interface PixivRequestServ {
      * @param start      开始页码
      * @param end        结束页码
      * @param all        是否显示所有作品  false时仅显示未收藏且未记录过的作品
+     * @param executor
      * @return 搜索结果
      */
-    Set<Illustration> search(Set<String> keywordSet, Integer start, Integer end, boolean all);
+    Set<Illustration> search(Set<String> keywordSet, Integer start, Integer end, boolean all, ThreadPoolTaskExecutor executor);
 
     /**
      * 慢搜索 存储关键字的搜索结果pid 缓慢获取详情
@@ -83,7 +85,10 @@ public interface PixivRequestServ {
      */
     void slowSearch(String keyword);
 
-    @Async(value = "slowSearchExecutor")
+    /**
+     * 慢详情
+     */
+    @Async(value = "slowDetailExecutor")
     void slowDetail();
 
     /**

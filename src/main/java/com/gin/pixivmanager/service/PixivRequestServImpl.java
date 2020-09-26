@@ -7,7 +7,6 @@ import com.gin.pixivmanager.entity.Tag;
 import com.gin.pixivmanager.util.PixivPost;
 import com.gin.pixivmanager.util.Request;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 
@@ -21,7 +20,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 public class PixivRequestServImpl implements PixivRequestServ {
-    final ThreadPoolTaskExecutor downloadExecutor, requestExecutor, scanExecutor, downloadMainExecutor;
+    final ThreadPoolTaskExecutor downloadExecutor, requestExecutor, scanExecutor, downloadMainExecutor, slowSearchExecutor;
     final DataManager dataManager;
     final UserInfo userInfo;
     /**
@@ -33,12 +32,13 @@ public class PixivRequestServImpl implements PixivRequestServ {
                                 ThreadPoolTaskExecutor requestExecutor,
                                 ThreadPoolTaskExecutor scanExecutor,
                                 ThreadPoolTaskExecutor downloadMainExecutor,
-                                DataManager dataManager,
+                                ThreadPoolTaskExecutor slowSearchExecutor, DataManager dataManager,
                                 UserInfo userInfo) {
         this.downloadExecutor = downloadExecutor;
         this.requestExecutor = requestExecutor;
         this.scanExecutor = scanExecutor;
         this.downloadMainExecutor = downloadMainExecutor;
+        this.slowSearchExecutor = slowSearchExecutor;
         this.dataManager = dataManager;
         this.userInfo = userInfo;
 
@@ -75,9 +75,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
             if (detailFromPixiv.size() > 0) {
                 if (idBookmarked) {
                     log.info("设置为已收藏作品");
-                    detailFromPixiv.forEach(ill -> {
-                        ill.setBookmarkData(1);
-                    });
+                    detailFromPixiv.forEach(ill -> ill.setBookmarkData(1));
                 }
 
                 detailSet.addAll(detailFromPixiv);
@@ -132,9 +130,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
         }
         tag.setTranslation(translation);
 
-        requestExecutor.execute(() -> {
-            PixivPost.setTag(userInfo.getCookie(), userInfo.getTt(), tag.getName(), tag.getTranslation());
-        });
+        requestExecutor.execute(() -> PixivPost.setTag(userInfo.getCookie(), userInfo.getTt(), tag.getName(), tag.getTranslation()));
 
 
     }
@@ -144,9 +140,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
         Map<String, Integer> progressMap = Request.createProgressMap(detail.size());
         dataManager.addProgressMain("添加Tag", progressMap);
         Map<String, String> pidAndTags = new HashMap<>();
-        detail.forEach(ill -> {
-            pidAndTags.put(ill.getId(), ill.createSimpleTags());
-        });
+        detail.forEach(ill -> pidAndTags.put(ill.getId(), ill.createSimpleTags()));
         PixivPost.addTags(pidAndTags, userInfo.getCookie(), userInfo.getTt(), null, progressMap);
     }
 
@@ -275,11 +269,11 @@ public class PixivRequestServImpl implements PixivRequestServ {
 
 
     @Override
-    public Set<Illustration> search(Set<String> keywordSet, Integer start, Integer end, boolean all) {
+    public Set<Illustration> search(Set<String> keywordSet, Integer start, Integer end, boolean all, ThreadPoolTaskExecutor executor) {
         Map<String, Integer> progressMap = Request.createProgressMap(keywordSet.size() * (end - start + 1));
         dataManager.addProgressMain("搜索任务", progressMap);
 
-        List<JSONObject> searchResult = PixivPost.search(keywordSet, start, end, userInfo.getCookie(), false, "all", null, progressMap);
+        List<JSONObject> searchResult = PixivPost.search(keywordSet, start, end, userInfo.getCookie(), false, "all", executor, progressMap);
 
         Set<Illustration> set = new HashSet<>();
         for (JSONObject jsonobj : searchResult) {
@@ -302,12 +296,10 @@ public class PixivRequestServImpl implements PixivRequestServ {
         int count = 0;
         Set<Illustration> search;
         do {
-            search = search(keywordSet, page, page + 1, false);
+            search = search(keywordSet, page, page + 1, false, slowSearchExecutor);
             if (search.size() > 0) {
                 Set<String> set = new HashSet<>();
-                search.forEach(ill -> {
-                    set.add(ill.getId());
-                });
+                search.forEach(ill -> set.add(ill.getId()));
                 dataManager.addSlowSearchPid(set);
                 count += search.size();
             }
@@ -317,7 +309,6 @@ public class PixivRequestServImpl implements PixivRequestServ {
     }
 
 
-    @Async(value = "slowSearchExecutor")
     @Override
     public void slowDetail() {
         Set<String> searchPidSet = dataManager.getSlowSearchPidSet();
@@ -365,7 +356,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
      * 使用多线程请求多个作品详情
      *
      * @param pidSet   请求详情的id列表
-     * @param executor
+     * @param executor 线程池
      * @return 请求到的详情
      */
     private List<Illustration> getIllustrationFromPixiv(Set<String> pidSet, ThreadPoolTaskExecutor executor) {

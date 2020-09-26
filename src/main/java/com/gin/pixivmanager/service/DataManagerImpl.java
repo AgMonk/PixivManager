@@ -290,7 +290,9 @@ public class DataManagerImpl implements DataManager {
                 .filter(entry -> set.contains(entry.getKey()))
                 .filter(entry -> entry.getValue().getUserId() != null)
                 .forEach(entry -> illustSet.add(entry.getValue()));
-        log.info("缓存中查询到 {} 条数据", illustSet.size());
+        if (illustSet.size() > 0) {
+            log.info("缓存中查询到 {} 条数据", illustSet.size());
+        }
 
         //有缺少的详情数据 向数据库查询 将查询到的数据加入缓存
         if (illustSet.size() < set.size()) {

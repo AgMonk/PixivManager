@@ -27,16 +27,17 @@ public class PixivController {
     final DataManager dataManager;
     final PixivRequestServ pixivRequestServ;
     final UserInfo userInfo;
-    final ThreadPoolTaskExecutor scanExecutor;
+    final ThreadPoolTaskExecutor scanExecutor, slowSearchExecutor;
 
     final String untaggedLocker = "";
     Set<String> keywordSet;
 
-    public PixivController(DataManager dataManager, PixivRequestServ pixivRequestServ, UserInfo userInfo, ThreadPoolTaskExecutor scanExecutor) {
+    public PixivController(DataManager dataManager, PixivRequestServ pixivRequestServ, UserInfo userInfo, ThreadPoolTaskExecutor scanExecutor, ThreadPoolTaskExecutor slowSearchExecutor) {
         this.dataManager = dataManager;
         this.pixivRequestServ = pixivRequestServ;
         this.userInfo = userInfo;
         this.scanExecutor = scanExecutor;
+        this.slowSearchExecutor = slowSearchExecutor;
     }
 
     /**
@@ -141,13 +142,13 @@ public class PixivController {
             iterator.remove();
             i++;
         }
-        searchDownload(1, 1, 0, set.toArray(new String[2]));
+        searchDownload(1, 1, 0, null, set.toArray(new String[2]));
     }
 
     @RequestMapping("searchDownload")
-    public Integer searchDownload(Integer start, Integer end, Integer bookmarkCount, String... keyword) {
+    public Integer searchDownload(Integer start, Integer end, Integer bookmarkCount, ThreadPoolTaskExecutor executor, String... keyword) {
         Set<String> set = new HashSet<>(Arrays.asList(keyword));
-        Set<Illustration> search = pixivRequestServ.search(set, start, end, false);
+        Set<Illustration> search = pixivRequestServ.search(set, start, end, false, executor);
         Set<Illustration> detail = new HashSet<>();
         if (search.size() > 0) {
             HashSet<String> idSet = new HashSet<>();
