@@ -64,7 +64,7 @@ public class PixivController {
 
         Set<String> idSet = pixivRequestServ.getBookmarks(tag, page);
         if (idSet.size() > 0) {
-            List<Illustration> detail = pixivRequestServ.getIllustrationDetail(idSet, true);
+            Set<Illustration> detail = pixivRequestServ.getIllustrationDetail(idSet, true);
             pixivRequestServ.downloadIllust(detail, userInfo.getRootPath() + "/" + tag);
             pixivRequestServ.addTags(detail);
         }
@@ -116,10 +116,10 @@ public class PixivController {
         pidSet.add("84532363");
         pidSet.add("84532309");
         pidSet.add("84529965");
-
+        pidSet.add("84529966");
 
         log.info("测试接口运行完毕");
-        return null;
+        return pidSet;
     }
 
     /**
@@ -141,14 +141,14 @@ public class PixivController {
             iterator.remove();
             i++;
         }
-        searchDownload(1, 1, null, set.toArray(new String[2]));
+        searchDownload(1, 1, 0, set.toArray(new String[2]));
     }
 
     @RequestMapping("searchDownload")
     public Integer searchDownload(Integer start, Integer end, Integer bookmarkCount, String... keyword) {
         Set<String> set = new HashSet<>(Arrays.asList(keyword));
         Set<Illustration> search = pixivRequestServ.search(set, start, end, false);
-        List<Illustration> detail = new ArrayList<>();
+        Set<Illustration> detail = new HashSet<>();
         if (search.size() > 0) {
             HashSet<String> idSet = new HashSet<>();
             for (Illustration ill : search) {
@@ -156,7 +156,7 @@ public class PixivController {
             }
             detail = pixivRequestServ.getIllustrationDetail(idSet, false);
 
-            detail = detail.stream().filter(ill -> ill.getBookmarkCount() > 500).collect(Collectors.toList());
+            detail = detail.stream().filter(ill -> ill.getBookmarkCount() > bookmarkCount).collect(Collectors.toSet());
 
             pixivRequestServ.downloadIllust(detail, userInfo.getRootPath() + "/search");
         }

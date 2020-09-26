@@ -92,7 +92,7 @@ public interface DataManager {
      * @param idSet id列表
      * @return 作品详情
      */
-    List<Illustration> getIllustrations(Set<String> idSet);
+    Set<Illustration> getIllustrations(Set<String> idSet);
 
     /**
      * 获取总文件map

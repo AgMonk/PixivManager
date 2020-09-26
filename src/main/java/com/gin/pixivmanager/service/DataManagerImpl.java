@@ -20,6 +20,7 @@ import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -276,32 +277,39 @@ public class DataManagerImpl implements DataManager {
      * @return 作品详情
      */
     @Override
-    public List<Illustration> getIllustrations(Set<String> idSet) {
-        List<Illustration> list = new ArrayList<>();
+    public Set<Illustration> getIllustrations(Set<String> idSet) {
+        Set<Illustration> illustSet = new HashSet<>();
 
-        List<String> lackList = new ArrayList<>();
-        for (String s : idSet) {
-            s = s.contains("_") ? s.substring(0, s.indexOf("_")) : s;
-            Illustration ill = illustrationMap.get(s);
-            if (ill == null || ill.getUserId() == null) {
+        //去掉下划线的 id set
+        Set<String> set = idSet.stream().map(s -> (!s.contains("_") ? s : s.substring(0, s.indexOf("_")))).collect(Collectors.toSet());
 
-                lackList.add(s);
-            } else {
-                if (!list.contains(ill)) {
-                    log.debug("从缓存中添加详情 {} {}", s, ill);
-                    list.add(ill);
+        Set<Map.Entry<String, Illustration>> entrySet = illustrationMap.entrySet();
+
+        //检查缓存中是否存在的详情数据 如存在则加入
+        entrySet.stream()
+                .filter(entry -> set.contains(entry.getKey()))
+                .filter(entry -> entry.getValue().getUserId() != null)
+                .forEach(entry -> illustSet.add(entry.getValue()));
+        log.info("缓存中查询到 {} 条数据", illustSet.size());
+
+        //有缺少的详情数据 向数据库查询 将查询到的数据加入缓存
+        if (illustSet.size() < set.size()) {
+            List<String> lackPidList = entrySet.stream()
+                    .filter(entry -> set.contains(entry.getKey()))
+                    .filter(entry -> !illustSet.contains(entry.getValue()))
+                    .map(Map.Entry::getKey)
+                    .collect(Collectors.toList());
+            if (lackPidList.size() > 0) {
+                List<Illustration> detailFromDatabase = mapper.getIllustrationsById(lackPidList);
+                if (detailFromDatabase.size() > 0) {
+                    illustSet.addAll(detailFromDatabase);
+                    detailFromDatabase.forEach(this::addIllustration2Map);
+                    log.info("数据库中查询到 {} 条数据", detailFromDatabase.size());
                 }
             }
         }
 
-        if (lackList.size() > 0) {
-            List<Illustration> detail = mapper.getIllustrationsById(lackList);
-            list.addAll(detail);
-            //放入缓存
-            detail.forEach(this::addIllustration2Map);
-        }
-
-        return list;
+        return illustSet;
     }
 
     @Override

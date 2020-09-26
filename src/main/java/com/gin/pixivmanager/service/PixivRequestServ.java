@@ -4,7 +4,6 @@ import com.gin.pixivmanager.entity.Illustration;
 import com.gin.pixivmanager.entity.Tag;
 import org.springframework.scheduling.annotation.Async;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -22,9 +21,8 @@ public interface PixivRequestServ {
      * @param idBookmarked 是否是已收藏作品
      * @return 作品详情
      */
-    List<Illustration> getIllustrationDetail(Set<String> idSet, boolean idBookmarked);
+    Set<Illustration> getIllustrationDetail(Set<String> idSet, boolean idBookmarked);
 
-    Set<Illustration> getIllustrationDetail1(Set<String> idSet, boolean idBookmarked);
 
     /**
      * 获取收藏的作品id
@@ -48,7 +46,7 @@ public interface PixivRequestServ {
      *
      * @param detail 详情
      */
-    void addTags(List<Illustration> detail);
+    void addTags(Set<Illustration> detail);
 
     /**
      * 文件归档(重命名)
@@ -64,7 +62,7 @@ public interface PixivRequestServ {
      * @param illustList 作品列表
      * @param rootPath   下载根目录
      */
-    void downloadIllust(List<Illustration> illustList, String rootPath);
+    void downloadIllust(Set<Illustration> illustList, String rootPath);
 
 
     /**

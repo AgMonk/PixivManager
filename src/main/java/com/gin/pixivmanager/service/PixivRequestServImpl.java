@@ -1,13 +1,11 @@
 package com.gin.pixivmanager.service;
 
 import com.alibaba.fastjson.JSONObject;
-import com.gin.pixivmanager.dao.DataManagerMapper;
 import com.gin.pixivmanager.entity.DownloadFile;
 import com.gin.pixivmanager.entity.Illustration;
 import com.gin.pixivmanager.entity.Tag;
 import com.gin.pixivmanager.util.PixivPost;
 import com.gin.pixivmanager.util.Request;
-import com.gin.pixivmanager.util.SpringContextUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -47,6 +45,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
 
     }
 
+
     /**
      * 请求一个列表中的pid详情 并添加到数据库
      *
@@ -55,87 +54,41 @@ public class PixivRequestServImpl implements PixivRequestServ {
      * @return 作品详情
      */
     @Override
-    public List<Illustration> getIllustrationDetail(Set<String> idSet, boolean idBookmarked) {
-        List<Illustration> list = dataManager.getIllustrations(idSet);
-        log.debug("从缓存中获得 {}条数据", list.size());
-        Set<String> lackPidSet = new HashSet<>();
-        //缓存中没有详情 或 更新时间过早的加入请求列表
-        for (String s : idSet) {
-            s = getPidFromFileName(s);
-            Map<String, Illustration> map = dataManager.getIllustrationMap();
-            //缓存没有
-            if (!map.containsKey(s)) {
-                log.debug("缓存中未查询到详情 {}", s);
-                lackPidSet.add(s);
-            } else {
-                //距离时间过久的或没有的进行请求更新
-                Illustration ill = map.get(s);
-                Long lastUpdate = ill.getLastUpdate();
-                long now = System.currentTimeMillis();
-                if (lastUpdate == null || now - lastUpdate > RANGE_OF_LAST_UPDATE
-                        || ill.getTagTranslated() == null
-                        || ill.getBookmarkCount() == null
-                ) {
-                    log.debug("缓存中的详情记录过于久远 或 仅为搜索结果 {}", s);
-                    lackPidSet.add(s);
-                }
-            }
-        }
-        if (lackPidSet.size() > 0) {
-            /*
-              向pixiv查询到的作品详情
-             */
-            List<Illustration> detailsFromPixiv = getIllustrationFromPixiv(lackPidSet, requestExecutor);
-            if (detailsFromPixiv != null) {
-                log.debug("向pixiv请求到 {} 条详情", detailsFromPixiv.size());
+    public Set<Illustration> getIllustrationDetail(Set<String> idSet, boolean idBookmarked) {
+
+        Set<Illustration> detailSet = dataManager.getIllustrations(idSet);
+
+        //过滤出缓存和数据库中均不存在的、或数据库中过旧的详情数据 向pixiv请求 如有数据则加入
+        Set<String> detailId = detailSet.stream().map(Illustration::getId).collect(Collectors.toSet());
+
+        idSet = idSet.stream().filter(s -> !detailId.contains(s)).collect(Collectors.toSet());
+        detailSet.stream()
+                .filter(ill -> ill.getLastUpdate() == null
+                        || ill.getLastUpdate() < System.currentTimeMillis() - RANGE_OF_LAST_UPDATE
+                        || ill.getBookmarkData() == 0
+                )
+                .map(Illustration::getId).forEach(idSet::add);
+
+
+        if (idSet.size() > 0) {
+            List<Illustration> detailFromPixiv = getIllustrationFromPixiv(idSet, requestExecutor);
+            if (detailFromPixiv.size() > 0) {
                 if (idBookmarked) {
                     log.info("设置为已收藏作品");
-                    detailsFromPixiv.forEach(ill -> {
+                    detailFromPixiv.forEach(ill -> {
                         ill.setBookmarkData(1);
                     });
                 }
 
-
-                list.addAll(detailsFromPixiv);
-                dataManager.addIllustrations(detailsFromPixiv);
-                dataManager.addTags(detailsFromPixiv);
-
+                detailSet.addAll(detailFromPixiv);
+                dataManager.addIllustrations(detailFromPixiv);
+                dataManager.addTags(detailFromPixiv);
+                log.info("Pixiv请求到 {} 条数据", detailFromPixiv.size());
             }
         }
-        return list;
-    }
-
-    @Override
-    public Set<Illustration> getIllustrationDetail1(Set<String> idSet, boolean idBookmarked) {
-        Set<Illustration> set = new HashSet<>();
-        Map<String, Illustration> illustrationMap = dataManager.getIllustrationMap();
-        /*todo*/
-
-        //检查缓存中是否存在的详情数据 如存在则加入
-        illustrationMap.entrySet().stream()
-                .filter(entry -> idSet.contains(entry.getKey()))
-                .filter(entry -> entry.getValue().getUserId() != null)
-                .forEach(entry -> set.add(entry.getValue()));
-        log.info("缓存中查询到 {} 条数据", set.size());
-
-        //过滤出缓存中不存在的详情数据 到数据库中查询 如有数据则加入
-        List<String> lackPidList = illustrationMap.entrySet().stream()
-                .filter(entry -> idSet.contains(entry.getKey()))
-                .filter(entry -> !set.contains(entry.getValue()))
-                .map(Map.Entry::getKey).collect(Collectors.toList());
-        DataManagerMapper dataManagerMapper = SpringContextUtil.getBean(DataManagerMapper.class);
-        List<Illustration> detailFromMapper = dataManagerMapper.getIllustrationsById(lackPidList);
-        set.addAll(detailFromMapper);
 
 
-        //过滤出缓存和数据库中均不存在的、或数据库中过旧的详情数据 向pixiv请求 如有数据则加入
-        Set<String> lackPidSet = illustrationMap.entrySet().stream()
-                .filter(entry -> idSet.contains(entry.getKey()))
-                .filter(entry -> !set.contains(entry.getValue()) || System.currentTimeMillis() - entry.getValue().getLastUpdate() > RANGE_OF_LAST_UPDATE)
-                .map(Map.Entry::getKey).collect(Collectors.toSet());
-        
-
-        return null;
+        return detailSet;
     }
 
     /**
@@ -187,7 +140,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
     }
 
     @Override
-    public void addTags(List<Illustration> detail) {
+    public void addTags(Set<Illustration> detail) {
         Map<String, Integer> progressMap = Request.createProgressMap(detail.size());
         dataManager.addProgressMain("添加Tag", progressMap);
         Map<String, String> pidAndTags = new HashMap<>();
@@ -210,7 +163,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
         }
         log.info("归档 {} 个文件 来自 {} 个作品", name.length, idSet.size());
         //获得id的详情信息 使用cookie查询
-        List<Illustration> detail = getIllustrationDetail(idSet, true);
+        Set<Illustration> detail = getIllustrationDetail(idSet, true);
         idSet = new HashSet<>();
         //归档目录
         String archivePath = userInfo.getArchivePath();
@@ -310,7 +263,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
     }
 
     @Override
-    public void downloadIllust(List<Illustration> details, String rootPath) {
+    public void downloadIllust(Set<Illustration> details, String rootPath) {
         Set<DownloadFile> downloadFileList = new HashSet<>();
         for (Illustration ill : details) {
             for (String url : ill.getUrls()) {
@@ -382,10 +335,10 @@ public class PixivRequestServImpl implements PixivRequestServ {
             }
         }
 
-        List<Illustration> detail = getIllustrationDetail(set, false);
+        Set<Illustration> detail = getIllustrationDetail(set, false);
 
-        List<Illustration> detail1 = detail.stream().filter(ill -> ill.getBookmarkCount() >= 500).collect(Collectors.toList());
-        List<Illustration> detail2 = detail.stream().filter(ill -> ill.getBookmarkCount() < 500 && ill.getBookmarkCount() > 200).collect(Collectors.toList());
+        Set<Illustration> detail1 = detail.stream().filter(ill -> ill.getBookmarkCount() >= 500).collect(Collectors.toSet());
+        Set<Illustration> detail2 = detail.stream().filter(ill -> ill.getBookmarkCount() < 500 && ill.getBookmarkCount() > 200).collect(Collectors.toSet());
         downloadIllust(detail1, userInfo.getRootPath() + "/slowSearch/bmk500_");
         downloadIllust(detail2, userInfo.getRootPath() + "/slowSearch/bmk200_500");
         dataManager.removeSlowSearchPid(set);
@@ -424,7 +377,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
 
         List<Illustration> illusts = new ArrayList<>();
         if (detail == null) {
-            return null;
+            return illusts;
         }
         for (JSONObject json : detail) {
             if (json != null) {
