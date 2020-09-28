@@ -328,10 +328,13 @@ public class PixivRequestServImpl implements PixivRequestServ {
 
         Set<Illustration> detail = getIllustrationDetail(set, false);
 
-        Set<Illustration> detail1 = detail.stream().filter(ill -> ill.getBookmarkCount() >= 500).collect(Collectors.toSet());
-        Set<Illustration> detail2 = detail.stream().filter(ill -> ill.getBookmarkCount() < 500 && ill.getBookmarkCount() > 200).collect(Collectors.toSet());
-        downloadIllust(detail1, userInfo.getRootPath() + "/slowSearch/bmk500_");
-        downloadIllust(detail2, userInfo.getRootPath() + "/slowSearch/bmk200_500");
+        Set<Illustration> detailSet;
+        detailSet = detail.stream().filter(ill -> ill.getBookmarkCount() >= 1000).collect(Collectors.toSet());
+        downloadIllust(detailSet, userInfo.getRootPath() + "/slowSearch/bmk1000_");
+        detailSet = detail.stream().filter(ill -> ill.getBookmarkCount() >= 500 && ill.getBookmarkCount() < 1000).collect(Collectors.toSet());
+        downloadIllust(detailSet, userInfo.getRootPath() + "/slowSearch/bmk500_");
+        detailSet = detail.stream().filter(ill -> ill.getBookmarkCount() >= 200 && ill.getBookmarkCount() < 500).collect(Collectors.toSet());
+        downloadIllust(detailSet, userInfo.getRootPath() + "/slowSearch/bmk200_");
         dataManager.removeSlowSearchPid(set);
     }
 
