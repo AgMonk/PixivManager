@@ -131,7 +131,7 @@ public class PixivController {
     public void autoDownloadSearch() {
         Map<String, Integer> keywordAndPage = new HashMap<>();
         if (keywordSet == null || keywordSet.size() == 0) {
-            keywordSet = userInfo.getKeywordSet();
+            keywordSet = new HashSet<>(userInfo.getKeywordSet());
             log.info("加载搜索关键字 {}个", keywordSet.size());
         }
 
