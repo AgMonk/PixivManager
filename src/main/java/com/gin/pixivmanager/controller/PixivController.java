@@ -132,6 +132,7 @@ public class PixivController {
         Map<String, Integer> keywordAndPage = new HashMap<>();
         if (keywordSet == null || keywordSet.size() == 0) {
             keywordSet = userInfo.getKeywordSet();
+            log.info("加载搜索关键字 {}个", keywordSet.size());
         }
 
         int i = 0;

@@ -522,7 +522,17 @@ public class DataManagerImpl implements DataManager {
      */
     @Override
     public void download() {
+        if (downloadExecutor.getActiveCount() == downloadExecutor.getMaxPoolSize()) {
+            return;
+        }
+
         List<DownloadFile> list = new ArrayList<>(downloadFileSet);
+
+        list.sort((o1, o2) -> {
+            String name1 = o1.getPath();
+            String name2 = o2.getPath();
+            return -1 * name1.compareTo(name2);
+        });
 
         for (DownloadFile downloadFile : list) {
             if (!downloadFile.isDownloading()) {
@@ -545,11 +555,11 @@ public class DataManagerImpl implements DataManager {
                         if (file.exists()) {
                             synchronized (downloadFileSet) {
                                 downloadManagerMapper.remove(downloadFile);
-                                downloadFileSet.remove(downloadFile);
                             }
                         } else {
                             log.warn("文件未下载 {}", downloadFile.getUrl());
                         }
+                        downloadFileSet.remove(downloadFile);
 
                         List<File> files = new ArrayList<File>();
                         files.add(file);
@@ -561,6 +571,8 @@ public class DataManagerImpl implements DataManager {
                         e.printStackTrace();
                     }
                 });
+                //加一个 退出
+                break;
             }
         }
     }

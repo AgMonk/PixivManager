@@ -478,7 +478,7 @@ public class Request {
 
 
             } catch (RuntimeException e) {
-                log.debug(e.getMessage());
+                log.warn(e.getMessage());
                 break;
             } catch (SocketTimeoutException e) {
                 if (maxTimes == i + 1) {

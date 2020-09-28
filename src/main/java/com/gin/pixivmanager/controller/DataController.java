@@ -104,7 +104,7 @@ public class DataController {
     }
 
     @RequestMapping("download")
-    @Scheduled(cron = "0 0/2 * * * *")
+    @Scheduled(cron = "0/10 * * * * *")
     public void download() {
         dataManager.download();
     }

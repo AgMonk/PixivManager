@@ -67,7 +67,7 @@ public class TasksUtil {
     public static ThreadPoolTaskExecutor getExecutor(String name, Integer coreSize) {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         //核心线程池大小
-        executor.setCorePoolSize(1);
+        executor.setCorePoolSize(coreSize);
         //最大线程数
         executor.setMaxPoolSize(coreSize);
         //队列容量
