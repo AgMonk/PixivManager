@@ -18,11 +18,12 @@ public interface PixivRequestServ {
     /**
      * 请求一个列表中的pid详情
      *
-     * @param idSet        pid
-     * @param idBookmarked 是否是已收藏作品
+     * @param idSet         pid
+     * @param idBookmarked  是否是已收藏作品
+     * @param bookmarkCount
      * @return 作品详情
      */
-    Set<Illustration> getIllustrationDetail(Set<String> idSet, boolean idBookmarked);
+    Set<Illustration> getIllustrationDetail(Set<String> idSet, boolean idBookmarked, Integer bookmarkCount);
 
 
     /**

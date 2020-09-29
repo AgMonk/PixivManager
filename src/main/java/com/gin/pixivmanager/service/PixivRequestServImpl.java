@@ -49,12 +49,13 @@ public class PixivRequestServImpl implements PixivRequestServ {
     /**
      * 请求一个列表中的pid详情 并添加到数据库
      *
-     * @param idSet        pid
-     * @param idBookmarked 是否是已收藏作品
+     * @param idSet         pid
+     * @param idBookmarked  是否是已收藏作品
+     * @param bookmarkCount 如果传入 则过滤掉请求到的详情中收藏数低于该值的数据 不加入数据库和缓存
      * @return 作品详情
      */
     @Override
-    public Set<Illustration> getIllustrationDetail(Set<String> idSet, boolean idBookmarked) {
+    public Set<Illustration> getIllustrationDetail(Set<String> idSet, boolean idBookmarked, Integer bookmarkCount) {
 
         Set<Illustration> detailSet = dataManager.getIllustrations(idSet);
 
@@ -76,6 +77,10 @@ public class PixivRequestServImpl implements PixivRequestServ {
                 if (idBookmarked) {
                     log.info("设置为已收藏作品");
                     detailFromPixiv.forEach(ill -> ill.setBookmarkData(1));
+                }
+                if (bookmarkCount != null) {
+                    log.info("移除收藏数低于 {}的作品", bookmarkCount);
+                    detailFromPixiv = detailFromPixiv.stream().filter(ill -> ill.getBookmarkCount() > bookmarkCount).collect(Collectors.toList());
                 }
 
                 detailSet.addAll(detailFromPixiv);
@@ -157,7 +162,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
         }
         log.info("归档 {} 个文件 来自 {} 个作品", name.length, idSet.size());
         //获得id的详情信息 使用cookie查询
-        Set<Illustration> detail = getIllustrationDetail(idSet, true);
+        Set<Illustration> detail = getIllustrationDetail(idSet, true, null);
         idSet = new HashSet<>();
         //归档目录
         String archivePath = userInfo.getArchivePath();
@@ -326,7 +331,7 @@ public class PixivRequestServImpl implements PixivRequestServ {
             }
         }
 
-        Set<Illustration> detail = getIllustrationDetail(set, false);
+        Set<Illustration> detail = getIllustrationDetail(set, false, null);
 
         Set<Illustration> detailSet;
         detailSet = detail.stream().filter(ill -> ill.getBookmarkCount() >= 1000).collect(Collectors.toSet());
