@@ -522,9 +522,6 @@ public class DataManagerImpl implements DataManager {
      */
     @Override
     public void download() {
-        if (downloadExecutor.getActiveCount() == downloadExecutor.getMaxPoolSize()) {
-            return;
-        }
 
         List<DownloadFile> list = new ArrayList<>(downloadFileSet);
 
@@ -561,7 +558,7 @@ public class DataManagerImpl implements DataManager {
                         }
                         downloadFileSet.remove(downloadFile);
 
-                        List<File> files = new ArrayList<File>();
+                        List<File> files = new ArrayList<>();
                         files.add(file);
                         addFilesMap(files);
                     } catch (Exception e) {
@@ -571,8 +568,9 @@ public class DataManagerImpl implements DataManager {
                         e.printStackTrace();
                     }
                 });
-                //加一个 退出
-                break;
+                if (downloadExecutor.getActiveCount() == downloadExecutor.getMaxPoolSize()) {
+                    break;
+                }
             }
         }
     }

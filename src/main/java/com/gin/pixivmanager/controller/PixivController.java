@@ -142,7 +142,7 @@ public class PixivController {
             iterator.remove();
             i++;
         }
-        searchDownload(1, 1, 200, null, set.toArray(new String[2]));
+        searchDownload(1, 1, 200, null, set.toArray(new String[set.size()]));
     }
 
     @RequestMapping("searchDownload")
@@ -170,7 +170,7 @@ public class PixivController {
     }
 
 
-    @Scheduled(cron = "0/10 * * * * *")
+    @Scheduled(cron = "0/15 * * * * *")
     public void slowDetail() {
         pixivRequestServ.slowDetail();
     }
