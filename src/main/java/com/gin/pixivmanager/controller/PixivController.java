@@ -171,6 +171,7 @@ public class PixivController {
 
 
     @Scheduled(cron = "0/15 * * * * *")
+    @RequestMapping("slowDetail")
     public void slowDetail() {
         pixivRequestServ.slowDetail();
     }
