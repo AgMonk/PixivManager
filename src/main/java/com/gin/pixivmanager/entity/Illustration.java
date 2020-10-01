@@ -115,8 +115,7 @@ public class Illustration {
             //如果是动图
             if (illustType == ILLUST_TYPE_GIF) {
                 urlPrefix = urlPrefix.replace("img-original", "img-zip-ugoira");
-                fileName = fileName.replace("ugoira0.jpg", "ugoira1920x1080.zip");
-                fileName = fileName.replace("ugoira0.png", "ugoira1920x1080.zip");
+                fileName = fileName.substring(0,fileName.indexOf("ugoira0"))+"ugoira1920x1080.zip";
             }
         } else {
             String url = body.getString("url");
