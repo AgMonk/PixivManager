@@ -453,6 +453,10 @@ public class Request {
                         HttpEntity entity = response.getEntity();
                         String contentType = response.getEntity().getContentType().getValue();
                         log.debug("响应类型 {}", contentType);
+                        if (!contentType.contains("json")&&entity.getContentLength()==-1L) {
+                            log.warn("第{}次请求 正文大小错误 重新请求 地址：{}",i + 1,method.getURI());
+                            break;
+                        }
                         handleEntity(i, entity, contentType);
                         return this;
                     case HttpStatus.SC_BAD_GATEWAY:
