@@ -60,7 +60,7 @@
 <body><a href="index.html">主页</a><br><br>
 
 <div id="app">
-    <div style="position: fixed">
+    <div style="position: fixed" @keypress.delete="del()">
         <select v-model="param.f">
             <option>测试版面</option>
             <option>少女前线</option>
@@ -72,8 +72,7 @@
         </select><br>
 
         <select v-model="param.name" size="5" multiple="multiple" @change="selectChange($event)">
-            <option v-for="(item,i) in fileUrls" :value="i" :id="item.name"
-                    @click.prevent.right="addFile(i)">
+            <option v-for="(item,i) in fileUrls" :value="i" :id="item.name" @click.prevent.right="del()">
                 {{item.name}}
             </option>
         </select><br>
