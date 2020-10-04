@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import java.io.File;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * @author bx002
@@ -333,14 +334,22 @@ public class PixivRequestServImpl implements PixivRequestServ {
 
         Set<Illustration> detail = getIllustrationDetail(set, false, null);
 
-        Set<Illustration> detailSet;
-        detailSet = detail.stream().filter(ill -> ill.getBookmarkCount() >= 1000).collect(Collectors.toSet());
-        downloadIllust(detailSet, userInfo.getRootPath() + "/slowSearch/bmk1000_");
-        detailSet = detail.stream().filter(ill -> ill.getBookmarkCount() >= 500 && ill.getBookmarkCount() < 1000).collect(Collectors.toSet());
-        downloadIllust(detailSet, userInfo.getRootPath() + "/slowSearch/bmk500_");
-        detailSet = detail.stream().filter(ill -> ill.getBookmarkCount() >= 200 && ill.getBookmarkCount() < 500).collect(Collectors.toSet());
-        downloadIllust(detailSet, userInfo.getRootPath() + "/slowSearch/bmk200_");
+
+        groupByBookmarkCount(detail,10000,null);
+        groupByBookmarkCount(detail,5000,10000);
+        groupByBookmarkCount(detail,1000,5000);
+        groupByBookmarkCount(detail,500,1000);
+
         dataManager.removeSlowSearchPid(set);
+    }
+
+    private void  groupByBookmarkCount( Set<Illustration> detail,Integer min,Integer max){
+        Stream<Illustration> stream = detail.stream().filter(ill -> ill.getBookmarkCount() >= min);
+        if (max!=null) {
+            stream = stream.filter(ill->ill.getBookmarkCount()<max);
+        }
+        Set<Illustration> set = stream.collect(Collectors.toSet());
+        downloadIllust(set,userInfo.getRootPath()+"/slowSearch/bmk"+min+"_"+max);
     }
 
     @Override
