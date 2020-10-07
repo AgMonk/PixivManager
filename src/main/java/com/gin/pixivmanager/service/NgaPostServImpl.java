@@ -57,8 +57,6 @@ public class NgaPostServImpl implements NgaPostServ {
      */
     private Map<String, File> prepare4Files(String... name) {
         String tempPath = userInfo.getRootPath() + "/temp/";
-        // 缺少的文件名
-        List<String> lackList = new ArrayList<>();
         // 缺少的文件pid
         Set<String> lackPidSet = new HashSet<>();
         // 现成的文件
@@ -95,7 +93,6 @@ public class NgaPostServImpl implements NgaPostServ {
         for (String s : name) {
             if (!filesMap.containsKey(s)) {
                 String pid = s.substring(0, s.indexOf('_'));
-                lackList.add(s);
                 lackPidSet.add(pid);
             }
         }

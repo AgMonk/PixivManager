@@ -303,7 +303,7 @@ public class NgaPost {
         //大于4M选择自动压缩
         int maxLength = 4;
         //大于10M先行压缩
-        int largeLength = 10;
+        int largeLength = 7;
         int k = 1024;
         HashMap<String, File> fileMap;
         //压缩
