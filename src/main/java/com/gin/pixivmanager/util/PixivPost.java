@@ -57,7 +57,7 @@ public class PixivPost {
      * @return 如无错误 返回body对象 否则为null
      */
     public static JSONObject detail(String pid, String cookie) {
-
+        pid = pid.contains("_") ? pid.substring(0, pid.indexOf("_")) : pid;
         long start = System.currentTimeMillis();
         log.debug("请求作品详情{} {}", cookie == null ? "" : "(cookie)", pid);
 
