@@ -549,16 +549,16 @@ public class DataManagerImpl implements DataManager {
                                 .get();
 
 
+                        downloadFileSet.remove(downloadFile);
+
                         if (!file.exists()) {
                             log.warn("文件未下载 {}", downloadFile.getUrl());
                             throw new RuntimeException("文件未下载" + downloadFile.getUrl());
                         }
-
+                        
                         synchronized (downloadFileSet) {
                             downloadManagerMapper.remove(downloadFile);
                         }
-                        downloadFileSet.remove(downloadFile);
-
                         List<File> files = new ArrayList<>();
                         files.add(file);
                         addFilesMap(files);

@@ -94,11 +94,15 @@ public class Request {
     public Request setTimeOutSecond(Integer t) {
         int connectionRequestTimeout = t * 1000;
         RequestConfig config = RequestConfig.custom()
-                .setConnectionRequestTimeout(connectionRequestTimeout)
+                .setConnectionRequestTimeout(connectionRequestTimeout * 10)
                 .setConnectTimeout(connectionRequestTimeout)
                 .setSocketTimeout(connectionRequestTimeout).build();
 
-        client = HttpClients.custom().setDefaultRequestConfig(config).build();
+        client = HttpClients.custom()
+                .setMaxConnTotal(100)
+                .setMaxConnPerRoute(100)
+                .setDefaultRequestConfig(config)
+                .build();
         return this;
     }
 
@@ -247,7 +251,7 @@ public class Request {
     private Request(String url) {
         url += url.contains("?") ? "" : "?";
         this.url = url;
-        setTimeOutSecond(15);
+        setTimeOutSecond(30);
         addDefaultHeaders();
     }
 
@@ -453,8 +457,8 @@ public class Request {
                         HttpEntity entity = response.getEntity();
                         String contentType = response.getEntity().getContentType().getValue();
                         log.debug("响应类型 {}", contentType);
-                        if (!contentType.contains("json")&&entity.getContentLength()==-1L) {
-                            log.warn("第{}次请求 正文大小错误 重新请求 地址：{}",i + 1,method.getURI());
+                        if (!contentType.contains("json") && entity.getContentLength() == -1L) {
+                            log.warn("第{}次请求 正文大小错误 重新请求 地址：{}", i + 1, method.getURI());
                             break;
                         }
                         handleEntity(i, entity, contentType);
