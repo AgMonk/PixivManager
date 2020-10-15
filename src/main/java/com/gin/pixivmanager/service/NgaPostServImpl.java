@@ -206,7 +206,16 @@ public class NgaPostServImpl implements NgaPostServ {
      * @param name    文件名数组
      */
     private void appendPixivCard(NgaPost ngaPost, StringBuilder sb, String[] name) {
-        Set<Illustration> illList = pixivRequestServ.getIllustrationDetail(new HashSet<>(Arrays.asList(name)), false, null);
+
+        HashSet<String> idSet = new HashSet<>();
+        for (String s : name) {
+            if (s.contains("_p")) {
+                s = s.substring(0,s.indexOf("_p"));
+            }
+            idSet.add(s);
+        }
+        log.info("{}",idSet);
+        Set<Illustration> illList = pixivRequestServ.getIllustrationDetail(idSet, false, null);
         log.info("查询得到作品详情 {}条", illList.size());
 
         ngaPost.addContent("[h]").addContent("Pixiv").addContent("搬运bot酱").addContent("[/h]").addContent(NgaPost.getWrap());
