@@ -20,14 +20,14 @@ public class FanboxDownload {
     static String url = "https://api.fanbox.cc/post.listCreator?limit=300&creatorId=";
     static String cookie = "p_ab_id=1; p_ab_id_2=3; p_ab_d_id=1331259489; _ga=GA1.2.453670194.1595292215; privacy_policy_agreement=2; FANBOXSESSID=57680761_6TbM7A4j9KZGvl702plY3YiM8QnVAmWw; _gid=GA1.2.2123714715.1603070156";
     static String referer = "https://www.fanbox.cc";
-    static String rootPath = "h:/fanbox/";
+    static String rootPath = "f:/fanbox/";
 
 
     public static void main(String[] args) throws FileNotFoundException {
         String[] user = new String[]{"waero", "turisasu", "mmu2000"};
 //        String[] user = new String[]{"turisasu"};
         List<String> fileList = new ArrayList<>();
-        File psdFiles = new File("h:/fanbox/psdFiles.txt");
+        File psdFiles = new File("f:/fanbox/psdFiles.txt");
         PrintWriter pw = new PrintWriter(psdFiles);
         pw.println(cookie);
 
@@ -43,7 +43,7 @@ public class FanboxDownload {
             log.info("用户 {} 有 {} 个作品", username, items.size());
             items.forEach(item -> {
                 JSONObject card = (JSONObject) item;
-                String title = card.getString("title");
+                String title = card.getString("title").trim();
                 String type = card.getString("type");
                 String id = card.getString("id");
                 boolean isFile = "file".equals(type);
@@ -118,7 +118,7 @@ public class FanboxDownload {
 
         CountDownLatch latch = new CountDownLatch(size);
 
-        ThreadPoolTaskExecutor executor = TasksUtil.getExecutor("fanbox", 3);
+        ThreadPoolTaskExecutor executor = TasksUtil.getExecutor("fanbox", 5);
 
         for (int i = 0; i < size; i++) {
             String[] s = fileList.get(i).split(">>");
