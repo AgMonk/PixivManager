@@ -175,7 +175,7 @@ public class Request {
      * @return this
      */
     public Request setReferer(String referer) {
-        if (referer == null && "".equals(referer)) {
+        if (referer != null && !"".equals(referer)) {
             addHeader("Referer", referer);
         } else {
             int endIndex = url.indexOf("/", url.indexOf("//") + 2);
@@ -183,6 +183,23 @@ public class Request {
         }
         return this;
     }
+
+    /**
+     * 设置Origin
+     *
+     * @param origin Referer
+     * @return this
+     */
+    public Request setOrigin(String origin) {
+        if (origin != null && !"".equals(origin)) {
+            addHeader("Origin", origin);
+        } else {
+            int endIndex = url.indexOf("/", url.indexOf("//") + 2);
+            addHeader("Origin", url.substring(0, endIndex));
+        }
+        return this;
+    }
+
 
     /**
      * 添加表单键值对
@@ -389,7 +406,9 @@ public class Request {
             }
             if (file.exists() && file.length() == contentLength) {
                 log.debug("文件已存在且大小相同 跳过 {}", file);
-                progressMap.put("count", progressMap.get("size"));
+                if (progressMap != null) {
+                    progressMap.put("count", progressMap.get("size"));
+                }
             } else {
                 if (!parentFile.exists()) {
                     String parentFilePath = parentFile.getPath();
@@ -408,9 +427,19 @@ public class Request {
                 //缓存大小
                 byte[] buffer = new byte[4096];
                 int r;
+                int readLength = 0;
                 while ((r = inputStream.read(buffer)) > 0) {
                     output.write(buffer, 0, r);
-                    addProgress(r);
+                    readLength += r;
+                    if (progressMap == null) {
+                        int percent = readLength / contentLength;
+                        if (readLength / 1000 % 100 == 0) {
+                            log.info("{}/{} >> {}", readLength / 1000, contentLength / 1000, file.getPath());
+                        }
+                    } else {
+                        addProgress(r);
+
+                    }
                 }
 
                 FileOutputStream fos = new FileOutputStream(file.getPath());
@@ -487,6 +516,7 @@ public class Request {
 
             } catch (RuntimeException e) {
                 log.warn(e.getMessage());
+                e.printStackTrace();
                 break;
             } catch (SocketTimeoutException e) {
                 if (maxTimes == i + 1) {
@@ -562,5 +592,7 @@ public class Request {
     }
 
     public static void main(String[] args) {
+
+
     }
 }
