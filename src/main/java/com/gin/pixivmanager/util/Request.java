@@ -397,15 +397,15 @@ public class Request {
      * @param contentType 正文类型
      */
     private void handleEntity(int i, HttpEntity entity, String contentType) throws IOException {
-        if (contentType.startsWith("image") || contentType.endsWith("zip")) {
+        if (contentType.startsWith("image") || contentType.contains("zip") || contentType.contains("photoshop")) {
             int contentLength = Math.toIntExact(entity.getContentLength());
             File parentFile = file.getParentFile();
             if (progressMap != null) {
                 progressMap.put("size", contentLength);
                 progressMap.put("times", i + 1);
             }
-            if (file.exists() && file.length() == contentLength) {
-                log.debug("文件已存在且大小相同 跳过 {}", file);
+            if (file.exists() && (file.length() == contentLength || contentLength == -1)) {
+                log.info("文件已存在且大小相同 跳过 {}", file);
                 if (progressMap != null) {
                     progressMap.put("count", progressMap.get("size"));
                 }
@@ -432,9 +432,9 @@ public class Request {
                     output.write(buffer, 0, r);
                     readLength += r;
                     if (progressMap == null) {
-                        int percent = readLength / contentLength;
+                        long percent = readLength * 100L / contentLength;
                         if (readLength / 1000 % 100 == 0) {
-                            log.info("{}/{} >> {}", readLength / 1000, contentLength / 1000, file.getPath());
+                            log.info("{}/{} {}% >> {}", readLength / 1000, contentLength / 1000, percent, file.getPath());
                         }
                     } else {
                         addProgress(r);
@@ -462,6 +462,7 @@ public class Request {
 //                }
             }
         } else {
+            log.info("请求结果非文件: {}");
             result = EntityUtils.toString(entity, decodeEnc);
         }
 
@@ -488,7 +489,11 @@ public class Request {
                         log.debug("响应类型 {}", contentType);
                         if (!contentType.contains("json") && entity.getContentLength() == -1L) {
                             log.warn("第{}次请求 正文大小错误 重新请求 地址：{}", i + 1, method.getURI());
-                            break;
+                            if (i < 2) {
+                                break;
+                            } else {
+                                log.warn("第{}次请求 正文大小错误 强行下载  地址：{}", i + 1, method.getURI());
+                            }
                         }
                         handleEntity(i, entity, contentType);
                         return this;
