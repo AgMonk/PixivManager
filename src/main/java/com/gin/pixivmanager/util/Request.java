@@ -446,7 +446,9 @@ public class Request {
 //                }
             }
         } else {
-            log.info("请求结果非文件: {}", contentType);
+            if (!contentType.contains("json")) {
+                log.info("请求结果非文件: {}", contentType);
+            }
             result = EntityUtils.toString(entity, decodeEnc);
         }
 
