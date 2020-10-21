@@ -242,22 +242,6 @@ public class Request {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     /*基础方法*/
 
     /**
@@ -462,7 +446,7 @@ public class Request {
 //                }
             }
         } else {
-            log.info("请求结果非文件: {}",contentType);
+            log.info("请求结果非文件: {}", contentType);
             result = EntityUtils.toString(entity, decodeEnc);
         }
 

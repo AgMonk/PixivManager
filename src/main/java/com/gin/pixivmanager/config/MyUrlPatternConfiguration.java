@@ -23,6 +23,8 @@ public class MyUrlPatternConfiguration extends WebMvcConfigurationSupport {
         //硬盘文件目录
         registry.addResourceHandler("/pixiv/**").addResourceLocations("file:" + userInfo.getRootPath() + "/");
 
+        registry.addResourceHandler("/show/**").addResourceLocations("file:" + UserInfo.SHOW_PATH + "/");
+
         registry.addResourceHandler("/**").addResourceLocations("classpath:/static/");
         super.addResourceHandlers(registry);
     }

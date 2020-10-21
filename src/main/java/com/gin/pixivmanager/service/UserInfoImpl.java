@@ -96,6 +96,7 @@ public class UserInfoImpl implements UserInfo {
         return KEYWORD_LIST;
     }
 
+
     public UserInfoImpl() {
         if (!PIXIV_FILE.exists()) {
             log.info("配置文件未找到 {}", PIXIV_INFO);

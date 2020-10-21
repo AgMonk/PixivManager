@@ -12,7 +12,9 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.File;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * pixiv接口
@@ -167,6 +169,19 @@ public class PixivController {
     @RequestMapping("slowSearch")
     public void slowSearch(String keyword) {
         pixivRequestServ.slowSearch(keyword);
+    }
+
+    @RequestMapping("getShowDirs")
+    public List<String> getShowDirs() {
+        File file = new File(UserInfo.SHOW_PATH);
+        return Arrays.stream(Objects.requireNonNull(file.listFiles())).map(File::getName).collect(Collectors.toList());
+
+    }
+
+    @RequestMapping("getShowImagesPath")
+    public List<String> getShowImagesPath(String dir) {
+        File file = new File(UserInfo.SHOW_PATH + "/" + dir);
+        return Arrays.stream(Objects.requireNonNull(file.listFiles())).map(File::getName).collect(Collectors.toList());
     }
 
 

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=yes"/>
+    <meta charset="UTF-8">
+    <title>网页标题</title>
+    <script type="text/javascript" src="/js/vue.js"></script>
+    <script type="text/javascript" src="/js/axios.min.js"></script>
+    <script type="text/javascript" src="/js/queryString.js"></script>
+    <script type="text/javascript">
+
+    </script>
+    <style type="text/css">
+        .err {
+            color: red;
+        }
+
+        input {
+            width: 100px;
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <img :src="getFilePath(index)" style="width: 100%">
+</div>
+</body>
+<script>
+    const app = new Vue({
+        el: "#app",
+        data: {
+            index: 0,
+            imagePath: [],
+        },
+        methods: {
+            getImages() {
+                let dir = getQueryString("dir");
+                get("pixiv/getShowImagesPath", {dir: dir}, function (res) {
+                    _this.imagePath = res.data;
+                    console.log(res.data);
+                })
+            },
+            getFilePath(i) {
+                let dir = getQueryString("dir");
+                return "show/" + dir + "/" + this.imagePath[i];
+            }
+        },
+        created() {
+            this.getImages();
+
+            setInterval(function () {
+                _this.index++;
+                if (_this.index === _this.imagePath.length) {
+                    _this.index = 0;
+                }
+                console.log(_this.index)
+            }, 5000)
+        },
+    });
+    const _this = app;
+</script>
+</html>
+

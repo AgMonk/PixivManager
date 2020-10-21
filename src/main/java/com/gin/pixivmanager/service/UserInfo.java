@@ -9,6 +9,8 @@ import java.util.Set;
  * @author bx002
  */
 public interface UserInfo {
+    String SHOW_PATH = "f:/show";
+
     /**
      * 获取nga cookie
      *
